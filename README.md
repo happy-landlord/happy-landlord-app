@@ -1,50 +1,77 @@
-# Welcome to your Expo app 👋
+# HLApp
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Expo + Expo Router app for Happy Landlord.
 
-## Get started
+## Setup
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+### 1) Install dependencies
 
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### 2) One-time EAS setup
 
-## Learn more
+```bash
+npx eas login
+npm run eas:configure
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+This links the app to an EAS project and creates platform build credentials when needed.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Run locally
 
-## Join the community
+```bash
+npm run start
+```
 
-Join our community of developers creating universal apps.
+Useful variants:
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+npm run android
+npm run ios
+npm run web
+npm run start:clear
+```
+
+## Quality checks
+
+```bash
+npm run lint
+npm run typecheck
+```
+
+## Build and publish with EAS
+
+### Internal preview builds
+
+```bash
+npm run build:preview:android
+npm run build:preview:ios
+```
+
+### Production store builds
+
+```bash
+npm run build:production
+```
+
+### Submit latest builds to stores
+
+```bash
+npm run submit:android
+npm run submit:ios
+```
+
+### Publish OTA updates (EAS Update)
+
+```bash
+npm run publish:preview
+npm run publish:production
+```
+
+## Notes
+
+- Build profiles are defined in `eas.json`.
+- `publish:*` sends JavaScript/asset updates to the matching branch.
+- App store metadata and signing credentials must be configured in EAS before first submit.
