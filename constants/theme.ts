@@ -1,53 +1,82 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
+export const theme = {
+  colors: {
+    // Happy Landlord brand
+    bronze: "#A38449",
+    gold: "#E6CD2E",
+    charcoal: "#262626",
 
-import { Platform } from 'react-native';
+    // App base
+    background: "#FAF9F5",
+    surface: "#FFFFFF",
+    surfaceWarm: "#FFFCF5",
+    border: "#E5DDCE",
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+    // Text
+    text: "#262626",
+    textMuted: "#746B5D",
+    textLight: "#9A9387",
+    textInverse: "#FFFFFF",
+
+    // Brand actions
+    primary: "#A38449",
+    primaryDark: "#7E6638",
+    primarySoft: "#F2E9D7",
+
+    accent: "#E6CD2E",
+    accentDark: "#BFA91F",
+    accentSoft: "#FBF7D6",
+
+    // Status
+    success: "#2F7D5C",
+    successSoft: "#E7F3ED",
+
+    warning: "#B9821F",
+    warningSoft: "#FFF3D8",
+
+    danger: "#B94747",
+    dangerSoft: "#FBEAEA",
+
+    info: "#3E6F8F",
+    infoSoft: "#E8F1F6",
+
+    neutral: "#746B5D",
+    neutralSoft: "#F0EDE7",
+
+    // Key statuses
+    keyAvailable: "#2F7D5C",
+    keyCheckedOut: "#B9821F",
+    keyBooked: "#3E6F8F",
+    keyOverdue: "#B94747",
+    keyInactive: "#9A9387",
+    keyLost: "#262626",
+  },
+
+  radius: {
+    sm: 8,
+    md: 12,
+    lg: 16,
+    xl: 20,
+    card: 22,
+    pill: 999,
+  },
+
+  spacing: {
+    xs: 4,
+    sm: 8,
+    md: 16,
+    lg: 24,
+    xl: 32,
+    screen: 20,
+  },
+} as const;
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    tint: theme.colors.primary,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    tint: theme.colors.accent,
   },
-};
+} as const;
 
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-  },
-});
+export type Theme = typeof theme;
