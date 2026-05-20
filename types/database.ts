@@ -55,6 +55,7 @@ export type Database = {
           landlord_key_delivery_date: string | null;
           landlord_key_delivery_note: string | null;
           status: "active" | "inactive" | "archived";
+          unit_number: string | null;
           created_by: string | null;
           created_at: string;
           updated_at: string;
@@ -85,6 +86,7 @@ export type Database = {
           landlord_key_delivery_note?: string | null;
           status?: "active" | "inactive" | "archived";
           created_by?: string | null;
+          unit_number?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -114,8 +116,52 @@ export type Database = {
           landlord_key_delivery_note?: string | null;
           status?: "active" | "inactive" | "archived";
           created_by?: string | null;
+          unit_number?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      key_sets: {
+        Row: {
+          id: string;
+          property_id: string;
+          set_code: string;
+          set_type: "tenant" | "company" | "unused";
+          status: "available" | "reserved" | "borrowed" | "overdue" | "lost" | "tenant" | "inactive";
+          inventory: KeyInventory;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+          current_holder_id: string | null;
+        };
+        Insert: {
+          id?: string;
+          property_id: string;
+          set_code: string;
+          set_type: "tenant" | "company" | "unused";
+          status: "available" | "reserved" | "borrowed" | "overdue" | "lost" | "tenant" | "inactive";
+          inventory?: KeyInventory;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          current_holder_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          property_id?: string;
+          set_code?: string;
+          set_type?: "tenant" | "company" | "unused";
+          status?: "available" | "reserved" | "borrowed" | "overdue" | "lost" | "tenant" | "inactive";
+          inventory?: KeyInventory;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          current_holder_id?: string | null;
         };
         Relationships: [];
       };
@@ -127,7 +173,26 @@ export type Database = {
   };
 };
 
-// ── Helper types (mirrors supabase gen types output) ────────────────────────
+// ── Key inventory types (JSONB shape — managed locally) ─────────────────────
+export type KeyItemType =
+  | "main_door"
+  | "mailbox"
+  | "swipe_fob"
+  | "garage_remote"
+  | "key_card"
+  | "window"
+  | "balcony";
+
+export type KeyInventoryItem = {
+  type: KeyItemType;
+  code: string;
+  quantity: number;
+  notes?: string;
+};
+
+export type KeyInventory = {
+  items: KeyInventoryItem[];
+};
 export type Tables<T extends keyof Database["public"]["Tables"]> =
   Database["public"]["Tables"][T]["Row"];
 export type TablesInsert<T extends keyof Database["public"]["Tables"]> =
@@ -141,3 +206,6 @@ export type DbProfileUpdate = TablesUpdate<"profiles">;
 export type DbProperty = Tables<"properties">;
 export type DbPropertyInsert = TablesInsert<"properties">;
 export type DbPropertyUpdate = TablesUpdate<"properties">;
+export type DbKeySet = Tables<"key_sets">;
+export type DbKeySetInsert = TablesInsert<"key_sets">;
+export type DbKeySetUpdate = TablesUpdate<"key_sets">;

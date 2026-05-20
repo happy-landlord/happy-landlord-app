@@ -11,6 +11,7 @@ export const QUERY_KEYS = {
 	all: ["keys"] as const,
 	detail: (id: string) => ["keys", id] as const,
 	movements: ["keys", "movements"] as const,
+	byProperty: (propertyId: string) => ["keys", "property", propertyId] as const,
   },
 };
 

@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import {
   FlatList,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -15,15 +16,35 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { useProperties } from "@/hooks/useProperties";
-import type { Property } from "@/services/properties.service";
+import { useRole } from "@/hooks/useRole";
+import { RoleGate } from "@/components/RoleGate";
+import type { Property, PropertyKeyStatus } from "@/services/properties.service";
 import { theme } from "@/constants/theme";
 
-export default function PropertiesScreen() {
+type AdminTab = "available" | "landlord";
+
+const TABS: { id: AdminTab; label: string }[] = [
+  { id: "available", label: "Active" },
+  { id: "landlord", label: "Inactive" },
+];
+
+export default function KeysScreen() {
   const insets = useSafeAreaInsets();
   const [searchText, setSearchText] = useState("");
   const [debouncedSearch] = useDebounce(searchText, 350);
+  const [adminTab, setAdminTab] = useState<AdminTab>("available");
 
-  const { data, isLoading, isError, refetch } = useProperties(debouncedSearch);
+  const { isAdmin } = useRole();
+
+  // Agents always see only available keys; admins filter by selected tab.
+  // While the role is still loading we default to "available" so the query
+  // can pre-fetch; the tab strip won't render until roleLoading is false.
+  const keyStatus: PropertyKeyStatus = isAdmin ? adminTab : "available";
+
+  const { data, isLoading, isError, refetch } = useProperties({
+    search: debouncedSearch,
+    keyStatus,
+  });
 
   const renderItem = useCallback(
     ({ item }: { item: Property }) => <PropertyCard property={item} />,
@@ -39,15 +60,17 @@ export default function PropertiesScreen() {
     if (isLoading) return null;
     return (
       <EmptyState
-        title={searchText ? "No results" : "No properties yet"}
+        title={searchText ? "No results" : "No properties"}
         message={
           searchText
             ? `No properties match "${searchText}"`
-            : "Properties you add will appear here."
+            : adminTab === "landlord"
+              ? "No keys have been returned to landlords."
+              : "No keys are currently in the office."
         }
       />
     );
-  }, [isLoading, searchText]);
+  }, [isLoading, searchText, adminTab]);
 
   return (
     <View style={[styles.screen, { paddingBottom: insets.bottom }]}>
@@ -75,15 +98,37 @@ export default function PropertiesScreen() {
         )}
       </View>
 
+      {/* Admin-only tab strip — RoleGate handles the loading state so no flash */}
+      <RoleGate allow="admin">
+        <View style={styles.tabStrip}>
+          {TABS.map((tab) => {
+            const active = adminTab === tab.id;
+            return (
+              <Pressable
+                key={tab.id}
+                style={[styles.tabBtn, active && styles.tabBtnActive]}
+                onPress={() => setAdminTab(tab.id)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+              >
+                <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
+                  {tab.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </RoleGate>
+
       {/* Content */}
       {isError ? (
         <ErrorState
-          title="Couldn't load properties"
+          title="Couldn't load keys"
           message="Check your connection and try again."
           onRetry={refetch}
         />
       ) : isLoading ? (
-        <LoadingState message="Loading properties…" />
+        <LoadingState message="Loading keys…" />
       ) : (
         <FlatList
           data={data}
@@ -109,6 +154,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
+
+  // ── Search ────────────────────────────────────────────────────────────────
   searchContainer: {
     paddingHorizontal: theme.spacing.screen,
     paddingTop: theme.spacing.md,
@@ -140,6 +187,41 @@ const styles = StyleSheet.create({
     color: theme.colors.textLight,
     paddingLeft: 2,
   },
+
+  // ── Admin tabs ────────────────────────────────────────────────────────────
+  tabStrip: {
+    flexDirection: "row",
+    paddingHorizontal: theme.spacing.screen,
+    paddingVertical: theme.spacing.sm,
+    gap: theme.spacing.sm,
+    backgroundColor: theme.colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  tabBtn: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  tabBtnActive: {
+    backgroundColor: theme.colors.primarySoft,
+    borderColor: theme.colors.primary,
+  },
+  tabLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.colors.textMuted,
+  },
+  tabLabelActive: {
+    color: theme.colors.primary,
+  },
+
+  // ── List ──────────────────────────────────────────────────────────────────
   list: {
     padding: theme.spacing.screen,
     gap: theme.spacing.xs,

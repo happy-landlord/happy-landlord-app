@@ -10,9 +10,10 @@ import { useEffect, useRef } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useMutation } from "@tanstack/react-query";
-import { Settings, HelpCircle, LogOut } from "lucide-react-native";
+import { Settings, HelpCircle, LogOut, ShieldCheck } from "lucide-react-native";
 
 import { supabase } from "@/lib/supabase";
+import { RoleGate } from "@/components/RoleGate";
 import { theme } from "@/constants/theme";
 
 type MenuSheetProps = {
@@ -84,6 +85,16 @@ export function MenuSheet({ visible, onClose }: MenuSheetProps) {
         <Text style={styles.sheetTitle}>Menu</Text>
 
         <View style={styles.items}>
+          {/* Admin-only section */}
+          <RoleGate allow="admin">
+            <MenuItem
+              Icon={ShieldCheck}
+              label="Admin"
+              onPress={() => navigate("/(app)/admin")}
+            />
+            <View style={styles.divider} />
+          </RoleGate>
+
           <MenuItem
             Icon={Settings}
             label="Settings"
