@@ -3,7 +3,7 @@ import { Animated, StyleSheet } from "react-native";
 import View = Animated.View;
 
 export default function HomeScreen() {
-  return <View style={styles.container}></View>;
+  return <View style={styles.container}>Home Screen</View>;
 }
 
 const styles = StyleSheet.create({

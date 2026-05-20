@@ -1,0 +1,47 @@
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { Session } from "@supabase/supabase-js";
+
+import { QUERY_KEYS } from "@/constants/queryKeys";
+import { supabase } from "@/lib/supabase";
+
+const getSession = async (): Promise<Session | null> => {
+  const { data, error } = await supabase.auth.getSession();
+
+  if (error) {
+	throw error;
+  }
+
+  return data.session;
+};
+
+export function useSession() {
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+	queryKey: QUERY_KEYS.auth.session,
+	queryFn: getSession,
+  });
+
+  useEffect(() => {
+	const {
+	  data: { subscription },
+	} = supabase.auth.onAuthStateChange((_event, session) => {
+	  queryClient.setQueryData(QUERY_KEYS.auth.session, session);
+	});
+
+	return () => {
+	  subscription.unsubscribe();
+	};
+  }, [queryClient]);
+
+  return {
+	session: query.data ?? null,
+	isLoading: query.isLoading,
+	isFetching: query.isFetching,
+	isAuthenticated: Boolean(query.data),
+	error: query.error,
+  };
+}
+
+
