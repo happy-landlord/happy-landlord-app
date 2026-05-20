@@ -1,3 +1,4 @@
+export * from "./AddressSearch";
 export * from "./Button";
 export * from "./Card";
 export * from "./Input";
