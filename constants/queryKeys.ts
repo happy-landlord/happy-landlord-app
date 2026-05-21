@@ -25,6 +25,7 @@ export const QUERY_KEYS = {
   notifications: {
     all: (userId: string) => ["notifications", userId] as const,
     unreadCount: (userId: string) => ["notifications", userId, "unreadCount"] as const,
+    pushStatus: (userId: string) => ["notifications", userId, "pushStatus"] as const,
   },
 };
 

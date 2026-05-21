@@ -8,6 +8,7 @@ import { MailCheck } from "lucide-react-native";
 import { Logo } from "@/components/ui/Logo";
 import { theme } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
+import { useLockStore } from "@/lib/lockStore";
 
 type LoginForm = {
   email: string;
@@ -18,6 +19,7 @@ export default function LoginScreen() {
   const router = useRouter();
   const [form, setForm] = useState<LoginForm>({ email: "", password: "" });
   const [resendSent, setResendSent] = useState(false);
+  const { setSkipBiometricOnce } = useLockStore();
 
   const loginMutation = useMutation({
 	mutationFn: async ({ email, password }: LoginForm) => {
@@ -27,7 +29,12 @@ export default function LoginScreen() {
 	  });
 	  if (error) throw error;
 	},
-	onSuccess: () => setResendSent(false),
+	onSuccess: () => {
+	  // User just authenticated with email + password — no need to also ask
+	  // for biometric unlock in the same session.
+	  setSkipBiometricOnce(true);
+	  setResendSent(false);
+	},
   });
 
   const resendMutation = useMutation({

@@ -19,6 +19,7 @@ import {
 } from "lucide-react-native";
 
 import { supabase } from "@/lib/supabase";
+import { useLockStore } from "@/lib/lockStore";
 import { RoleGate } from "@/components/RoleGate";
 import { theme } from "@/constants/theme";
 import { usePendingRequests } from "@/hooks/useAgentRequests";
@@ -60,6 +61,8 @@ export function MenuSheet({ visible, onClose }: MenuSheetProps) {
     onSuccess: () => {
       // Clear all cached data so the next user starts fresh
       queryClient.clear();
+      // Reset biometric lock so the next login goes through the normal flow
+      useLockStore.getState().reset();
     },
   });
 

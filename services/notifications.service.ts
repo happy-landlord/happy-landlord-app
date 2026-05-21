@@ -125,6 +125,52 @@ export async function markNotificationRead(notificationId: string): Promise<void
   if (error) throw error;
 }
 
+export async function markAllNotificationsRead(userId: string): Promise<void> {
+  const { error } = await supabase
+    .from("notifications")
+    .update({ read_at: new Date().toISOString() } as never)
+    .eq("recipient_user_id", userId)
+    .is("read_at", null);
+
+  if (error) throw error;
+}
+
+export type PushStatus = {
+  /** OS-level permission status */
+  permissionStatus: Notifications.PermissionStatus;
+  /** True when the user has at least one active token registered in the DB */
+  hasActiveToken: boolean;
+  /** Derived: push is fully on when permission granted AND an active token exists */
+  pushEnabled: boolean;
+};
+
+export async function fetchPushStatus(userId: string): Promise<PushStatus> {
+  const [{ status }, { count }] = await Promise.all([
+    Notifications.getPermissionsAsync(),
+    supabase
+      .from("user_push_tokens")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("is_active", true),
+  ]);
+
+  const hasActiveToken = (count ?? 0) > 0;
+  return {
+    permissionStatus: status,
+    hasActiveToken,
+    pushEnabled: status === "granted" && hasActiveToken,
+  };
+}
+
+export async function deactivateAllPushTokens(userId: string): Promise<void> {
+  const { error } = await supabase
+    .from("user_push_tokens")
+    .update({ is_active: false } as never)
+    .eq("user_id", userId);
+
+  if (error) throw error;
+}
+
 /**
  * Calls the `send-push-notification` Supabase Edge Function.
  * The Edge Function is responsible for building the privacy-safe push payload

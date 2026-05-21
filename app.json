@@ -40,7 +40,13 @@
         }
       ],
       "expo-notifications",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Happy Landlord uses Face ID to let you unlock the app quickly and securely."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

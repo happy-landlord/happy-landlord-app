@@ -1,8 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { Redirect, Stack, useRouter, useSegments } from 'expo-router';
 
 import { AppHeader } from '@/components/AppHeader';
+import { BiometricEnablePrompt } from '@/components/BiometricEnablePrompt';
+import { LockScreen } from '@/components/LockScreen';
 import { useSession } from '@/hooks/useSession';
 import { useProfile } from '@/hooks/useProfile';
 import {
@@ -12,22 +14,79 @@ import {
   useForegroundNotificationListener,
 } from '@/hooks/useNotifications';
 import { theme } from '@/constants/theme';
+import { useLockStore } from '@/lib/lockStore';
+import {
+  getBiometricCapability,
+  getBiometricLabel,
+  hasBiometricDecision,
+  isBiometricEnabled,
+  setBiometricEnabled,
+} from '@/services/biometric.service';
 
 export default function AppLayout() {
-  const { isLoading: sessionLoading, isAuthenticated } = useSession();
+  const { isLoading: sessionLoading, isAuthenticated, session } = useSession();
   const { data: profile, isLoading: profileLoading } = useProfile();
   const userId = profile?.id;
   const router = useRouter();
   const segments = useSegments();
 
+  // ── Biometric lock state ────────────────────────────────────────────────
+  const lockStore = useLockStore();
+  const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
+  const [promptBiometricLabel, setPromptBiometricLabel] = useState("Fingerprint");
+
+  // Step 1: Once we have a userId, read SecureStore to decide whether to lock.
+  // Skip the gate when the user *just* authenticated via email/password.
+  useEffect(() => {
+    if (!userId || lockStore.initialized) return;
+
+    if (lockStore.skipBiometricOnce) {
+      // Fresh login — biometric already proven via password; don't lock again.
+      // Consume the flag immediately so next cold-start behaves normally.
+      useLockStore.getState().setSkipBiometricOnce(false);
+      lockStore.initialize(false);
+      return;
+    }
+
+    isBiometricEnabled(userId).then((enabled) => {
+      lockStore.initialize(enabled);
+    });
+  }, [userId, lockStore.initialized, lockStore]);
+
+  // Step 2: After lock is resolved and app is unlocked, check if we should
+  //         show the first-time "Enable biometrics?" prompt.
+  useEffect(() => {
+    if (!userId || !lockStore.initialized || lockStore.isLocked) return;
+
+    async function checkPrompt() {
+      const alreadyDecided = await hasBiometricDecision(userId!);
+      if (alreadyDecided) return;
+
+      const capability = await getBiometricCapability();
+      if (!capability.isAvailable) return;
+
+      setPromptBiometricLabel(getBiometricLabel(capability.type));
+      setShowBiometricPrompt(true);
+    }
+
+    checkPrompt();
+  }, [userId, lockStore.initialized, lockStore.isLocked]);
+
+  // ── Notification hooks ──────────────────────────────────────────────────
   useRegisterPushToken(isAuthenticated ? userId : undefined);
   useNotificationRealtime(isAuthenticated ? userId : undefined);
   useForegroundNotificationListener(isAuthenticated ? userId : undefined);
   useNotificationResponseNavigation();
 
-  const isLoading = sessionLoading || (isAuthenticated && profileLoading);
+  // ── Loading ─────────────────────────────────────────────────────────────
+  const isLockCheckPending =
+    isAuthenticated && Boolean(userId) && !lockStore.initialized;
 
-  // Last segment tells us which screen is currently active inside (app)
+  const isLoading =
+    sessionLoading ||
+    (isAuthenticated && profileLoading) ||
+    isLockCheckPending;
+
   const currentScreen = segments[segments.length - 1] as string | undefined;
   const isOnStatusScreen = currentScreen === 'pending' || currentScreen === 'rejected';
 
@@ -42,8 +101,6 @@ export default function AppLayout() {
         profile.status === 'inactive');
 
     if (isOnStatusScreen) {
-      // If we're on a status screen but the profile no longer requires it
-      // (e.g. admin account, or agent just got approved), escape to the app.
       if (!needsStatusScreen) {
         router.replace('/(app)/(tabs)');
       }
@@ -71,20 +128,47 @@ export default function AppLayout() {
     return <Redirect href="/(auth)/login" />;
   }
 
+  // ── Lock gate: render only the lock screen until the user authenticates ─
+  if (lockStore.isLocked) {
+    return (
+      <LockScreen
+        userName={profile?.full_name}
+        userEmail={session?.user.email}
+      />
+    );
+  }
+
   return (
-    <Stack screenOptions={{ header: () => <AppHeader /> }}>
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="scan" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
-      <Stack.Screen name="properties/[id]" />
-      <Stack.Screen name="keys/[id]" />
-      <Stack.Screen name="keys/scan" options={{ headerShown: false }} />
-      <Stack.Screen name="checkouts/[id]" />
-      <Stack.Screen name="requests" options={{ title: 'Agent Requests' }} />
-      <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
-      <Stack.Screen name="settings" options={{ title: 'Settings' }} />
-      <Stack.Screen name="help" options={{ title: 'Help' }} />
-      <Stack.Screen name="pending" options={{ headerShown: false }} />
-      <Stack.Screen name="rejected" options={{ headerShown: false }} />
-    </Stack>
+    <>
+      <Stack screenOptions={{ header: () => <AppHeader /> }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="scan" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="properties/[id]" />
+        <Stack.Screen name="keys/[id]" />
+        <Stack.Screen name="keys/scan" options={{ headerShown: false }} />
+        <Stack.Screen name="checkouts/[id]" />
+        <Stack.Screen name="requests" options={{ title: 'Agent Requests' }} />
+        <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
+        <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+        <Stack.Screen name="help" options={{ title: 'Help' }} />
+        <Stack.Screen name="pending" options={{ headerShown: false }} />
+        <Stack.Screen name="rejected" options={{ headerShown: false }} />
+      </Stack>
+
+      {/* First-login biometric enrolment prompt */}
+      <BiometricEnablePrompt
+        visible={showBiometricPrompt}
+        biometricLabel={promptBiometricLabel}
+        onEnable={async () => {
+          if (userId) await setBiometricEnabled(userId, true);
+          setShowBiometricPrompt(false);
+        }}
+        onDismiss={async () => {
+          // "Maybe later" — store the decision so we don't ask again
+          if (userId) await setBiometricEnabled(userId, false);
+          setShowBiometricPrompt(false);
+        }}
+      />
+    </>
   );
 }

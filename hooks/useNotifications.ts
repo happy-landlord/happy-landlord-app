@@ -5,16 +5,21 @@ import { useRouter } from "expo-router";
 
 import { QUERY_KEYS } from "@/constants/queryKeys";
 import { supabase } from "@/lib/supabase";
+import { useLockStore } from "@/lib/lockStore";
 import {
   createNotification,
+  deactivateAllPushTokens,
   fetchNotifications,
+  fetchPushStatus,
   fetchUnreadNotificationCount,
   getNotificationTargetPath,
+  markAllNotificationsRead,
   markNotificationRead,
   requestExpoPushToken,
   saveUserPushToken,
   sendPushNotification,
   type AppNotification,
+  type PushStatus,
 } from "@/services/notifications.service";
 
 export function useNotifications(userId: string | undefined) {
@@ -159,9 +164,13 @@ export function useNotificationRealtime(userId: string | undefined) {
 
 export function useNotificationResponseNavigation() {
   const router = useRouter();
+  const isLocked = useLockStore((state) => state.isLocked);
 
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      // Never navigate into the app while the biometric lock screen is showing
+      if (isLocked) return;
+
       const path = getNotificationTargetPath(
         response.notification.request.content.data ?? null
       );
@@ -174,7 +183,7 @@ export function useNotificationResponseNavigation() {
     });
 
     return () => subscription.remove();
-  }, [router]);
+  }, [router, isLocked]);
 }
 
 /**
@@ -223,6 +232,68 @@ export function useAdminSendTestNotification() {
         console.warn("Push dispatch failed (notification row was created):", pushError);
       }
       return notificationId;
+    },
+  });
+}
+
+// ── Push settings hooks ──────────────────────────────────────────────────────
+
+/** Fetches OS permission status + whether the user has an active DB token. */
+export function usePushStatus(userId: string | undefined) {
+  return useQuery<PushStatus, Error>({
+    queryKey: userId
+      ? QUERY_KEYS.notifications.pushStatus(userId)
+      : ["notifications", "none", "pushStatus"],
+    queryFn: () => fetchPushStatus(userId!),
+    enabled: Boolean(userId),
+    staleTime: 0, // always re-check on focus so it reflects system changes
+  });
+}
+
+/**
+ * Toggles push notifications on/off for the current user.
+ *   ON  → request OS permission if needed, then upsert active token
+ *   OFF → deactivate all tokens in DB
+ */
+export function useTogglePush(userId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, boolean>({
+    mutationFn: async (enable) => {
+      if (!userId) return;
+      if (enable) {
+        const token = await requestExpoPushToken();
+        if (token) {
+          await saveUserPushToken(userId, token);
+        }
+      } else {
+        await deactivateAllPushTokens(userId);
+      }
+    },
+    onSettled: () => {
+      if (!userId) return;
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.notifications.pushStatus(userId),
+      });
+    },
+  });
+}
+
+/** Marks every unread notification for this user as read. */
+export function useMarkAllNotificationsRead(userId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, void>({
+    mutationFn: () => {
+      if (!userId) return Promise.resolve();
+      return markAllNotificationsRead(userId);
+    },
+    onSuccess: () => {
+      if (!userId) return;
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notifications.all(userId) });
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.notifications.unreadCount(userId),
+      });
     },
   });
 }
