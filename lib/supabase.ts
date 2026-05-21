@@ -25,6 +25,6 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     storage: authStorage,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    detectSessionInUrl: false, // handled manually via deep link listener
   },
 });

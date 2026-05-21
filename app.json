@@ -39,6 +39,7 @@
           }
         }
       ],
+      "expo-notifications",
       "expo-secure-store"
     ],
     "experiments": {

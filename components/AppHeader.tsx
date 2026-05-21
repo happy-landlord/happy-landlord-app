@@ -7,6 +7,7 @@ import { useNavigationState } from "@react-navigation/native";
 
 import { Logo } from "@/components/ui/Logo";
 import { MenuSheet } from "@/components/MenuSheet";
+import { NotificationBell } from "@/components/NotificationBell";
 import { theme } from "@/constants/theme";
 
 export function AppHeader() {
@@ -37,16 +38,20 @@ export function AppHeader() {
             </View>
           )}
 
-          {/* Right — hamburger menu */}
-          <Pressable
-            onPress={() => setMenuOpen(true)}
-            style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Open menu"
-          >
-            <Menu size={22} color={theme.colors.text} strokeWidth={1.8} />
-          </Pressable>
+          <View style={styles.actions}>
+            <NotificationBell />
+
+            {/* Right — hamburger menu */}
+            <Pressable
+              onPress={() => setMenuOpen(true)}
+              style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Open menu"
+            >
+              <Menu size={22} color={theme.colors.text} strokeWidth={1.8} />
+            </Pressable>
+          </View>
         </View>
       </View>
 
@@ -71,6 +76,11 @@ const styles = StyleSheet.create({
   logoWrap: {
     borderRadius: theme.radius.sm,
     overflow: "hidden",
+  },
+  actions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
   },
   iconBtn: {
     width: 38,

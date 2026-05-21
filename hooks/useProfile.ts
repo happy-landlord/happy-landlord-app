@@ -9,7 +9,7 @@ export function useProfile() {
   const userId = session?.user.id;
 
   return useQuery({
-    queryKey: QUERY_KEYS.auth.profile,
+    queryKey: userId ? QUERY_KEYS.auth.profile(userId) : ["auth", "profile", "none"],
     queryFn: () => fetchProfile(userId!),
     enabled: Boolean(userId),
     staleTime: 1000 * 60 * 5,
@@ -24,7 +24,9 @@ export function useUpdateProfile() {
   return useMutation({
     mutationFn: (edits: ProfileEdits) => updateProfile(userId!, edits),
     onSuccess: (updated) => {
-      queryClient.setQueryData(QUERY_KEYS.auth.profile, updated);
+      if (userId) {
+        queryClient.setQueryData(QUERY_KEYS.auth.profile(userId), updated);
+      }
     },
   });
 }

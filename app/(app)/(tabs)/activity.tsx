@@ -330,6 +330,7 @@ export default function ActivityScreen() {
         ListEmptyComponent={
           !isError ? (
             <EmptyState
+              Icon={FileText}
               title={selectedPlace ? "No results" : "No activity yet"}
               message={
                 selectedPlace
@@ -372,6 +373,7 @@ const styles = StyleSheet.create({
   },
   listEmpty: {
     flexGrow: 1,
+    justifyContent: "center",
   },
   sectionHeader: {
     fontSize: 13,

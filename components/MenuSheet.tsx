@@ -9,12 +9,19 @@ import {
 import { useEffect, useRef } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useMutation } from "@tanstack/react-query";
-import { Settings, HelpCircle, LogOut, ShieldCheck } from "lucide-react-native";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Settings,
+  HelpCircle,
+  LogOut,
+  ShieldCheck,
+  ClipboardList,
+} from "lucide-react-native";
 
 import { supabase } from "@/lib/supabase";
 import { RoleGate } from "@/components/RoleGate";
 import { theme } from "@/constants/theme";
+import { usePendingRequests } from "@/hooks/useAgentRequests";
 
 type MenuSheetProps = {
   visible: boolean;
@@ -24,7 +31,9 @@ type MenuSheetProps = {
 export function MenuSheet({ visible, onClose }: MenuSheetProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const slideAnim = useRef(new Animated.Value(300)).current;
+  const { data: pendingRequests } = usePendingRequests();
 
   useEffect(() => {
     if (visible) {
@@ -47,6 +56,10 @@ export function MenuSheet({ visible, onClose }: MenuSheetProps) {
     mutationFn: async () => {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+    },
+    onSuccess: () => {
+      // Clear all cached data so the next user starts fresh
+      queryClient.clear();
     },
   });
 
@@ -93,6 +106,13 @@ export function MenuSheet({ visible, onClose }: MenuSheetProps) {
               onPress={() => navigate("/(app)/admin")}
             />
             <View style={styles.divider} />
+            <MenuItem
+              Icon={ClipboardList}
+              label="Agent Requests"
+              onPress={() => navigate("/(app)/requests")}
+              badge={pendingRequests?.length ?? 0}
+            />
+            <View style={styles.divider} />
           </RoleGate>
 
           <MenuItem
@@ -126,9 +146,17 @@ type MenuItemProps = {
   onPress: () => void;
   danger?: boolean;
   loading?: boolean;
+  badge?: number;
 };
 
-function MenuItem({ Icon, label, onPress, danger, loading }: MenuItemProps) {
+function MenuItem({
+  Icon,
+  label,
+  onPress,
+  danger,
+  loading,
+  badge,
+}: MenuItemProps) {
   const color = danger ? theme.colors.danger : theme.colors.text;
   return (
     <Pressable
@@ -137,9 +165,16 @@ function MenuItem({ Icon, label, onPress, danger, loading }: MenuItemProps) {
       style={({ pressed }) => [styles.item, pressed && styles.itemPressed]}
     >
       <Icon size={20} color={color} strokeWidth={1.8} />
-      <Text style={[styles.itemLabel, danger && styles.itemLabelDanger]}>
+      <Text
+        style={[styles.itemLabel, danger && styles.itemLabelDanger]}
+      >
         {loading ? "Signing out…" : label}
       </Text>
+      {badge != null && badge > 0 && (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{badge > 99 ? "99+" : badge}</Text>
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -202,9 +237,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: theme.colors.text,
     fontWeight: "500",
+    flex: 1,
   },
   itemLabelDanger: {
     color: theme.colors.danger,
+  },
+  badge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: theme.colors.danger,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 5,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: theme.colors.surface,
   },
   divider: {
     height: 1,
@@ -212,4 +262,3 @@ const styles = StyleSheet.create({
     marginLeft: theme.spacing.md + 20 + theme.spacing.md,
   },
 });
-

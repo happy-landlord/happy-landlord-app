@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useMutation } from "@tanstack/react-query";
 import { Button, Card, HelperText, Text, TextInput } from "react-native-paper";
+import { useRouter } from "expo-router";
+import { MailCheck } from "lucide-react-native";
 
 import { Logo } from "@/components/ui/Logo";
 import { theme } from "@/constants/theme";
@@ -13,7 +15,9 @@ type LoginForm = {
 };
 
 export default function LoginScreen() {
+  const router = useRouter();
   const [form, setForm] = useState<LoginForm>({ email: "", password: "" });
+  const [resendSent, setResendSent] = useState(false);
 
   const loginMutation = useMutation({
 	mutationFn: async ({ email, password }: LoginForm) => {
@@ -21,16 +25,30 @@ export default function LoginScreen() {
 		email: email.trim(),
 		password,
 	  });
-
-	  if (error) {
-		throw error;
-	  }
+	  if (error) throw error;
 	},
+	onSuccess: () => setResendSent(false),
   });
 
-  const canSubmit = useMemo(() => {
-	return form.email.trim().length > 0 && form.password.length > 0 && !loginMutation.isPending;
-  }, [form.email, form.password, loginMutation.isPending]);
+  const resendMutation = useMutation({
+	mutationFn: async () => {
+	  const { error } = await supabase.auth.resend({
+		type: "signup",
+		email: form.email.trim(),
+	  });
+	  if (error) throw error;
+	},
+	onSuccess: () => setResendSent(true),
+  });
+
+  const isEmailNotConfirmed =
+	loginMutation.error instanceof Error &&
+	loginMutation.error.message.toLowerCase().includes("email not confirmed");
+
+  const canSubmit = useMemo(
+	() => form.email.trim().length > 0 && form.password.length > 0 && !loginMutation.isPending,
+	[form.email, form.password, loginMutation.isPending]
+  );
 
   return (
 	<KeyboardAvoidingView
@@ -49,7 +67,6 @@ export default function LoginScreen() {
 		  <View style={styles.logoWrap}>
 			<Logo size={86} />
 		  </View>
-
 		  <Text variant="labelLarge" style={styles.eyebrow}>
 			HAPPY LANDLORD
 		  </Text>
@@ -104,14 +121,40 @@ export default function LoginScreen() {
 			  value={form.password}
 			/>
 
-			<HelperText
-			  padding="none"
-			  style={[styles.errorText, !loginMutation.error && styles.errorTextHidden]}
-			  type="error"
-			  visible={Boolean(loginMutation.error)}
-			>
-			  {loginMutation.error instanceof Error ? loginMutation.error.message : "Sign in failed."}
-			</HelperText>
+			{/* Email not confirmed banner */}
+			{isEmailNotConfirmed ? (
+			  <View style={styles.verifyBanner}>
+				<MailCheck size={20} color={theme.colors.info} strokeWidth={2} />
+				<View style={styles.verifyTextWrap}>
+				  <Text style={styles.verifyTitle}>Email not verified</Text>
+				  <Text style={styles.verifyBody}>
+					Check your inbox and click the verification link before signing in.
+				  </Text>
+				  {resendSent ? (
+					<Text style={styles.resendSent}>Verification email sent ✓</Text>
+				  ) : (
+					<Pressable
+					  onPress={() => resendMutation.mutate()}
+					  disabled={resendMutation.isPending}
+					  style={({ pressed }) => pressed && { opacity: 0.6 }}
+					>
+					  <Text style={styles.resendLink}>
+						{resendMutation.isPending ? "Sending…" : "Resend verification email"}
+					  </Text>
+					</Pressable>
+				  )}
+				</View>
+			  </View>
+			) : (
+			  <HelperText
+				padding="none"
+				style={[styles.errorText, !loginMutation.error && styles.errorTextHidden]}
+				type="error"
+				visible={Boolean(loginMutation.error)}
+			  >
+				{loginMutation.error instanceof Error ? loginMutation.error.message : "Sign in failed."}
+			  </HelperText>
+			)}
 
 			<Button
 			  buttonColor={theme.colors.primary}
@@ -132,6 +175,18 @@ export default function LoginScreen() {
 			  <Text variant="bodySmall" style={styles.securityText}>
 				Protected access for your property portfolio
 			  </Text>
+			</View>
+
+			<View style={styles.signUpRow}>
+			  <Text variant="bodySmall" style={styles.signUpPrompt}>
+				New to Happy Landlord?
+			  </Text>
+			  <Pressable
+				onPress={() => router.push("/(auth)/signup")}
+				style={({ pressed }) => pressed && { opacity: 0.6 }}
+			  >
+				<Text style={styles.signUpLink}>Create account</Text>
+			  </Pressable>
 			</View>
 		  </Card.Content>
 		</Card>
@@ -266,6 +321,54 @@ const styles = StyleSheet.create({
 	color: theme.colors.textMuted,
 	textAlign: "center",
   },
+  signUpRow: {
+	flexDirection: "row",
+	alignItems: "center",
+	justifyContent: "center",
+	gap: theme.spacing.xs,
+	paddingTop: theme.spacing.xs,
+  },
+  signUpPrompt: {
+	color: theme.colors.textMuted,
+  },
+  signUpLink: {
+	fontSize: 13,
+	color: theme.colors.primary,
+	fontWeight: "700",
+  },
+  verifyBanner: {
+	flexDirection: "row",
+	gap: theme.spacing.sm,
+	backgroundColor: theme.colors.infoSoft,
+	borderRadius: theme.radius.md,
+	borderWidth: 1,
+	borderColor: theme.colors.info + "40",
+	padding: theme.spacing.md,
+  },
+  verifyTextWrap: {
+	flex: 1,
+	gap: theme.spacing.xs,
+  },
+  verifyTitle: {
+	fontSize: 14,
+	fontWeight: "700",
+	color: theme.colors.info,
+  },
+  verifyBody: {
+	fontSize: 13,
+	color: theme.colors.text,
+	lineHeight: 18,
+  },
+  resendLink: {
+	fontSize: 13,
+	color: theme.colors.primary,
+	fontWeight: "600",
+	marginTop: 2,
+  },
+  resendSent: {
+	fontSize: 13,
+	color: theme.colors.success,
+	fontWeight: "600",
+	marginTop: 2,
+  },
 });
-
-

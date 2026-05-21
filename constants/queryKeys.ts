@@ -1,7 +1,7 @@
 export const QUERY_KEYS = {
   auth: {
 	session: ["auth", "session"] as const,
-	profile: ["auth", "profile"] as const,
+	profile: (userId: string) => ["auth", "profile", userId] as const,
   },
   properties: {
 	all: ["properties"] as const,
@@ -16,6 +16,15 @@ export const QUERY_KEYS = {
   activity: {
     all: ["activity", "all"] as const,
     mine: (userId: string) => ["activity", "mine", userId] as const,
+  },
+  requests: {
+    all: ["requests"] as const,
+    pending: ["requests", "pending"] as const,
+    mine: ["requests", "mine"] as const,
+  },
+  notifications: {
+    all: (userId: string) => ["notifications", userId] as const,
+    unreadCount: (userId: string) => ["notifications", userId, "unreadCount"] as const,
   },
 };
 
