@@ -13,6 +13,10 @@ export const QUERY_KEYS = {
 	movements: ["keys", "movements"] as const,
 	byProperty: (propertyId: string) => ["keys", "property", propertyId] as const,
   },
+  activity: {
+    all: ["activity", "all"] as const,
+    mine: (userId: string) => ["activity", "mine", userId] as const,
+  },
 };
 
 

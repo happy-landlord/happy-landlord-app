@@ -1,20 +1,22 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   FlatList,
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Search } from "lucide-react-native";
-import { useDebounce } from "use-debounce";
 
 import { PropertyCard } from "@/components/PropertyCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingState } from "@/components/ui/LoadingState";
+import {
+  AddressSearchBar,
+  type AddressSearchBarRef,
+} from "@/components/ui/AddressSearchBar";
+import type { PlaceResult } from "@/components/ui/AddressSearch";
 import { useProperties } from "@/hooks/useProperties";
 import { useRole } from "@/hooks/useRole";
 import { RoleGate } from "@/components/RoleGate";
@@ -30,21 +32,17 @@ const TABS: { id: AdminTab; label: string }[] = [
 
 export default function KeysScreen() {
   const insets = useSafeAreaInsets();
-  const [searchText, setSearchText] = useState("");
-  const [debouncedSearch] = useDebounce(searchText, 350);
+  const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
   const [adminTab, setAdminTab] = useState<AdminTab>("available");
+  const searchRef = useRef<AddressSearchBarRef>(null);
 
   const { isAdmin } = useRole();
-
-  // Agents always see only available keys; admins filter by selected tab.
-  // While the role is still loading we default to "available" so the query
-  // can pre-fetch; the tab strip won't render until roleLoading is false.
   const keyStatus: PropertyKeyStatus = isAdmin ? adminTab : "available";
 
-  const { data, isLoading, isError, refetch } = useProperties({
-    search: debouncedSearch,
-    keyStatus,
-  });
+  // Derive a plain search string from the selected place for the server query
+  const search = selectedPlace?.suburb ?? selectedPlace?.description.split(",")[0].trim() ?? "";
+
+  const { data, isLoading, isError, refetch } = useProperties({ search, keyStatus });
 
   const renderItem = useCallback(
     ({ item }: { item: Property }) => <PropertyCard property={item} />,
@@ -60,43 +58,30 @@ export default function KeysScreen() {
     if (isLoading) return null;
     return (
       <EmptyState
-        title={searchText ? "No results" : "No properties"}
+        title={selectedPlace ? "No results" : "No properties"}
         message={
-          searchText
-            ? `No properties match "${searchText}"`
+          selectedPlace
+            ? `No properties found in "${selectedPlace.suburb ?? selectedPlace.description.split(",")[0].trim()}"`
             : adminTab === "landlord"
               ? "No keys have been returned to landlords."
               : "No keys are currently in the office."
         }
       />
     );
-  }, [isLoading, searchText, adminTab]);
+  }, [isLoading, selectedPlace, adminTab]);
 
   return (
     <View style={[styles.screen, { paddingBottom: insets.bottom }]}>
-      {/* Search bar */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Search size={18} color={theme.colors.textMuted} strokeWidth={1.8} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search by address, suburb or postcode…"
-            placeholderTextColor={theme.colors.textLight}
-            value={searchText}
-            onChangeText={setSearchText}
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="search"
-            clearButtonMode="while-editing"
-          />
-        </View>
-
-        {!isLoading && data && (
-          <Text style={styles.resultCount}>
-            {data.length} {data.length === 1 ? "property" : "properties"}
-          </Text>
-        )}
-      </View>
+      {/* Address search */}
+      <AddressSearchBar
+        ref={searchRef}
+        placeholder="Search by address or suburb…"
+        selectedPlace={selectedPlace}
+        resultCount={data?.length ?? 0}
+        resultLabel={["property", "properties"]}
+        onSelect={setSelectedPlace}
+        onClear={() => { setSelectedPlace(null); searchRef.current?.clear(); }}
+      />
 
       {/* Admin-only tab strip — RoleGate handles the loading state so no flash */}
       <RoleGate allow="admin">
@@ -155,38 +140,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
 
-  // ── Search ────────────────────────────────────────────────────────────────
-  searchContainer: {
-    paddingHorizontal: theme.spacing.screen,
-    paddingTop: theme.spacing.md,
-    paddingBottom: theme.spacing.sm,
-    gap: theme.spacing.xs,
-    backgroundColor: theme.colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  searchBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.lg,
-    paddingHorizontal: theme.spacing.md,
-    minHeight: 48,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: theme.colors.text,
-    paddingVertical: 0,
-  },
-  resultCount: {
-    fontSize: 12,
-    color: theme.colors.textLight,
-    paddingLeft: 2,
-  },
 
   // ── Admin tabs ────────────────────────────────────────────────────────────
   tabStrip: {

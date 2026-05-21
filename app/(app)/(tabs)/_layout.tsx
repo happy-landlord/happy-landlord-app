@@ -10,7 +10,6 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="index" />
       <Tabs.Screen name="properties" />
-      <Tabs.Screen name="scan" />
       <Tabs.Screen name="activity" />
       <Tabs.Screen name="profile" />
     </Tabs>

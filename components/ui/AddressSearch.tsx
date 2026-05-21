@@ -1,5 +1,9 @@
+import { forwardRef, useImperativeHandle, useRef } from "react";
 import { StyleSheet } from "react-native";
-import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
+import {
+  GooglePlacesAutocomplete,
+  type GooglePlacesAutocompleteRef,
+} from "react-native-google-places-autocomplete";
 
 import { theme } from "@/constants/theme";
 
@@ -22,67 +26,79 @@ type AddressSearchProps = {
   label?: string;
 };
 
+export type AddressSearchRef = {
+  clear: () => void;
+};
+
 const API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY ?? "";
 
-export function AddressSearch({
-  onSelect,
-  placeholder = "Search address…",
-}: AddressSearchProps) {
-  return (
-    <GooglePlacesAutocomplete
-      placeholder={placeholder}
-      fetchDetails
-      enablePoweredByContainer={false}
-      query={{
-        key: API_KEY,
-        language: "en",
-        components: "country:au",
-        types: "address",
-      }}
-      onPress={(data, details) => {
-        const components = details?.address_components ?? [];
+export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
+  function AddressSearch({ onSelect, placeholder = "Search address…" }, ref) {
+    const placesRef = useRef<GooglePlacesAutocompleteRef>(null);
 
-        const get = (...types: string[]) =>
-          components.find((c) =>
-            types.every((t) => (c.types as string[]).includes(t))
-          )?.long_name;
+    useImperativeHandle(ref, () => ({
+      clear: () => {
+        placesRef.current?.clear();
+      },
+    }));
 
-        const getShort = (...types: string[]) =>
-          components.find((c) =>
-            types.every((t) => (c.types as string[]).includes(t))
-          )?.short_name;
+    return (
+      <GooglePlacesAutocomplete
+        ref={placesRef}
+        placeholder={placeholder}
+        fetchDetails
+        enablePoweredByContainer={false}
+        query={{
+          key: API_KEY,
+          language: "en",
+          components: "country:au",
+          types: "address",
+        }}
+        onPress={(data, details) => {
+          const components = details?.address_components ?? [];
 
-        onSelect({
-          placeId: data.place_id,
-          description: data.description,
-          streetNumber: get("street_number"),
-          street: get("route"),
-          suburb: get("locality"),
-          state: getShort("administrative_area_level_1"),
-          postcode: get("postal_code"),
-          country: get("country"),
-          lat: details?.geometry.location.lat,
-          lng: details?.geometry.location.lng,
-        });
-      }}
-      styles={{
-        container: styles.container,
-        textInputContainer: styles.textInputContainer,
-        textInput: styles.textInput,
-        listView: styles.listView,
-        row: styles.row,
-        description: styles.description,
-        separator: styles.separator,
-        poweredContainer: { display: "none" },
-      }}
-      textInputProps={{
-        placeholderTextColor: theme.colors.textLight,
-        selectionColor: theme.colors.primary,
-      }}
-      keyboardShouldPersistTaps="handled"
-    />
-  );
-}
+          const get = (...types: string[]) =>
+            components.find((c) =>
+              types.every((t) => (c.types as string[]).includes(t))
+            )?.long_name;
+
+          const getShort = (...types: string[]) =>
+            components.find((c) =>
+              types.every((t) => (c.types as string[]).includes(t))
+            )?.short_name;
+
+          onSelect({
+            placeId: data.place_id,
+            description: data.description,
+            streetNumber: get("street_number"),
+            street: get("route"),
+            suburb: get("locality"),
+            state: getShort("administrative_area_level_1"),
+            postcode: get("postal_code"),
+            country: get("country"),
+            lat: details?.geometry.location.lat,
+            lng: details?.geometry.location.lng,
+          });
+        }}
+        styles={{
+          container: styles.container,
+          textInputContainer: styles.textInputContainer,
+          textInput: styles.textInput,
+          listView: styles.listView,
+          row: styles.row,
+          description: styles.description,
+          separator: styles.separator,
+          poweredContainer: { display: "none" },
+        }}
+        textInputProps={{
+          placeholderTextColor: theme.colors.textLight,
+          selectionColor: theme.colors.primary,
+        }}
+        keyboardShouldPersistTaps="handled"
+      />
+    );
+  }
+);
 
 const styles = StyleSheet.create({
   container: {

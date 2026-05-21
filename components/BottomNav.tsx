@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type React from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { usePathname, useRouter } from "expo-router";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import {
   Home,
@@ -16,64 +17,99 @@ const TAB_CONFIG: {
   name: string;
   label: string;
   Icon: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
-  isScan?: boolean;
 }[] = [
   { name: "index", label: "Home", Icon: Home },
   { name: "properties", label: "Keys", Icon: KeyRound },
-  { name: "scan", label: "Scan", Icon: ScanLine, isScan: true },
   { name: "activity", label: "Activity", Icon: History },
   { name: "profile", label: "Profile", Icon: User },
 ];
 
 export function BottomNav({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Map tab names to their route index so focus detection still works
+  const tabIndexMap = Object.fromEntries(
+    state.routes.map((r, i) => [r.name, i])
+  );
 
   return (
     <View style={[styles.wrapper, { paddingBottom: insets.bottom }]}>
+
       <View style={styles.bar}>
-        {TAB_CONFIG.map((tab, index) => {
-          const isFocused = state.index === index;
+        {/* First two tabs */}
+        {TAB_CONFIG.slice(0, 2).map((tab) => {
+          const routeIndex = tabIndexMap[tab.name] ?? -1;
+          const isFocused = state.index === routeIndex;
           const { Icon } = tab;
+          const color = isFocused ? theme.colors.primary : theme.colors.textMuted;
 
           const onPress = () => {
             const event = navigation.emit({
               type: "tabPress",
-              target: state.routes[index]?.key,
+              target: state.routes[routeIndex]?.key,
               canPreventDefault: true,
             });
             if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(state.routes[index]?.name ?? tab.name);
+              navigation.navigate(state.routes[routeIndex]?.name ?? tab.name);
             }
           };
-
-          if (tab.isScan) {
-            return (
-              <View key={tab.name} style={styles.scanWrapper}>
-                <Pressable
-                  onPress={onPress}
-                  style={({ pressed }) => [
-                    styles.scanBtn,
-                    pressed && styles.scanBtnPressed,
-                  ]}
-                  accessibilityRole="button"
-                  accessibilityLabel="Scan"
-                >
-                  <Icon size={26} color="#fff" strokeWidth={2} />
-                </Pressable>
-              </View>
-            );
-          }
-
-          const color = isFocused ? theme.colors.primary : theme.colors.textMuted;
 
           return (
             <Pressable
               key={tab.name}
               onPress={onPress}
-              style={({ pressed }) => [
-                styles.tab,
-                pressed && styles.tabPressed,
-              ]}
+              style={({ pressed }) => [styles.tab, pressed && styles.tabPressed]}
+              accessibilityRole="button"
+              accessibilityLabel={tab.label}
+            >
+              <Icon size={22} color={color} strokeWidth={isFocused ? 2.2 : 1.8} />
+              <Text style={[styles.label, { color }]}>{tab.label}</Text>
+            </Pressable>
+          );
+        })}
+
+        {/* Centre scan button — pushes a Stack screen so back() returns here */}
+        <View style={styles.scanWrapper}>
+          <Pressable
+            onPress={() => {
+              router.push({
+                pathname: "/(app)/scan",
+                params: { returnTo: pathname },
+              } as never);
+            }}
+            style={({ pressed }) => [styles.scanBtn, pressed && styles.scanBtnPressed]}
+            accessibilityRole="button"
+            accessibilityLabel="Scan"
+          >
+            <ScanLine size={26} color="#fff" strokeWidth={2} />
+          </Pressable>
+        </View>
+
+        {/* Last two tabs */}
+        {TAB_CONFIG.slice(2).map((tab) => {
+          const routeIndex = tabIndexMap[tab.name] ?? -1;
+          const isFocused = state.index === routeIndex;
+          const { Icon } = tab;
+          const color = isFocused ? theme.colors.primary : theme.colors.textMuted;
+
+          const onPress = () => {
+            const event = navigation.emit({
+              type: "tabPress",
+              target: state.routes[routeIndex]?.key,
+              canPreventDefault: true,
+            });
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(state.routes[routeIndex]?.name ?? tab.name);
+            }
+          };
+
+          return (
+            <Pressable
+              key={tab.name}
+              onPress={onPress}
+              style={({ pressed }) => [styles.tab, pressed && styles.tabPressed]}
               accessibilityRole="button"
               accessibilityLabel={tab.label}
             >
@@ -89,7 +125,7 @@ export function BottomNav({ state, navigation }: BottomTabBarProps) {
 
 const styles = StyleSheet.create({
   wrapper: {
-    backgroundColor: "transparent",
+    backgroundColor: theme.colors.background,
     paddingHorizontal: theme.spacing.md,
     paddingTop: 0,
   },
@@ -148,4 +184,3 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
 });
-

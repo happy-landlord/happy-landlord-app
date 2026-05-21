@@ -123,6 +123,101 @@ export type Database = {
         Relationships: [];
       };
 
+      key_holders: {
+        Row: {
+          id: string;
+          holder_type: "agent" | "tenant";
+          profile_id: string | null;
+          full_name: string | null;
+          email: string | null;
+          phone: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          holder_type: "agent" | "tenant";
+          profile_id?: string | null;
+          full_name?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          holder_type?: "agent" | "tenant";
+          profile_id?: string | null;
+          full_name?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      key_movements: {
+        Row: {
+          id: string;
+          key_set_id: string;
+          movement_type:
+            | "created"
+            | "borrowed"
+            | "returned"
+            | "reserved"
+            | "marked_overdue"
+            | "marked_lost"
+            | "notes_updated";
+          due_back_at: string | null;
+          notes: string | null;
+          updated_by: string;
+          from_holder_id: string | null;
+          to_holder_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          key_set_id: string;
+          movement_type:
+            | "created"
+            | "borrowed"
+            | "returned"
+            | "reserved"
+            | "marked_overdue"
+            | "marked_lost"
+            | "notes_updated";
+          due_back_at?: string | null;
+          notes?: string | null;
+          updated_by?: string;
+          from_holder_id?: string | null;
+          to_holder_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          key_set_id?: string;
+          movement_type?:
+            | "created"
+            | "borrowed"
+            | "returned"
+            | "reserved"
+            | "marked_overdue"
+            | "marked_lost"
+            | "notes_updated";
+          due_back_at?: string | null;
+          notes?: string | null;
+          updated_by?: string;
+          from_holder_id?: string | null;
+          to_holder_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
       key_sets: {
         Row: {
           id: string;
@@ -209,3 +304,23 @@ export type DbPropertyUpdate = TablesUpdate<"properties">;
 export type DbKeySet = Tables<"key_sets">;
 export type DbKeySetInsert = TablesInsert<"key_sets">;
 export type DbKeySetUpdate = TablesUpdate<"key_sets">;
+export type DbKeyHolder = Tables<"key_holders">;
+export type DbKeyHolderInsert = TablesInsert<"key_holders">;
+export type DbKeyMovement = Tables<"key_movements">;
+export type DbKeyMovementInsert = TablesInsert<"key_movements">;
+export type KeyMovementType = DbKeyMovement["movement_type"];
+export type KeyHolderType = DbKeyHolder["holder_type"];
+
+// ── Activity movement — movement row joined with key_set + property + holders ─
+export type ActivityMovement = DbKeyMovement & {
+  key_set: {
+    set_code: string;
+    property: {
+      address: string;
+      suburb: string;
+      formatted_address: string | null;
+    };
+  } | null;
+  from_holder: Pick<DbKeyHolder, "full_name" | "holder_type" | "profile_id"> | null;
+  to_holder: Pick<DbKeyHolder, "full_name" | "holder_type" | "profile_id"> | null;
+};
