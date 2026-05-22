@@ -7,6 +7,7 @@ import { BiometricEnablePrompt } from '@/components/BiometricEnablePrompt';
 import { LockScreen } from '@/components/LockScreen';
 import { useSession } from '@/hooks/useSession';
 import { useProfile } from '@/hooks/useProfile';
+import { FEATURES } from '@/constants/features';
 import {
   useNotificationRealtime,
   useNotificationResponseNavigation,
@@ -40,6 +41,12 @@ export default function AppLayout() {
   useEffect(() => {
     if (!userId || lockStore.initialized) return;
 
+    // Biometric lock is disabled globally — skip straight to unlocked.
+    if (!FEATURES.BIOMETRIC_LOCK) {
+      lockStore.initialize(false);
+      return;
+    }
+
     if (lockStore.skipBiometricOnce) {
       // Fresh login — biometric already proven via password; don't lock again.
       // Consume the flag immediately so next cold-start behaves normally.
@@ -56,6 +63,7 @@ export default function AppLayout() {
   // Step 2: After lock is resolved and app is unlocked, check if we should
   //         show the first-time "Enable biometrics?" prompt.
   useEffect(() => {
+    if (!FEATURES.BIOMETRIC_LOCK) return;           // feature disabled globally
     if (!userId || !lockStore.initialized || lockStore.isLocked) return;
 
     async function checkPrompt() {
@@ -79,7 +87,10 @@ export default function AppLayout() {
   useNotificationResponseNavigation();
 
   // ── Loading ─────────────────────────────────────────────────────────────
+  // Only block on lock initialisation when biometrics is actually enabled.
+  // When the feature is off the lock store is irrelevant, so skip the gate.
   const isLockCheckPending =
+    FEATURES.BIOMETRIC_LOCK &&
     isAuthenticated && Boolean(userId) && !lockStore.initialized;
 
   const isLoading =
@@ -129,7 +140,7 @@ export default function AppLayout() {
   }
 
   // ── Lock gate: render only the lock screen until the user authenticates ─
-  if (lockStore.isLocked) {
+  if (FEATURES.BIOMETRIC_LOCK && lockStore.isLocked) {
     return (
       <LockScreen
         userName={profile?.full_name}
@@ -144,8 +155,7 @@ export default function AppLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="scan" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
         <Stack.Screen name="properties/[id]" />
-        <Stack.Screen name="keys/[id]" />
-        <Stack.Screen name="keys/scan" options={{ headerShown: false }} />
+        <Stack.Screen name="properties/[id]/keysets/[keysetId]" />
         <Stack.Screen name="checkouts/[id]" />
         <Stack.Screen name="requests" options={{ title: 'Agent Requests' }} />
         <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
@@ -155,20 +165,22 @@ export default function AppLayout() {
         <Stack.Screen name="rejected" options={{ headerShown: false }} />
       </Stack>
 
-      {/* First-login biometric enrolment prompt */}
-      <BiometricEnablePrompt
-        visible={showBiometricPrompt}
-        biometricLabel={promptBiometricLabel}
-        onEnable={async () => {
-          if (userId) await setBiometricEnabled(userId, true);
-          setShowBiometricPrompt(false);
-        }}
-        onDismiss={async () => {
-          // "Maybe later" — store the decision so we don't ask again
-          if (userId) await setBiometricEnabled(userId, false);
-          setShowBiometricPrompt(false);
-        }}
-      />
+      {/* First-login biometric enrolment prompt — only when feature is enabled */}
+      {FEATURES.BIOMETRIC_LOCK && (
+        <BiometricEnablePrompt
+          visible={showBiometricPrompt}
+          biometricLabel={promptBiometricLabel}
+          onEnable={async () => {
+            if (userId) await setBiometricEnabled(userId, true);
+            setShowBiometricPrompt(false);
+          }}
+          onDismiss={async () => {
+            // "Maybe later" — store the decision so we don't ask again
+            if (userId) await setBiometricEnabled(userId, false);
+            setShowBiometricPrompt(false);
+          }}
+        />
+      )}
     </>
   );
 }

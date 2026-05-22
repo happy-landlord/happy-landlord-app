@@ -5,7 +5,7 @@ const ACTIVITY_SELECT = `
   *,
   key_set:key_sets(
     set_code,
-    property:properties(address, suburb, formatted_address)
+    property:properties(address, unit_number, suburb, formatted_address)
   ),
   from_holder:from_holder_id(full_name, holder_type, profile_id),
   to_holder:to_holder_id(full_name, holder_type, profile_id)

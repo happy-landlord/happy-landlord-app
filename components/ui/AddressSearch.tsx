@@ -1,10 +1,11 @@
-import { forwardRef, useImperativeHandle, useRef } from "react";
-import { StyleSheet } from "react-native";
+import { forwardRef, useImperativeHandle, useRef, useState } from "react";
+import { StyleSheet, TextInput, View } from "react-native";
 import {
   GooglePlacesAutocomplete,
   type GooglePlacesAutocompleteRef,
 } from "react-native-google-places-autocomplete";
 
+import { FEATURES } from "@/constants/features";
 import { theme } from "@/constants/theme";
 
 export type PlaceResult = {
@@ -34,14 +35,47 @@ const API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY ?? "";
 
 export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
   function AddressSearch({ onSelect, placeholder = "Search address…" }, ref) {
+    // ── Fallback plain-text input (used when FEATURES.GOOGLE_PLACES = false) ──
+    const [text, setText] = useState("");
+
     const placesRef = useRef<GooglePlacesAutocompleteRef>(null);
 
     useImperativeHandle(ref, () => ({
       clear: () => {
-        placesRef.current?.clear();
+        if (FEATURES.GOOGLE_PLACES) {
+          placesRef.current?.clear();
+        } else {
+          setText("");
+        }
       },
     }));
 
+    // ── Bypass: plain TextInput ───────────────────────────────────────────────
+    if (!FEATURES.GOOGLE_PLACES) {
+      return (
+        <View>
+          <TextInput
+            style={styles.textInput}
+            placeholder={placeholder}
+            placeholderTextColor={theme.colors.textLight}
+            selectionColor={theme.colors.primary}
+            value={text}
+            onChangeText={setText}
+            onSubmitEditing={() => {
+              if (!text.trim()) return;
+              onSelect({
+                placeId: "",
+                description: text.trim(),
+                suburb: text.trim(),
+              });
+            }}
+            returnKeyType="search"
+          />
+        </View>
+      );
+    }
+
+    // ── Real Google Places Autocomplete ───────────────────────────────────────
     return (
       <GooglePlacesAutocomplete
         ref={placesRef}
@@ -59,12 +93,12 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
 
           const get = (...types: string[]) =>
             components.find((c) =>
-              types.every((t) => (c.types as string[]).includes(t))
+              types.every((t) => (c.types as string[]).includes(t)),
             )?.long_name;
 
           const getShort = (...types: string[]) =>
             components.find((c) =>
-              types.every((t) => (c.types as string[]).includes(t))
+              types.every((t) => (c.types as string[]).includes(t)),
             )?.short_name;
 
           onSelect({
@@ -97,7 +131,7 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
         keyboardShouldPersistTaps="handled"
       />
     );
-  }
+  },
 );
 
 const styles = StyleSheet.create({
@@ -140,4 +174,3 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.border,
   },
 });
-

@@ -301,6 +301,7 @@ export type Database = {
             | "borrowed"
             | "returned"
             | "reserved"
+            | "transferred"
             | "marked_overdue"
             | "marked_lost"
             | "notes_updated";
@@ -319,6 +320,7 @@ export type Database = {
             | "borrowed"
             | "returned"
             | "reserved"
+            | "transferred"
             | "marked_overdue"
             | "marked_lost"
             | "notes_updated";
@@ -337,6 +339,7 @@ export type Database = {
             | "borrowed"
             | "returned"
             | "reserved"
+            | "transferred"
             | "marked_overdue"
             | "marked_lost"
             | "notes_updated";
@@ -395,6 +398,28 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      checkout_key_set: {
+        Args: {
+          p_key_set_id: string;
+          p_due_back_at?: string | null;
+          p_notes?: string | null;
+        };
+        Returns: string; // key_holders.id of the agent holder
+      };
+      return_key_set: {
+        Args: {
+          p_key_set_id: string;
+          p_notes?: string | null;
+        };
+        Returns: void;
+      };
+      transfer_key_set_to_me: {
+        Args: {
+          p_key_set_id: string;
+          p_note?: string | null;
+        };
+        Returns: string; // key_holders.id of the new (calling) agent
+      };
       approve_registration_request: {
         Args: {
           p_request_id: string;
@@ -522,6 +547,7 @@ export type ActivityMovement = DbKeyMovement & {
     set_code: string;
     property: {
       address: string;
+      unit_number: string | null;
       suburb: string;
       formatted_address: string | null;
     };

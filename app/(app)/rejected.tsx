@@ -2,18 +2,20 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MessageSquare, XCircle } from "lucide-react-native";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { TextInput, Button, HelperText } from "react-native-paper";
 
 import { theme } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
 import { Logo } from "@/components/ui/Logo";
 import { useMyLatestRequest, useResubmitRequest } from "@/hooks/useAgentRequests";
+import { useLockStore } from "@/lib/lockStore";
 
 export default function RejectedScreen() {
   const insets = useSafeAreaInsets();
   const { data: lastRequest } = useMyLatestRequest();
   const resubmit = useResubmitRequest();
+  const queryClient = useQueryClient();
 
   const [showForm, setShowForm] = useState(false);
   const [message, setMessage] = useState("");
@@ -22,6 +24,10 @@ export default function RejectedScreen() {
     mutationFn: async () => {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      // Clean up inside mutationFn so it runs even after the component
+      // unmounts due to the SIGNED_OUT auth-state redirect.
+      queryClient.clear();
+      useLockStore.getState().reset();
     },
   });
 

@@ -26,6 +26,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { theme } from "@/constants/theme";
+import { formatNotificationTimestamp } from "@/lib/format";
 import { useSession } from "@/hooks/useSession";
 import {
   useAdminSendTestNotification,
@@ -94,27 +95,6 @@ const NOTIFICATION_VISUALS: Record<NotificationType, NotificationVisual> = {
 
 function isKnownNotificationType(value: string): value is NotificationType {
   return Object.values(NOTIFICATION_TYPES).includes(value as NotificationType);
-}
-
-function formatTimestamp(value: string | null): string {
-  if (!value) return "Just now";
-
-  const date = new Date(value);
-  const now = new Date();
-  const sameDay = date.toDateString() === now.toDateString();
-
-  if (sameDay) {
-    return date.toLocaleTimeString("en-AU", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
-  }
-
-  return date.toLocaleDateString("en-AU", {
-    day: "numeric",
-    month: "short",
-  });
 }
 
 function getVisual(type: string): NotificationVisual {
@@ -473,7 +453,7 @@ function NotificationCard({
               {visual.label}
             </Text>
           </View>
-          <Text style={styles.timeText}>{formatTimestamp(notification.created_at)}</Text>
+          <Text style={styles.timeText}>{formatNotificationTimestamp(notification.created_at)}</Text>
         </View>
 
         <Text style={styles.titleText} numberOfLines={2}>

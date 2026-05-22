@@ -53,25 +53,47 @@ export function LockScreen({ userName, userEmail }: LockScreenProps) {
     getBiometricCapability().then(setCapability);
   }, []);
 
-  // Auto-trigger the biometric prompt after the view has settled.
-  // A delay is required on iOS: calling authenticateAsync during a navigation
-  // transition will be silently rejected by the OS.
+  // Auto-trigger the biometric prompt only AFTER capability has loaded and
+  // confirmed biometrics are available on this device/build.
+  //
+  // NOTE: expo-local-authentication / Face ID requires a custom dev build
+  // (eas build --profile development) on iOS — it does NOT work in Expo Go
+  // because the NSFaceIDUsageDescription permission is not present in the
+  // Expo Go host app.  When running in Expo Go the capability check will
+  // return isAvailable=false and the screen will gracefully fall back to the
+  // password form.
   useEffect(() => {
-    if (didAutoPromptRef.current) return;
+    if (!capability || didAutoPromptRef.current) return;
+
+    if (!capability.isAvailable) {
+      // No biometrics on this device/build — skip straight to password.
+      setMode("password");
+      return;
+    }
+
     didAutoPromptRef.current = true;
 
+    // A small delay is required on iOS: calling authenticateAsync during a
+    // navigation transition will be silently rejected by the OS.
     const timer = setTimeout(() => {
       triggerBiometric();
-    }, 400);
+    }, 500);
 
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [capability]);
 
   const biometricLabel = capability ? getBiometricLabel(capability.type) : "Biometrics";
   const firstName = userName?.split(" ")[0] ?? null;
 
   async function triggerBiometric() {
+    // Guard: don't attempt auth if we know biometrics aren't available
+    // (e.g. running in Expo Go where NSFaceIDUsageDescription is absent).
+    if (!capability?.isAvailable) {
+      setMode("password");
+      return;
+    }
+
     setIsAuthenticating(true);
     try {
       const result = await authenticateWithBiometrics("Unlock Happy Landlord");
@@ -83,21 +105,28 @@ export function LockScreen({ userName, userEmail }: LockScreenProps) {
 
       // Determine whether to fall back to password mode.
       // Cast to string to safely cover runtime values the TS types may omit
-      // (e.g. "user_cancel" on older SDK builds).
+      // (e.g. "user_cancel" on older SDK builds, iOS-specific error strings).
       const err = result.error as string;
       const shouldFallback =
-        err === "user_cancel" ||     // user tapped "Use password instead"
-        err === "user_fallback" ||   // user chose device fallback
-        err === "not_enrolled" ||    // biometric removed from device settings
-        err === "passcode_not_set";  // device has no passcode enrolled
+        err === "user_cancel" ||            // user tapped "Use password instead"
+        err === "user_fallback" ||          // user chose device fallback
+        err === "not_enrolled" ||           // biometric removed from device settings
+        err === "passcode_not_set" ||       // device has no passcode enrolled
+        err === "not_available" ||          // hardware not available / Expo Go
+        err === "biometry_not_available" || // iOS: Face ID/Touch ID not available
+        err === "biometry_not_enrolled" ||  // iOS: no biometric enrolled
+        err === "biometry_lockout" ||       // iOS: too many failures, locked out
+        err === "biometry_lockout_permanent"; // iOS: permanently locked
 
       if (shouldFallback) {
         setMode("password");
       }
       // authentication_failed / system_cancel / timeout → stay on biometric screen
     } catch (err) {
-      // Log so errors (e.g. missing NSFaceIDUsageDescription) are visible
+      // An exception here usually means the permission is missing entirely
+      // (e.g. NSFaceIDUsageDescription absent in Expo Go). Fall back gracefully.
       console.warn("[LockScreen] biometric auth error:", err);
+      setMode("password");
     } finally {
       setIsAuthenticating(false);
     }

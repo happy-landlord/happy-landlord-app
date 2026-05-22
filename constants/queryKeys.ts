@@ -12,6 +12,7 @@ export const QUERY_KEYS = {
 	detail: (id: string) => ["keys", id] as const,
 	movements: ["keys", "movements"] as const,
 	byProperty: (propertyId: string) => ["keys", "property", propertyId] as const,
+    checkedOut: (scope: string) => ["keys", "checkedOut", scope] as const,
   },
   activity: {
     all: ["activity", "all"] as const,

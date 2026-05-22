@@ -2,9 +2,12 @@ import { forwardRef, useImperativeHandle, useRef } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { X } from "lucide-react-native";
 
-import { AddressSearch, type AddressSearchRef, type PlaceResult } from "./AddressSearch";
+import {
+  AddressSearch,
+  type AddressSearchRef,
+  type PlaceResult,
+} from "./AddressSearch";
 import { theme } from "@/constants/theme";
-
 
 export type AddressSearchBarRef = {
   clear: () => void;
@@ -14,9 +17,11 @@ type Props = {
   onSelect: (place: PlaceResult) => void;
   onClear: () => void;
   selectedPlace: PlaceResult | null;
-  resultCount: number;
+  resultCount?: number;
   /** Singular + plural labels, e.g. ["property", "properties"] */
   resultLabel?: [string, string];
+  showResultCount?: boolean;
+  showDivider?: boolean;
   placeholder?: string;
 };
 
@@ -26,11 +31,13 @@ export const AddressSearchBar = forwardRef<AddressSearchBarRef, Props>(
       onSelect,
       onClear,
       selectedPlace,
-      resultCount,
+      resultCount = 0,
       resultLabel = ["result", "results"],
+      showResultCount = true,
+      showDivider = true,
       placeholder = "Filter by property address…",
     },
-    ref
+    ref,
   ) {
     const searchRef = useRef<AddressSearchRef>(null);
 
@@ -49,7 +56,9 @@ export const AddressSearchBar = forwardRef<AddressSearchBarRef, Props>(
       : "";
 
     return (
-      <View style={styles.container}>
+      <View
+        style={[styles.container, !showDivider && styles.containerNoDivider]}
+      >
         <View style={styles.row}>
           <View style={styles.searchWrap}>
             <AddressSearch
@@ -70,12 +79,15 @@ export const AddressSearchBar = forwardRef<AddressSearchBarRef, Props>(
             </Pressable>
           ) : null}
         </View>
-        <Text style={styles.resultCount}>
-          {resultCount} {label}{filterText}
-        </Text>
+        {showResultCount ? (
+          <Text style={styles.resultCount}>
+            {resultCount} {label}
+            {filterText}
+          </Text>
+        ) : null}
       </View>
     );
-  }
+  },
 );
 
 const styles = StyleSheet.create({
@@ -88,6 +100,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
     zIndex: 10,
+  },
+  containerNoDivider: {
+    borderBottomWidth: 0,
   },
   row: {
     flexDirection: "row",
@@ -112,4 +127,3 @@ const styles = StyleSheet.create({
     paddingLeft: 2,
   },
 });
-

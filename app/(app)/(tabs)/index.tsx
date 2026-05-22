@@ -1,20 +1,30 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { KeyRound, Building2, ScanLine, History } from "lucide-react-native";
-import { usePathname, useRouter } from "expo-router";
+import { ChevronRight, Clock3, KeyRound } from "lucide-react-native";
+import { useRouter } from "expo-router";
 
-import { useProfile } from "@/hooks/useProfile";
 import { useRole } from "@/hooks/useRole";
+import { useMyActivity, type ActivityMovement } from "@/hooks/useKeyMovements";
+import { useCheckedOutKeySets } from "@/hooks/useKeySets";
 import { theme } from "@/constants/theme";
+import { MOVEMENT_CONFIG } from "@/constants/movements";
+import {
+  formatShortAddress,
+  formatActivityTimestamp,
+  formatReturnDueLabel,
+  isPastDue,
+} from "@/lib/format";
+import type { CheckedOutKeySet } from "@/services/keys.service";
+
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const pathname = usePathname();
-  const { data: profile } = useProfile();
   const { isAdmin } = useRole();
+  const { data: checkedOut = [], isLoading: checkedOutLoading } = useCheckedOutKeySets(4);
+  const { data: activity = [], isLoading: activityLoading } = useMyActivity();
 
-  const firstName = profile?.full_name?.split(" ")[0] ?? "there";
+  const recentActivity = activity.slice(0, 4);
 
   return (
     <ScrollView
@@ -22,96 +32,295 @@ export default function HomeScreen() {
       contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + theme.spacing.xl }]}
       showsVerticalScrollIndicator={false}
     >
-      {/* Greeting */}
-      <View style={styles.greeting}>
-        <Text style={styles.greetingHi}>Hi, {firstName} 👋</Text>
-        <Text style={styles.greetingRole}>
-          {isAdmin ? "Admin · Happy Landlord" : "Agent · Happy Landlord"}
-        </Text>
-      </View>
 
-      {/* Quick actions */}
-      <Text style={styles.sectionLabel}>Quick actions</Text>
-      <View style={styles.grid}>
-        <QuickAction
-          Icon={Building2}
-          label="Properties"
-          color={theme.colors.info}
-          bg={theme.colors.infoSoft}
-          onPress={() => router.push("/(app)/(tabs)/properties")}
-        />
-        <QuickAction
-          Icon={ScanLine}
-          label="Scan QR"
-          color={theme.colors.primary}
-          bg={theme.colors.primarySoft}
-          onPress={() => router.push({ pathname: "/(app)/scan", params: { returnTo: pathname } } as never)}
-        />
-        <QuickAction
-          Icon={History}
-          label="Activity"
-          color={theme.colors.success}
-          bg={theme.colors.successSoft}
-          onPress={() => router.push("/(app)/(tabs)/activity")}
-        />
-        <QuickAction
-          Icon={KeyRound}
-          label="Keys"
-          color={theme.colors.warning}
-          bg={theme.colors.warningSoft}
-          onPress={() => router.push("/(app)/(tabs)/properties")}
-        />
-      </View>
+      {/* Current checked out */}
+      <DashboardSection
+        title="Current activity"
+      >
+        <View style={styles.compactCard}>
+          {checkedOutLoading ? (
+            <Text style={styles.emptyText}>Loading checked out keys…</Text>
+          ) : checkedOut.length === 0 ? (
+            <Text style={styles.emptyText}>No keys currently checked out.</Text>
+          ) : (
+            checkedOut.map((keySet, index) => (
+              <CheckedOutRow
+                key={keySet.id}
+                keySet={keySet}
+                showDivider={index < checkedOut.length - 1}
+                showHolder={isAdmin}
+                onPress={() =>
+                  router.push(
+                    `/(app)/properties/${keySet.property_id}/keysets/${keySet.id}` as never,
+                  )
+                }
+              />
+            ))
+          )}
+        </View>
+      </DashboardSection>
+
+      {/* Recent activity */}
+      <DashboardSection
+        title="Recent activity"
+        actionLabel="View all"
+        onPressAction={() => router.push("/(app)/(tabs)/activity")}
+      >
+        <View style={styles.compactCard}>
+          {activityLoading ? (
+            <Text style={styles.emptyText}>Loading recent activity…</Text>
+          ) : recentActivity.length === 0 ? (
+            <Text style={styles.emptyText}>No recent activity yet.</Text>
+          ) : (
+            recentActivity.map((item, index) => (
+              <ActivityRow
+                key={item.id}
+                item={item}
+                showDivider={index < recentActivity.length - 1}
+              />
+            ))
+          )}
+        </View>
+      </DashboardSection>
     </ScrollView>
   );
 }
 
-function QuickAction({
-  Icon, label, color, bg, onPress,
+function DashboardSection({
+  title,
+  actionLabel,
+  onPressAction,
+  children,
 }: {
-  Icon: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
-  label: string;
-  color: string;
-  bg: string;
+  title: string;
+  actionLabel?: string;
+  onPressAction?: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.sectionLabel}>{title}</Text>
+        {actionLabel && onPressAction ? (
+          <Pressable
+            onPress={onPressAction}
+            style={({ pressed }) => [styles.sectionAction, pressed && styles.cardPressed]}
+          >
+            <Text style={styles.sectionActionText}>{actionLabel}</Text>
+            <ChevronRight size={14} color={theme.colors.primary} strokeWidth={2} />
+          </Pressable>
+        ) : null}
+      </View>
+      {children}
+    </View>
+  );
+}
+
+function CheckedOutRow({
+  keySet,
+  showDivider,
+  showHolder,
+  onPress,
+}: {
+  keySet: CheckedOutKeySet;
+  showDivider: boolean;
+  showHolder: boolean;
   onPress: () => void;
 }) {
+  const address = keySet.property?.address ?? keySet.property?.formatted_address ?? "Property";
+  const location = formatPropertyLocation(keySet.property);
+  const holderName = showHolder ? keySet.current_holder?.full_name : null;
+  const isReturnOverdue = isPastDue(keySet.due_back_at);
+
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      style={({ pressed }) => [
+        styles.checkedOutRow,
+        showDivider && styles.compactRowDivider,
+        pressed && styles.cardPressed,
+      ]}
     >
-      <View style={[styles.cardIcon, { backgroundColor: bg }]}>
-        <Icon size={22} color={color} strokeWidth={1.8} />
+      <View style={[styles.rowIcon, styles.checkedOutIcon]}>
+        <KeyRound size={18} color={theme.colors.warning} strokeWidth={2} />
       </View>
-      <Text style={styles.cardLabel}>{label}</Text>
+      <View style={styles.rowContent}>
+        <Text style={styles.rowTitle} numberOfLines={1}>{address}</Text>
+        {location ? (
+          <Text style={styles.locationText} numberOfLines={1}>{location}</Text>
+        ) : null}
+        {holderName ? (
+          <Text style={styles.rowSubtitle} numberOfLines={1}>With {holderName}</Text>
+        ) : null}
+        <View style={styles.returnByRow}>
+          <Clock3 size={13} color={isReturnOverdue ? theme.colors.danger : theme.colors.primary} strokeWidth={2} />
+          <Text style={[styles.returnLabel, isReturnOverdue && styles.returnLabelOverdue]} numberOfLines={1}>
+            {formatReturnDueLabel(keySet.due_back_at)}
+          </Text>
+        </View>
+      </View>
+      <ChevronRight size={16} color={theme.colors.textLight} strokeWidth={2} />
     </Pressable>
   );
 }
 
+function formatPropertyLocation(property: CheckedOutKeySet["property"]): string {
+  if (!property) return "";
+
+  return [property.suburb, property.city, property.postcode]
+    .filter((part, index, parts) => {
+      if (!part) return false;
+      return parts.findIndex((value) => value?.toLowerCase() === part.toLowerCase()) === index;
+    })
+    .join(" · ");
+}
+
+
+function ActivityRow({ item, showDivider }: { item: ActivityMovement; showDivider: boolean }) {
+  const movement = MOVEMENT_CONFIG[item.movement_type];
+  const property = item.key_set?.property;
+  const address = formatShortAddress(property);
+  const ActivityIcon = movement.Icon;
+
+  return (
+    <View style={[styles.compactRow, showDivider && styles.compactRowDivider]}>
+      <View style={[styles.rowIcon, { backgroundColor: movement.bg }]}>
+        <ActivityIcon size={16} color={movement.color} strokeWidth={2} />
+      </View>
+      <View style={styles.rowContent}>
+        <Text style={[styles.recentActivityTitle, { color: movement.color }]} numberOfLines={1}>
+          {movement.label}
+        </Text>
+        <Text style={styles.rowSubtitle} numberOfLines={1}>{address}</Text>
+        <View style={styles.activityMetaRow}>
+          <Clock3 size={12} color={theme.colors.textLight} strokeWidth={2} />
+          <Text style={styles.rowMeta} numberOfLines={1}>{formatActivityTimestamp(item.created_at)}</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.background },
   content: { padding: theme.spacing.screen, gap: theme.spacing.lg },
-  greeting: { gap: 4, paddingTop: theme.spacing.sm },
-  greetingHi: { fontSize: 26, fontWeight: "800", color: theme.colors.text },
-  greetingRole: { fontSize: 14, color: theme.colors.textMuted },
   sectionLabel: {
     fontSize: 13, fontWeight: "600", color: theme.colors.textMuted,
     textTransform: "uppercase", letterSpacing: 0.6,
   },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.sm },
-  card: {
-    width: "47.5%",
+  section: { gap: theme.spacing.sm },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing.md,
+  },
+  sectionAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    paddingLeft: theme.spacing.sm,
+  },
+  sectionActionText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: theme.colors.primary,
+  },
+  compactCard: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.lg,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    padding: theme.spacing.md,
-    gap: theme.spacing.sm,
+    overflow: "hidden",
   },
   cardPressed: { opacity: 0.7 },
-  cardIcon: {
-    width: 44, height: 44, borderRadius: theme.radius.md,
-    alignItems: "center", justifyContent: "center",
+  compactRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 12,
   },
-  cardLabel: { fontSize: 14, fontWeight: "600", color: theme.colors.text },
+  checkedOutRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.md,
+    backgroundColor: theme.colors.surfaceWarm,
+  },
+  compactRowDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  rowIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: theme.radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  checkedOutIcon: {
+    width: 38,
+    height: 38,
+    backgroundColor: theme.colors.warningSoft,
+  },
+  rowContent: {
+    flex: 1,
+    gap: 3,
+    minWidth: 0,
+  },
+  rowTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: theme.colors.text,
+  },
+  recentActivityTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  locationText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: theme.colors.textLight,
+    letterSpacing: 0.2,
+    textTransform: "uppercase",
+  },
+  rowSubtitle: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: theme.colors.textMuted,
+  },
+  rowMeta: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: theme.colors.textLight,
+  },
+  returnByRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: theme.spacing.xs,
+  },
+  returnLabel: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: "800",
+    color: theme.colors.primaryDark,
+  },
+  returnLabelOverdue: {
+    color: theme.colors.danger,
+  },
+  activityMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  emptyText: {
+    padding: theme.spacing.md,
+    fontSize: 13,
+    color: theme.colors.textMuted,
+  },
 });

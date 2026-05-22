@@ -7,15 +7,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  Plus,
-  LogOut,
-  LogIn,
-  Clock,
-  AlertTriangle,
-  XCircle,
-  FileText,
-} from "lucide-react-native";
+import { FileText } from "lucide-react-native";
 
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -25,152 +17,12 @@ import {
   type AddressSearchBarRef,
 } from "@/components/ui/AddressSearchBar";
 import type { PlaceResult } from "@/components/ui/AddressSearch";
-import { useSession } from "@/hooks/useSession";
 import { useRole } from "@/hooks/useRole";
 import { useMyActivity } from "@/hooks/useKeyMovements";
 import { theme } from "@/constants/theme";
-import type { ActivityMovement, KeyMovementType } from "@/types/database";
-
-// ─── Movement display config ────────────────────────────────────────────────
-
-type MovementConfig = {
-  label: string;
-  Icon: React.ComponentType<{
-    size?: number;
-    color?: string;
-    strokeWidth?: number;
-  }>;
-  color: string;
-  bg: string;
-};
-
-const MOVEMENT_CONFIG: Record<KeyMovementType, MovementConfig> = {
-  created: {
-    label: "Key Set Created",
-    Icon: Plus,
-    color: theme.colors.success,
-    bg: theme.colors.successSoft,
-  },
-  borrowed: {
-    label: "Keys Borrowed",
-    Icon: LogOut,
-    color: theme.colors.warning,
-    bg: theme.colors.warningSoft,
-  },
-  returned: {
-    label: "Keys Returned",
-    Icon: LogIn,
-    color: theme.colors.success,
-    bg: theme.colors.successSoft,
-  },
-  reserved: {
-    label: "Keys Reserved",
-    Icon: Clock,
-    color: theme.colors.info,
-    bg: theme.colors.infoSoft,
-  },
-  marked_overdue: {
-    label: "Marked Overdue",
-    Icon: AlertTriangle,
-    color: theme.colors.danger,
-    bg: theme.colors.dangerSoft,
-  },
-  marked_lost: {
-    label: "Marked as Lost",
-    Icon: XCircle,
-    color: theme.colors.danger,
-    bg: theme.colors.dangerSoft,
-  },
-  notes_updated: {
-    label: "Notes Updated",
-    Icon: FileText,
-    color: theme.colors.neutral,
-    bg: theme.colors.neutralSoft,
-  },
-};
-
-// ─── Date helpers ────────────────────────────────────────────────────────────
-
-function toDateLabel(isoString: string): string {
-  const date = new Date(isoString);
-  const now = new Date();
-  const todayStr = now.toDateString();
-  const dateStr = date.toDateString();
-
-  if (dateStr === todayStr) return "Today";
-
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-  if (dateStr === yesterday.toDateString()) return "Yesterday";
-
-  return date.toLocaleDateString("en-AU", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
-  });
-}
-
-function formatTime(isoString: string): string {
-  return new Date(isoString).toLocaleTimeString("en-AU", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-}
-
-// ─── Title builder ────────────────────────────────────────────────────────────
-
-type HolderSnap =
-  | ActivityMovement["to_holder"]
-  | ActivityMovement["from_holder"];
-
-function resolveHolderName(
-  holder: HolderSnap,
-  userId: string | undefined,
-): string | null {
-  if (!holder) return null;
-  if (userId && holder.profile_id === userId) return "You";
-  return (
-    holder.full_name ?? (holder.holder_type === "agent" ? "Agent" : "Tenant")
-  );
-}
-
-function buildTitle(
-  item: ActivityMovement,
-  userId: string | undefined,
-): string {
-  const to = resolveHolderName(item.to_holder, userId);
-  const from = resolveHolderName(item.from_holder, userId);
-
-  switch (item.movement_type) {
-    case "borrowed":
-      // [to] borrowed from [from]
-      return [to ?? "Someone", "borrowed", from ? `from ${from}` : null]
-        .filter(Boolean)
-        .join(" ");
-    case "returned":
-      // [from] returned to [to]
-      return [from ?? "Someone", "returned", to ? `to ${to}` : null]
-        .filter(Boolean)
-        .join(" ");
-    case "reserved":
-      // [to] reserved
-      return [to ?? "Someone", "reserved"].filter(Boolean).join(" ");
-    case "marked_overdue":
-      // [from/to] is overdue
-      return [from ?? to ?? "Key", "is overdue"].filter(Boolean).join(" ");
-    case "marked_lost":
-      // [from/to] reported lost
-      return [from ?? to ?? "Key", "reported lost"].filter(Boolean).join(" ");
-    case "created":
-      return "Key set created";
-    case "notes_updated":
-      return "Notes updated";
-    default:
-      return item.movement_type;
-  }
-}
+import { MOVEMENT_CONFIG } from "@/constants/movements";
+import { formatShortAddress, toDateLabel, formatTime } from "@/lib/format";
+import type { ActivityMovement } from "@/types/database";
 
 // ─── Section grouping ────────────────────────────────────────────────────────
 
@@ -197,29 +49,11 @@ function groupByDate(movements: ActivityMovement[]): Section[] {
 
 // ─── Activity item ───────────────────────────────────────────────────────────
 
-function ActivityItem({
-  item,
-  userId,
-}: {
-  item: ActivityMovement;
-  userId: string | undefined;
-}) {
+function ActivityItem({ item }: { item: ActivityMovement }) {
   const { Icon, color, bg } = MOVEMENT_CONFIG[item.movement_type];
-
-  const title = buildTitle(item, userId);
-
-  const propertyLine =
-    item.key_set?.property?.formatted_address ??
-    [item.key_set?.property?.address, item.key_set?.property?.suburb]
-      .filter(Boolean)
-      .join(", ") ??
-    "—";
+  const propertyLine = formatShortAddress(item.key_set?.property);
 
   const setCode = item.key_set?.set_code ?? "—";
-
-  const detail = item.due_back_at
-    ? `Due: ${new Date(item.due_back_at).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}`
-    : null;
 
   return (
     <View style={styles.item}>
@@ -230,7 +64,7 @@ function ActivityItem({
       <View style={styles.itemContent}>
         <View style={styles.itemTop}>
           <Text style={[styles.itemLabel, { color }]} numberOfLines={2}>
-            {title}
+            {MOVEMENT_CONFIG[item.movement_type].label}
           </Text>
           <Text style={styles.itemTime}>{formatTime(item.created_at)}</Text>
         </View>
@@ -238,7 +72,6 @@ function ActivityItem({
           {propertyLine}
         </Text>
         <Text style={styles.itemSetCode}>Set {setCode}</Text>
-        {detail ? <Text style={styles.itemDetail}>{detail}</Text> : null}
         {item.notes ? (
           <Text style={styles.itemNotes} numberOfLines={2}>
             {item.notes}
@@ -253,9 +86,7 @@ function ActivityItem({
 
 export default function ActivityScreen() {
   const insets = useSafeAreaInsets();
-  const { session } = useSession();
   const { isAdmin } = useRole();
-  const userId = session?.user.id;
   const { data, isLoading, isError, refetch, isFetching } = useMyActivity();
 
   const searchRef = useRef<AddressSearchBarRef>(null);
@@ -295,8 +126,9 @@ export default function ActivityScreen() {
         ref={searchRef}
         placeholder="Filter by property address…"
         selectedPlace={selectedPlace}
-        resultCount={filtered.length}
-        resultLabel={["movement", "movements"]}
+        resultCount={0}
+        showResultCount={false}
+        showDivider={false}
         onSelect={setSelectedPlace}
         onClear={() => {
           setSelectedPlace(null);
@@ -345,7 +177,7 @@ export default function ActivityScreen() {
         renderSectionHeader={({ section: { title } }) => (
           <Text style={styles.sectionHeader}>{title}</Text>
         )}
-        renderItem={({ item }) => <ActivityItem item={item} userId={userId} />}
+        renderItem={({ item }) => <ActivityItem item={item} />}
         SectionSeparatorComponent={() => <View style={styles.sectionSep} />}
         ItemSeparatorComponent={() => <View style={styles.itemSep} />}
         showsVerticalScrollIndicator={false}
@@ -382,17 +214,17 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.6,
     marginTop: theme.spacing.lg,
-    marginBottom: theme.spacing.sm,
+    marginBottom: 6,
   },
   sectionSep: {
     height: 0,
   },
   itemSep: {
-    height: 10,
+    height: 6,
   },
   item: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.lg,
     borderWidth: 1,
@@ -434,11 +266,6 @@ const styles = StyleSheet.create({
   itemSetCode: {
     fontSize: 12,
     color: theme.colors.textMuted,
-  },
-  itemDetail: {
-    fontSize: 12,
-    color: theme.colors.textMuted,
-    marginTop: 2,
   },
   itemNotes: {
     fontSize: 12,

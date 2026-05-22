@@ -26,6 +26,7 @@ import {
 import * as Device from "expo-device";
 
 import { theme } from "@/constants/theme";
+import { FEATURES } from "@/constants/features";
 import { useSession } from "@/hooks/useSession";
 import {
   useMarkAllNotificationsRead,
@@ -236,49 +237,53 @@ export default function SettingsScreen() {
       <SectionHeader title="Security" />
 
       <SectionCard>
-        <SettingRow
-          Icon={Fingerprint}
-          iconBg={
-            biometricEnabled
-              ? theme.colors.primarySoft
-              : theme.colors.neutralSoft
-          }
-          iconColor={
-            biometricEnabled ? theme.colors.primary : theme.colors.neutral
-          }
-          title={`${biometricLabel} login`}
-          subtitle={
-            biometricCapability?.isAvailable
-              ? `Unlock the app with ${biometricLabel}`
-              : "Not available on this device"
-          }
-          disabled={!biometricCapability?.isAvailable || biometricToggling}
-          right={
-            biometricToggling ? (
-              <ActivityIndicator
-                size="small"
-                color={theme.colors.primary}
-                style={styles.rowSpinner}
-              />
-            ) : (
-              <Switch
-                value={biometricEnabled}
-                onValueChange={handleBiometricToggle}
-                disabled={
-                  !biometricCapability?.isAvailable || biometricToggling
-                }
-                trackColor={{
-                  false: theme.colors.neutralSoft,
-                  true: theme.colors.primary,
-                }}
-                thumbColor={theme.colors.surface}
-                ios_backgroundColor={theme.colors.neutralSoft}
-              />
-            )
-          }
-        />
-
-        <RowDivider />
+        {/* Biometric row — hidden when FEATURES.BIOMETRIC_LOCK is false */}
+        {FEATURES.BIOMETRIC_LOCK && (
+          <>
+            <SettingRow
+              Icon={Fingerprint}
+              iconBg={
+                biometricEnabled
+                  ? theme.colors.primarySoft
+                  : theme.colors.neutralSoft
+              }
+              iconColor={
+                biometricEnabled ? theme.colors.primary : theme.colors.neutral
+              }
+              title={`${biometricLabel} login`}
+              subtitle={
+                biometricCapability?.isAvailable
+                  ? `Unlock the app with ${biometricLabel}`
+                  : "Not available on this device"
+              }
+              disabled={!biometricCapability?.isAvailable || biometricToggling}
+              right={
+                biometricToggling ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={theme.colors.primary}
+                    style={styles.rowSpinner}
+                  />
+                ) : (
+                  <Switch
+                    value={biometricEnabled}
+                    onValueChange={handleBiometricToggle}
+                    disabled={
+                      !biometricCapability?.isAvailable || biometricToggling
+                    }
+                    trackColor={{
+                      false: theme.colors.neutralSoft,
+                      true: theme.colors.primary,
+                    }}
+                    thumbColor={theme.colors.surface}
+                    ios_backgroundColor={theme.colors.neutralSoft}
+                  />
+                )
+              }
+            />
+            <RowDivider />
+          </>
+        )}
 
         <SettingRow
           Icon={ShieldCheck}

@@ -47,7 +47,7 @@ const STATUS_CONFIG: Record<KeySetStatus, ChipConfig> = {
 export const SET_TYPE_LABEL: Record<KeySetType, string> = {
   company: "Company",
   tenant: "Tenant",
-  unused: "Other",
+  unused: "Utility",
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────

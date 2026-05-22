@@ -7,6 +7,7 @@ import { MailCheck } from "lucide-react-native";
 
 import { Logo } from "@/components/ui/Logo";
 import { theme } from "@/constants/theme";
+import { FEATURES } from "@/constants/features";
 import { supabase } from "@/lib/supabase";
 import { useLockStore } from "@/lib/lockStore";
 
@@ -30,9 +31,11 @@ export default function LoginScreen() {
 	  if (error) throw error;
 	},
 	onSuccess: () => {
-	  // User just authenticated with email + password — no need to also ask
-	  // for biometric unlock in the same session.
-	  setSkipBiometricOnce(true);
+	  // Only needed when biometric lock is active — skip the gate after a
+	  // fresh password sign-in so we don't immediately ask for Face ID too.
+	  if (FEATURES.BIOMETRIC_LOCK) {
+	    setSkipBiometricOnce(true);
+	  }
 	  setResendSent(false);
 	},
   });

@@ -14,7 +14,6 @@ import {
   Settings,
   HelpCircle,
   LogOut,
-  ShieldCheck,
   ClipboardList,
 } from "lucide-react-native";
 
@@ -22,6 +21,7 @@ import { supabase } from "@/lib/supabase";
 import { useLockStore } from "@/lib/lockStore";
 import { RoleGate } from "@/components/RoleGate";
 import { theme } from "@/constants/theme";
+import { FEATURES } from "@/constants/features";
 import { usePendingRequests } from "@/hooks/useAgentRequests";
 
 type MenuSheetProps = {
@@ -57,12 +57,16 @@ export function MenuSheet({ visible, onClose }: MenuSheetProps) {
     mutationFn: async () => {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-    },
-    onSuccess: () => {
-      // Clear all cached data so the next user starts fresh
+      // Clear all cached data so the next user starts fresh.
       queryClient.clear();
-      // Reset biometric lock so the next login goes through the normal flow
-      useLockStore.getState().reset();
+      // Reset biometric lock state on logout.
+      // When biometrics is disabled we immediately re-initialise to the
+      // unlocked state so the next sign-in has no stale initialised=false window.
+      const store = useLockStore.getState();
+      store.reset();
+      if (!FEATURES.BIOMETRIC_LOCK) {
+        store.initialize(false);
+      }
     },
   });
 
@@ -103,12 +107,6 @@ export function MenuSheet({ visible, onClose }: MenuSheetProps) {
         <View style={styles.items}>
           {/* Admin-only section */}
           <RoleGate allow="admin">
-            <MenuItem
-              Icon={ShieldCheck}
-              label="Admin"
-              onPress={() => navigate("/(app)/admin")}
-            />
-            <View style={styles.divider} />
             <MenuItem
               Icon={ClipboardList}
               label="Agent Requests"

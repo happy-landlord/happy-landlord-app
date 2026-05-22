@@ -49,11 +49,6 @@ export default function KeysScreen() {
     []
   );
 
-  const renderSeparator = useCallback(
-    () => <View style={styles.separator} />,
-    []
-  );
-
   const renderEmpty = useCallback(() => {
     if (isLoading) return null;
     return (
@@ -77,8 +72,9 @@ export default function KeysScreen() {
         ref={searchRef}
         placeholder="Search by address or suburb…"
         selectedPlace={selectedPlace}
-        resultCount={data?.length ?? 0}
-        resultLabel={["property", "properties"]}
+        resultCount={0}
+        showResultCount={false}
+        showDivider={false}
         onSelect={setSelectedPlace}
         onClear={() => { setSelectedPlace(null); searchRef.current?.clear(); }}
       />
@@ -119,7 +115,6 @@ export default function KeysScreen() {
           data={data}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          ItemSeparatorComponent={renderSeparator}
           ListEmptyComponent={renderEmpty}
           contentContainerStyle={[
             styles.list,
@@ -148,8 +143,6 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.sm,
     gap: theme.spacing.sm,
     backgroundColor: theme.colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
   },
   tabBtn: {
     flex: 1,
@@ -181,8 +174,5 @@ const styles = StyleSheet.create({
   },
   listEmpty: {
     flexGrow: 1,
-  },
-  separator: {
-    height: theme.spacing.sm,
   },
 });

@@ -24,7 +24,6 @@ export default function RootLayout() {
           <Stack initialRouteName="(app)" screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(auth)" />
             <Stack.Screen name="(app)" />
-            <Stack.Screen name="auth/callback" />
           </Stack>
           <StatusBar style="dark" />
         </PaperProvider>

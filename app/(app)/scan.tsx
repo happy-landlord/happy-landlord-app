@@ -13,18 +13,24 @@ import type { BarcodeScanningResult } from "expo-camera";
 import { ScanLine, X, RefreshCw } from "lucide-react-native";
 
 import { fetchPropertyByCode } from "@/services/properties.service";
+import { fetchKeySetByCode } from "@/services/keys.service";
 import { theme } from "@/constants/theme";
 
 // ---------------------------------------------------------------------------
 // QR payload parser
 // ---------------------------------------------------------------------------
-function parseQrPayload(raw: string): { type: "property"; code: string } | null {
+function parseQrPayload(
+  raw: string,
+): { type: "property"; code: string } | { type: "keyset"; code: string } | null {
   const trimmed = raw.trim();
 
   try {
     const parsed = JSON.parse(trimmed) as { type?: string; code?: string };
-    if (parsed.type === "property" && typeof parsed.code === "string") {
-      return { type: "property", code: parsed.code };
+    if (
+      (parsed.type === "property" || parsed.type === "keyset") &&
+      typeof parsed.code === "string"
+    ) {
+      return { type: parsed.type, code: parsed.code };
     }
     return null;
   } catch {
@@ -91,14 +97,25 @@ export default function ScanScreen() {
             setScanState({ status: "notFound" });
             return;
           }
-          // Replace the scan screen with the property detail so back goes to the tab
           router.replace(`/(app)/properties/${property.id}` as never);
+          return;
+        }
+
+        if (payload.type === "keyset") {
+          const keyset = await fetchKeySetByCode(payload.code);
+          if (!keyset) {
+            setScanState({ status: "notFound" });
+            return;
+          }
+          router.replace(
+            `/(app)/properties/${keyset.property_id}/keysets/${keyset.id}` as never,
+          );
           return;
         }
 
         setScanState({
           status: "error",
-          message: `QR type "${payload.type}" is not yet supported.`,
+          message: `QR type "${(payload as { type: string }).type}" is not yet supported.`,
         });
       } catch {
         setScanState({
@@ -171,11 +188,11 @@ export default function ScanScreen() {
           <Text style={styles.hint}>Point at a QR code to scan</Text>
         )}
         {scanState.status === "loading" && (
-          <Text style={styles.hint}>Looking up property…</Text>
+          <Text style={styles.hint}>Looking up QR code…</Text>
         )}
         {scanState.status === "notFound" && (
           <Text style={[styles.hint, styles.hintError]}>
-            No property found for this QR code.
+            Nothing found for this QR code.
           </Text>
         )}
         {scanState.status === "error" && (
