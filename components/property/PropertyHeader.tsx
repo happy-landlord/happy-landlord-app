@@ -1,6 +1,6 @@
 import { memo } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { Building2, MapPin } from "lucide-react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Building2, MapPin, Pencil } from "lucide-react-native";
 
 import { theme } from "@/constants/theme";
 import type { Property } from "@/services/properties.service";
@@ -9,9 +9,10 @@ import { PROPERTY_TYPE_LABEL } from "./propertyLabels";
 
 export type PropertyHeaderProps = {
   property: Property;
+  onEdit?: () => void;
 };
 
-export const PropertyHeader = memo(function PropertyHeader({ property }: PropertyHeaderProps) {
+export const PropertyHeader = memo(function PropertyHeader({ property, onEdit }: PropertyHeaderProps) {
   const title = property.unit_number
     ? `${property.unit_number}/${property.address}`
     : property.address;
@@ -41,6 +42,18 @@ export const PropertyHeader = memo(function PropertyHeader({ property }: Propert
             <Text style={styles.locationText}>{location}</Text>
           </View>
         </View>
+
+        {onEdit ? (
+          <Pressable
+            onPress={onEdit}
+            style={({ pressed }) => [styles.editBtn, pressed && styles.editBtnPressed]}
+            accessibilityRole="button"
+            accessibilityLabel="Edit property"
+            hitSlop={8}
+          >
+            <Pencil size={16} color={theme.colors.primary} strokeWidth={1.9} />
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -96,6 +109,18 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 13,
     color: theme.colors.textMuted,
+  },
+  editBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.primarySoft,
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "flex-start",
+  },
+  editBtnPressed: {
+    opacity: 0.6,
   },
 });
 

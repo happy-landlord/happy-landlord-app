@@ -16,7 +16,7 @@ import {
 } from "lucide-react-native";
 
 import { theme } from "@/constants/theme";
-import type { KeyMovementType } from "@/types/database";
+import type { KeyMovementType, ActivityMovement } from "@/types/database";
 
 export type MovementConfig = {
   label: string;
@@ -80,3 +80,29 @@ export const MOVEMENT_CONFIG: Record<KeyMovementType, MovementConfig> = {
   },
 };
 
+/**
+ * Returns the display label for a movement, with direction-aware text for
+ * transfers ("Transferred from [name]" / "Transferred to [name]").
+ *
+ * @param item         - The activity movement row (with joined from/to_holder).
+ * @param currentUserId - The auth user id of the person viewing the activity.
+ */
+export function getMovementLabel(
+  item: ActivityMovement,
+  currentUserId?: string | null,
+): string {
+  if (item.movement_type !== "transferred") {
+    return MOVEMENT_CONFIG[item.movement_type].label;
+  }
+
+  const fromIsMe = item.from_holder?.profile_id === currentUserId;
+
+  if (fromIsMe && item.to_holder?.full_name) {
+    return `Transferred to ${item.to_holder.full_name}`;
+  }
+  if (!fromIsMe && item.from_holder?.full_name) {
+    return `Transferred from ${item.from_holder.full_name}`;
+  }
+
+  return MOVEMENT_CONFIG.transferred.label;
+}

@@ -10,8 +10,10 @@ import { QUERY_KEYS } from "@/constants/queryKeys";
 import {
   checkoutKeyset,
   returnKeyset,
+  transferKeyset,
   type CheckoutParams,
   type ReturnParams,
+  type TransferParams,
   type KeySetWithHolder,
 } from "@/services/keys.service";
 

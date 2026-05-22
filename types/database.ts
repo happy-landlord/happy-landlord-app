@@ -416,7 +416,7 @@ export type Database = {
       transfer_key_set_to_me: {
         Args: {
           p_key_set_id: string;
-          p_note?: string | null;
+          p_notes?: string | null;
         };
         Returns: string; // key_holders.id of the new (calling) agent
       };

@@ -32,8 +32,12 @@ const HOUR_MS = 60 * 60 * 1000;
 const calcDueBackIso = () =>
   new Date(Date.now() + CHECKOUT_DURATION_HOURS * HOUR_MS).toISOString();
 
-const errorMessage = (err: unknown, fallback: string) =>
-  err instanceof Error ? err.message : fallback;
+const errorMessage = (err: unknown, fallback: string) => {
+  if (err instanceof Error) return err.message;
+  if (err && typeof err === "object" && "message" in err)
+    return String((err as { message: unknown }).message);
+  return fallback;
+};
 
 /**
  * Action panel for company keysets — provides Check Out / Return / Reserve
@@ -117,7 +121,7 @@ export const CompanyKeySetCard = memo(function CompanyKeySetCard({
         onError: (err) => {
           Alert.alert(
             "Return failed",
-            err instanceof Error ? err.message : "Please try again.",
+            errorMessage(err, "Please try again."),
           );
         },
       },
@@ -142,7 +146,7 @@ export const CompanyKeySetCard = memo(function CompanyKeySetCard({
         onError: (err) =>
           Alert.alert(
             "Transfer failed",
-            err instanceof Error ? err.message : "Please try again.",
+            errorMessage(err, "Please try again."),
           ),
       },
     );

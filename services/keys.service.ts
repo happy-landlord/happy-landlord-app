@@ -1,5 +1,10 @@
 import { supabase } from "@/lib/supabase";
-import type { DbKeySet, KeyInventory, KeyInventoryItem, KeyItemType } from "@/types/database";
+import type {
+  DbKeySet,
+  KeyInventory,
+  KeyInventoryItem,
+  KeyItemType,
+} from "@/types/database";
 
 export type KeySet = DbKeySet;
 export type KeySetType = KeySet["set_type"];
@@ -68,6 +73,10 @@ export type ReturnParams = {
   notes?: string | null;
 };
 
+export type TransferParams = {
+  keySetId: string;
+  notes?: string | null;
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Checkout
@@ -136,11 +145,11 @@ export async function returnKeyset({
  */
 export async function transferKeyset({
   keySetId,
-  note,
+  notes,
 }: TransferParams): Promise<string> {
   const { data, error } = await supabase.rpc("transfer_key_set_to_me", {
     p_key_set_id: keySetId,
-    p_note: note ?? null,
+    p_notes: notes ?? null,
   });
 
   if (error) throw error;
@@ -149,7 +158,9 @@ export async function transferKeyset({
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function fetchKeySetByCode(setCode: string): Promise<KeySetWithHolder | null> {
+export async function fetchKeySetByCode(
+  setCode: string,
+): Promise<KeySetWithHolder | null> {
   const { data, error } = await supabase
     .from("key_sets")
     .select(KEY_SET_SELECT)
@@ -159,7 +170,9 @@ export async function fetchKeySetByCode(setCode: string): Promise<KeySetWithHold
   return data as KeySetWithHolder | null;
 }
 
-export async function fetchKeySetById(keySetId: string): Promise<KeySetWithHolder | null> {
+export async function fetchKeySetById(
+  keySetId: string,
+): Promise<KeySetWithHolder | null> {
   const { data, error } = await supabase
     .from("key_sets")
     .select(KEY_SET_SELECT)
@@ -246,7 +259,7 @@ export async function fetchCheckedOutKeySets({
 
 export async function fetchKeySetsForProperty(
   propertyId: string,
-  { setType }: FetchKeySetsOptions = {}
+  { setType }: FetchKeySetsOptions = {},
 ): Promise<KeySetWithHolder[]> {
   let query = supabase
     .from("key_sets")

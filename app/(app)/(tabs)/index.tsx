@@ -4,10 +4,11 @@ import { ChevronRight, Clock3, KeyRound } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
 import { useRole } from "@/hooks/useRole";
+import { useSession } from "@/hooks/useSession";
 import { useMyActivity, type ActivityMovement } from "@/hooks/useKeyMovements";
 import { useCheckedOutKeySets } from "@/hooks/useKeySets";
 import { theme } from "@/constants/theme";
-import { MOVEMENT_CONFIG } from "@/constants/movements";
+import { MOVEMENT_CONFIG, getMovementLabel } from "@/constants/movements";
 import {
   formatShortAddress,
   formatActivityTimestamp,
@@ -20,16 +21,18 @@ import type { CheckedOutKeySet } from "@/services/keys.service";
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { session } = useSession();
   const { isAdmin } = useRole();
   const { data: checkedOut = [], isLoading: checkedOutLoading } = useCheckedOutKeySets(4);
   const { data: activity = [], isLoading: activityLoading } = useMyActivity();
+  const currentUserId = session?.user.id;
 
   const recentActivity = activity.slice(0, 4);
 
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + theme.spacing.xl }]}
+      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 96 }]}
       showsVerticalScrollIndicator={false}
     >
 
@@ -49,6 +52,7 @@ export default function HomeScreen() {
                 keySet={keySet}
                 showDivider={index < checkedOut.length - 1}
                 showHolder={isAdmin}
+                currentUserId={currentUserId}
                 onPress={() =>
                   router.push(
                     `/(app)/properties/${keySet.property_id}/keysets/${keySet.id}` as never,
@@ -76,6 +80,7 @@ export default function HomeScreen() {
               <ActivityRow
                 key={item.id}
                 item={item}
+                currentUserId={currentUserId}
                 showDivider={index < recentActivity.length - 1}
               />
             ))
@@ -120,16 +125,20 @@ function CheckedOutRow({
   keySet,
   showDivider,
   showHolder,
+  currentUserId,
   onPress,
 }: {
   keySet: CheckedOutKeySet;
   showDivider: boolean;
   showHolder: boolean;
+  currentUserId?: string;
   onPress: () => void;
 }) {
   const address = keySet.property?.address ?? keySet.property?.formatted_address ?? "Property";
   const location = formatPropertyLocation(keySet.property);
-  const holderName = showHolder ? keySet.current_holder?.full_name : null;
+  const isOtherHolder =
+    showHolder && keySet.current_holder?.profile_id !== currentUserId;
+  const holderName = isOtherHolder ? keySet.current_holder?.full_name : null;
   const isReturnOverdue = isPastDue(keySet.due_back_at);
 
   return (
@@ -176,11 +185,12 @@ function formatPropertyLocation(property: CheckedOutKeySet["property"]): string 
 }
 
 
-function ActivityRow({ item, showDivider }: { item: ActivityMovement; showDivider: boolean }) {
+function ActivityRow({ item, currentUserId, showDivider }: { item: ActivityMovement; currentUserId?: string; showDivider: boolean }) {
   const movement = MOVEMENT_CONFIG[item.movement_type];
   const property = item.key_set?.property;
   const address = formatShortAddress(property);
   const ActivityIcon = movement.Icon;
+  const label = getMovementLabel(item, currentUserId);
 
   return (
     <View style={[styles.compactRow, showDivider && styles.compactRowDivider]}>
@@ -189,7 +199,7 @@ function ActivityRow({ item, showDivider }: { item: ActivityMovement; showDivide
       </View>
       <View style={styles.rowContent}>
         <Text style={[styles.recentActivityTitle, { color: movement.color }]} numberOfLines={1}>
-          {movement.label}
+          {label}
         </Text>
         <Text style={styles.rowSubtitle} numberOfLines={1}>{address}</Text>
         <View style={styles.activityMetaRow}>

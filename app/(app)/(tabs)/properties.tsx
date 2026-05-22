@@ -1,26 +1,24 @@
 import { useCallback, useRef, useState } from "react";
-import {
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Plus, X } from "lucide-react-native";
 
 import { PropertyCard } from "@/components/PropertyCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingState } from "@/components/ui/LoadingState";
 import {
-  AddressSearchBar,
-  type AddressSearchBarRef,
-} from "@/components/ui/AddressSearchBar";
-import type { PlaceResult } from "@/components/ui/AddressSearch";
+  AddressSearch,
+  type AddressSearchRef,
+  type PlaceResult,
+} from "@/components/ui/AddressSearch";
 import { useProperties } from "@/hooks/useProperties";
 import { useRole } from "@/hooks/useRole";
 import { RoleGate } from "@/components/RoleGate";
-import type { Property, PropertyKeyStatus } from "@/services/properties.service";
+import type {
+  Property,
+  PropertyKeyStatus,
+} from "@/services/properties.service";
 import { theme } from "@/constants/theme";
 
 type AdminTab = "available" | "landlord";
@@ -34,19 +32,25 @@ export default function KeysScreen() {
   const insets = useSafeAreaInsets();
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
   const [adminTab, setAdminTab] = useState<AdminTab>("available");
-  const searchRef = useRef<AddressSearchBarRef>(null);
+  const searchRef = useRef<AddressSearchRef>(null);
 
   const { isAdmin } = useRole();
   const keyStatus: PropertyKeyStatus = isAdmin ? adminTab : "available";
 
   // Derive a plain search string from the selected place for the server query
-  const search = selectedPlace?.suburb ?? selectedPlace?.description.split(",")[0].trim() ?? "";
+  const search =
+    selectedPlace?.suburb ??
+    selectedPlace?.description.split(",")[0].trim() ??
+    "";
 
-  const { data, isLoading, isError, refetch } = useProperties({ search, keyStatus });
+  const { data, isLoading, isError, refetch } = useProperties({
+    search,
+    keyStatus,
+  });
 
   const renderItem = useCallback(
     ({ item }: { item: Property }) => <PropertyCard property={item} />,
-    []
+    [],
   );
 
   const renderEmpty = useCallback(() => {
@@ -66,18 +70,44 @@ export default function KeysScreen() {
   }, [isLoading, selectedPlace, adminTab]);
 
   return (
-    <View style={[styles.screen, { paddingBottom: insets.bottom }]}>
+    <View style={styles.screen}>
       {/* Address search */}
-      <AddressSearchBar
-        ref={searchRef}
-        placeholder="Search by address or suburb…"
-        selectedPlace={selectedPlace}
-        resultCount={0}
-        showResultCount={false}
-        showDivider={false}
-        onSelect={setSelectedPlace}
-        onClear={() => { setSelectedPlace(null); searchRef.current?.clear(); }}
-      />
+      <View style={styles.searchActionRow}>
+        <View style={styles.searchBarWrap}>
+          <AddressSearch
+            ref={searchRef}
+            placeholder="Search by address or suburb…"
+            onSelect={setSelectedPlace}
+          />
+        </View>
+
+        {selectedPlace ? (
+          <Pressable
+            onPress={() => {
+              setSelectedPlace(null);
+              searchRef.current?.clear();
+            }}
+            style={styles.clearButton}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Clear filter"
+          >
+            <X size={16} color={theme.colors.textMuted} strokeWidth={2} />
+          </Pressable>
+        ) : null}
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.addPropertyButton,
+            pressed && styles.addPropertyButtonPressed,
+          ]}
+          onPress={() => {}}
+          accessibilityRole="button"
+          accessibilityLabel="Add property"
+        >
+          <Plus size={20} color={theme.colors.textInverse} strokeWidth={2.4} />
+        </Pressable>
+      </View>
 
       {/* Admin-only tab strip — RoleGate handles the loading state so no flash */}
       <RoleGate allow="admin">
@@ -92,7 +122,9 @@ export default function KeysScreen() {
                 accessibilityRole="tab"
                 accessibilityState={{ selected: active }}
               >
-                <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
+                <Text
+                  style={[styles.tabLabel, active && styles.tabLabelActive]}
+                >
                   {tab.label}
                 </Text>
               </Pressable>
@@ -118,6 +150,7 @@ export default function KeysScreen() {
           ListEmptyComponent={renderEmpty}
           contentContainerStyle={[
             styles.list,
+            { paddingBottom: insets.bottom + 96 },
             (!data || data.length === 0) && styles.listEmpty,
           ]}
           showsVerticalScrollIndicator={false}
@@ -135,6 +168,39 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
 
+  searchActionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.screen,
+    paddingTop: theme.spacing.md,
+    paddingBottom: theme.spacing.sm,
+    backgroundColor: theme.colors.background,
+  },
+  searchBarWrap: {
+    flex: 1,
+  },
+  clearButton: {
+    width: 40,
+    height: 40,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.neutralSoft,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  addPropertyButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: theme.colors.primary,
+    flexShrink: 0,
+  },
+  addPropertyButtonPressed: {
+    opacity: 0.75,
+  },
 
   // ── Admin tabs ────────────────────────────────────────────────────────────
   tabStrip: {
@@ -169,7 +235,8 @@ const styles = StyleSheet.create({
 
   // ── List ──────────────────────────────────────────────────────────────────
   list: {
-    padding: theme.spacing.screen,
+    paddingHorizontal: theme.spacing.screen,
+    paddingTop: theme.spacing.screen,
     gap: theme.spacing.xs,
   },
   listEmpty: {

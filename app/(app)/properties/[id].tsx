@@ -11,10 +11,12 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { theme } from "@/constants/theme";
 import { useKeySets } from "@/hooks/useKeySets";
 import { useProperty } from "@/hooks/useProperties";
+import { useRole } from "@/hooks/useRole";
 
 export default function PropertyDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
+  const { isAdmin } = useRole();
 
   const {
     data: property,
@@ -54,7 +56,10 @@ export default function PropertyDetailScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.headerGroup}>
-        <PropertyHeader property={property} />
+        <PropertyHeader
+          property={property}
+          onEdit={isAdmin ? () => {} : undefined}
+        />
         <PropertySummary property={property} keySets={keySets} />
       </View>
 

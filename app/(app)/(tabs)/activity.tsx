@@ -5,22 +5,24 @@ import {
   View,
   StyleSheet,
   RefreshControl,
+  Pressable,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { FileText } from "lucide-react-native";
+import { FileText, X } from "lucide-react-native";
 
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import {
-  AddressSearchBar,
-  type AddressSearchBarRef,
-} from "@/components/ui/AddressSearchBar";
-import type { PlaceResult } from "@/components/ui/AddressSearch";
+  AddressSearch,
+  type AddressSearchRef,
+  type PlaceResult,
+} from "@/components/ui/AddressSearch";
+import { useSession } from "@/hooks/useSession";
 import { useRole } from "@/hooks/useRole";
 import { useMyActivity } from "@/hooks/useKeyMovements";
 import { theme } from "@/constants/theme";
-import { MOVEMENT_CONFIG } from "@/constants/movements";
+import { MOVEMENT_CONFIG, getMovementLabel } from "@/constants/movements";
 import { formatShortAddress, toDateLabel, formatTime } from "@/lib/format";
 import type { ActivityMovement } from "@/types/database";
 
@@ -49,11 +51,11 @@ function groupByDate(movements: ActivityMovement[]): Section[] {
 
 // ─── Activity item ───────────────────────────────────────────────────────────
 
-function ActivityItem({ item }: { item: ActivityMovement }) {
+function ActivityItem({ item, currentUserId }: { item: ActivityMovement; currentUserId?: string }) {
   const { Icon, color, bg } = MOVEMENT_CONFIG[item.movement_type];
   const propertyLine = formatShortAddress(item.key_set?.property);
-
   const setCode = item.key_set?.set_code ?? "—";
+  const label = getMovementLabel(item, currentUserId);
 
   return (
     <View style={styles.item}>
@@ -64,7 +66,7 @@ function ActivityItem({ item }: { item: ActivityMovement }) {
       <View style={styles.itemContent}>
         <View style={styles.itemTop}>
           <Text style={[styles.itemLabel, { color }]} numberOfLines={2}>
-            {MOVEMENT_CONFIG[item.movement_type].label}
+            {label}
           </Text>
           <Text style={styles.itemTime}>{formatTime(item.created_at)}</Text>
         </View>
@@ -86,10 +88,12 @@ function ActivityItem({ item }: { item: ActivityMovement }) {
 
 export default function ActivityScreen() {
   const insets = useSafeAreaInsets();
+  const { session } = useSession();
   const { isAdmin } = useRole();
   const { data, isLoading, isError, refetch, isFetching } = useMyActivity();
+  const currentUserId = session?.user.id;
 
-  const searchRef = useRef<AddressSearchBarRef>(null);
+  const searchRef = useRef<AddressSearchRef>(null);
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
 
   const filtered = useMemo(() => {
@@ -121,20 +125,31 @@ export default function ActivityScreen() {
   }
 
   return (
-    <View style={[styles.screen, { paddingBottom: insets.bottom }]}>
-      <AddressSearchBar
-        ref={searchRef}
-        placeholder="Filter by property address…"
-        selectedPlace={selectedPlace}
-        resultCount={0}
-        showResultCount={false}
-        showDivider={false}
-        onSelect={setSelectedPlace}
-        onClear={() => {
-          setSelectedPlace(null);
-          searchRef.current?.clear();
-        }}
-      />
+    <View style={styles.screen}>
+      <View style={styles.searchRow}>
+        <View style={styles.searchWrap}>
+          <AddressSearch
+            ref={searchRef}
+            placeholder="Filter by property address…"
+            onSelect={setSelectedPlace}
+          />
+        </View>
+
+        {selectedPlace ? (
+          <Pressable
+            onPress={() => {
+              setSelectedPlace(null);
+              searchRef.current?.clear();
+            }}
+            style={styles.clearButton}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Clear filter"
+          >
+            <X size={16} color={theme.colors.textMuted} strokeWidth={2} />
+          </Pressable>
+        ) : null}
+      </View>
 
       <SectionList
         sections={sections}
@@ -142,6 +157,7 @@ export default function ActivityScreen() {
         style={styles.sectionList}
         contentContainerStyle={[
           styles.list,
+          { paddingBottom: insets.bottom + 96 },
           filtered.length === 0 && styles.listEmpty,
         ]}
         stickySectionHeadersEnabled={false}
@@ -177,7 +193,7 @@ export default function ActivityScreen() {
         renderSectionHeader={({ section: { title } }) => (
           <Text style={styles.sectionHeader}>{title}</Text>
         )}
-        renderItem={({ item }) => <ActivityItem item={item} />}
+        renderItem={({ item }) => <ActivityItem item={item} currentUserId={currentUserId} />}
         SectionSeparatorComponent={() => <View style={styles.sectionSep} />}
         ItemSeparatorComponent={() => <View style={styles.itemSep} />}
         showsVerticalScrollIndicator={false}
@@ -194,6 +210,28 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
 
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.screen,
+    paddingTop: theme.spacing.md,
+    paddingBottom: theme.spacing.sm,
+    backgroundColor: theme.colors.background,
+  },
+  searchWrap: {
+    flex: 1,
+  },
+  clearButton: {
+    width: 40,
+    height: 40,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.neutralSoft,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+
   // ── List ──────────────────────────────────────────────────────────────────
   sectionList: {
     flex: 1,
@@ -201,7 +239,6 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingHorizontal: theme.spacing.screen,
-    paddingBottom: theme.spacing.xl,
   },
   listEmpty: {
     flexGrow: 1,

@@ -66,9 +66,6 @@ export default function KeySetDetailScreen() {
           <View style={styles.headerInfo}>
             <Text style={styles.typeLabel}>{typeLabel}</Text>
             <Text style={styles.setCode}>{keySet.set_code}</Text>
-            <Text style={styles.keyCountText}>
-              {totalKeys} {totalKeys === 1 ? "Key" : "Keys"}
-            </Text>
           </View>
 
           <View style={styles.statusWrap}>
@@ -80,7 +77,9 @@ export default function KeySetDetailScreen() {
       {/* Keys */}
       {keySet.inventory?.items && keySet.inventory.items.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Keys</Text>
+          <Text style={styles.sectionTitle}>
+            {totalKeys} {totalKeys === 1 ? "Key" : "Keys"}
+          </Text>
           <KeyInventoryList items={keySet.inventory.items} />
         </View>
       )}
@@ -174,12 +173,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.textMuted,
   },
-  keyCountText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: theme.colors.textLight,
-    marginTop: 10,
-  },
   statusWrap: {
     paddingTop: 2,
     alignItems: "flex-end",
@@ -201,6 +194,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
     borderRadius: theme.radius.lg,
     padding: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
   handoverBtn: {
     flexDirection: "row",
