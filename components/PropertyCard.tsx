@@ -3,21 +3,13 @@ import { useRouter } from "expo-router";
 import { Building2, ChevronRight, MapPin } from "lucide-react-native";
 
 import type { Property } from "@/services/properties.service";
+import { PROPERTY_TYPE_LABEL } from "@/components/property/add/types";
 import { theme } from "@/constants/theme";
 
 type PropertyCardProps = {
   property: Property;
 };
 
-const PROPERTY_TYPE_LABEL: Record<string, string> = {
-  house: "House",
-  townhouse: "Townhouse",
-  apartment: "Apartment",
-  unit: "Unit",
-  duplex: "Duplex",
-  villa: "Villa",
-  other: "Other",
-};
 
 export function PropertyCard({ property }: PropertyCardProps) {
   const router = useRouter();

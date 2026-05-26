@@ -33,7 +33,7 @@ export const KeyInventoryList = memo(function KeyInventoryList({ items }: KeyInv
                 </View>
               ) : null}
             </View>
-            <Text style={styles.quantity}>x{item.quantity}</Text>
+            <Text style={styles.quantity}>x{item.count}</Text>
           </View>
         );
       })}

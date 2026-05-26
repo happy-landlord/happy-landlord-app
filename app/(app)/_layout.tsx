@@ -154,6 +154,7 @@ export default function AppLayout() {
       <Stack screenOptions={{ header: () => <AppHeader /> }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="scan" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="properties/add" options={{ headerShown: false }} />
         <Stack.Screen name="properties/[id]" />
         <Stack.Screen name="properties/[id]/keysets/[keysetId]" />
         <Stack.Screen name="checkouts/[id]" />

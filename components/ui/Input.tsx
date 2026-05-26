@@ -1,26 +1,166 @@
-import { Text, TextInput, View, type TextInputProps } from "react-native";
+import { useState } from "react";
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  type TextInputProps,
+  type ViewStyle,
+} from "react-native";
+
+import { theme } from "@/constants/theme";
 
 type InputProps = TextInputProps & {
+  /** Floating label that sits on the top border */
   label?: string;
+  /** Shows below the input in danger colour */
   error?: string;
+  /** Marks the label with a red asterisk */
+  required?: boolean;
+  /** Optional icon/element rendered on the right inside the border */
+  rightIcon?: React.ReactNode;
+  /** Style override for the outer border container */
+  containerStyle?: ViewStyle;
 };
 
-export function Input({ label, error, className = "", ...props }: InputProps) {
+export function Input({
+  label,
+  error,
+  required,
+  rightIcon,
+  containerStyle,
+  multiline,
+  style,
+  onFocus,
+  onBlur,
+  ...props
+}: InputProps) {
+  const [focused, setFocused] = useState(false);
+  const hasError = Boolean(error);
+
   return (
-    <View className="gap-2">
+    <View
+      style={[
+        styles.wrap,
+        multiline ? styles.wrapMultiline : styles.wrapSingle,
+        focused && styles.wrapFocused,
+        hasError && styles.wrapError,
+        containerStyle,
+      ]}
+    >
       {label ? (
-        <Text className="text-sm font-medium text-text">{label}</Text>
+        <Text
+          style={[
+            styles.label,
+            focused && styles.labelFocused,
+            hasError && styles.labelError,
+          ]}
+          numberOfLines={1}
+        >
+          {label}
+          {required ? <Text style={styles.asterisk}> *</Text> : null}
+        </Text>
       ) : null}
 
-      <TextInput
-        placeholderTextColor="#9A9387"
-        className={`min-h-12 rounded-xl border border-border bg-surface px-4 text-base text-text ${
-          error ? "border-danger" : ""
-        } ${className}`}
-        {...props}
-      />
+      <View style={styles.row}>
+        <TextInput
+          style={[styles.input, multiline && styles.inputMultiline, style]}
+          placeholderTextColor={theme.colors.textLight}
+          selectionColor={theme.colors.primary}
+          multiline={multiline}
+          textAlignVertical={multiline ? "top" : undefined}
+          onFocus={(e) => {
+            setFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            onBlur?.(e);
+          }}
+          {...props}
+        />
+        {rightIcon ? <View style={styles.iconWrap}>{rightIcon}</View> : null}
+      </View>
 
-      {error ? <Text className="text-sm text-danger">{error}</Text> : null}
+      {hasError ? <Text style={styles.error}>{error}</Text> : null}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  wrap: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+    paddingHorizontal: theme.spacing.md,
+  },
+  wrapSingle: {
+    height: 48,
+    justifyContent: "center",
+  },
+  wrapMultiline: {
+    minHeight: 112,
+    paddingTop: 4,
+    paddingBottom: 4,
+  },
+  wrapFocused: {
+    borderColor: theme.colors.primary,
+  },
+  wrapError: {
+    borderColor: theme.colors.danger,
+  },
+
+  label: {
+    position: "absolute",
+    top: -9,
+    left: 10,
+    paddingHorizontal: 4,
+    backgroundColor: theme.colors.background,
+    fontSize: 11,
+    fontWeight: "500",
+    color: theme.colors.textMuted,
+    lineHeight: 18,
+    zIndex: 10,
+  },
+  labelFocused: {
+    color: theme.colors.primary,
+  },
+  labelError: {
+    color: theme.colors.danger,
+  },
+  asterisk: {
+    color: theme.colors.danger,
+  },
+
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  input: {
+    flex: 1,
+    fontSize: 15,
+    color: theme.colors.text,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    height: 46,
+  },
+  inputMultiline: {
+    height: undefined,
+    minHeight: 88,
+    paddingTop: 12,
+    paddingBottom: 12,
+  },
+  iconWrap: {
+    marginLeft: theme.spacing.sm,
+  },
+
+  error: {
+    fontSize: 11,
+    color: theme.colors.danger,
+    paddingHorizontal: 4,
+    paddingBottom: 4,
+    marginTop: 2,
+  },
+});

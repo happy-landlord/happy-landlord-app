@@ -87,7 +87,8 @@ export type Database = {
           platform: string | null;
           is_active: boolean | null;
           created_at: string | null;
-          updated_at: string | null;
+          updated_at: string;
+          last_seen_at: string | null;
         };
         Insert: {
           id?: string;
@@ -97,7 +98,8 @@ export type Database = {
           platform?: string | null;
           is_active?: boolean | null;
           created_at?: string | null;
-          updated_at?: string | null;
+          updated_at?: string;
+          last_seen_at?: string | null;
         };
         Update: {
           id?: string;
@@ -107,7 +109,8 @@ export type Database = {
           platform?: string | null;
           is_active?: boolean | null;
           created_at?: string | null;
-          updated_at?: string | null;
+          updated_at?: string;
+          last_seen_at?: string | null;
         };
         Relationships: [];
       };
@@ -478,7 +481,7 @@ export type KeyItemType =
 export type KeyInventoryItem = {
   type: KeyItemType;
   code: string;
-  quantity: number;
+  count: number;
   notes?: string;
 };
 

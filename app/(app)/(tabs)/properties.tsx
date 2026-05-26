@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { Plus, X } from "lucide-react-native";
 
 import { PropertyCard } from "@/components/PropertyCard";
@@ -30,6 +31,7 @@ const TABS: { id: AdminTab; label: string }[] = [
 
 export default function KeysScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
   const [adminTab, setAdminTab] = useState<AdminTab>("available");
   const searchRef = useRef<AddressSearchRef>(null);
@@ -101,7 +103,7 @@ export default function KeysScreen() {
             styles.addPropertyButton,
             pressed && styles.addPropertyButtonPressed,
           ]}
-          onPress={() => {}}
+          onPress={() => router.push("/(app)/properties/add")}
           accessibilityRole="button"
           accessibilityLabel="Add property"
         >

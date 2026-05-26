@@ -46,7 +46,8 @@
         {
           "faceIDPermission": "Happy Landlord uses Face ID to let you unlock the app quickly and securely."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,

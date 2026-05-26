@@ -31,5 +31,5 @@
  */
 export const FEATURES = {
   BIOMETRIC_LOCK: false,
-  GOOGLE_PLACES: false,   // ← set to true when a valid API key is configured
+  GOOGLE_PLACES: true,
 } as const;

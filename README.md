@@ -1,49 +1,148 @@
-# HLApp
+# Happy Landlord App (HLApp)
 
-Expo + Expo Router app for Happy Landlord.
+React Native mobile app for **Happy Landlord** — a key-management platform for real estate agencies. Built with Expo (SDK 54, New Architecture) and Expo Router v6.
 
-## Setup
+---
 
-### 1) Install dependencies
+## Tech stack
+
+| Layer | Choice |
+|---|---|
+| Framework | Expo SDK 54 · React Native 0.81 |
+| Navigation | Expo Router v6 (file-based, typed routes) |
+| Backend | Supabase (Postgres + Auth + Edge Functions + Realtime) |
+| Data fetching | TanStack Query v5 |
+| Styling | NativeWind v4 (Tailwind CSS) + `StyleSheet` |
+| Forms | React Hook Form + Zod |
+| State | Zustand (lock screen store) |
+| Icons | Lucide React Native · Ionicons |
+| Push notifications | Expo Notifications → Supabase Edge Function → Expo Push API |
+| Biometrics | Expo Local Authentication |
+| OTA updates | EAS Update (`appVersion` runtime policy) |
+
+---
+
+## Roles
+
+| Role | Capabilities |
+|---|---|
+| **Admin** | Full access — manage properties, key sets, agents, approve/reject registration requests, see all activity |
+| **Agent** | Checkout / return / transfer company key sets assigned to properties they work on; view their own activity |
+
+New sign-ups land in a **pending** state until an admin approves their registration request.
+
+---
+
+## Key features
+
+- **Key set management** — company and tenant key sets per property, each with a typed inventory (main door, mailbox, fob, garage remote, etc.)
+- **Checkout / return / transfer** — atomic RPCs via Supabase; status and holder updated in a single transaction
+- **QR / barcode scan** — scan a key-set code to jump straight to the detail screen
+- **Activity feed** — full movement history across all key sets, filterable by user
+- **Push notifications** — checkout, return, due-soon, overdue, recall, and registration events
+- **Biometric lock** — optional Face ID / fingerprint gate on app open
+- **Countdown timer** — live due-back countdown on checked-out key sets
+- **Property detail** — address, landlord info, key-set list, and admin edit shortcut
+
+---
+
+## Folder structure
+
+```
+app/                    Expo Router screens (file-based routing)
+  (auth)/               Unauthenticated stack — login, signup, OAuth callback
+  (app)/                Authenticated stack
+    (tabs)/             Bottom tab screens — Home, Keys, Activity, Profile
+    properties/[id]/    Property detail + key-set detail
+    scan.tsx            QR / barcode scanner
+    settings.tsx        Push notifications + biometric settings
+    requests.tsx        Admin — pending registration requests
+    pending.tsx         Shown while account awaits approval
+    rejected.tsx        Shown after account rejection
+
+components/
+  keyset/               Key-set specific cards, modals, countdown
+  property/             Property header, summary, landlord card, key-sets section
+  ui/                   Shared primitives — Button, Card, Screen, Input, etc.
+
+constants/              Theme, roles, icons, query keys, movement configs
+hooks/                  Data hooks (useProfile, useKeySets, useProperties, …)
+lib/                    Supabase client, React Query client, lock store, formatters
+services/               Supabase query/mutation functions per domain
+types/
+  database.ts           Hand-maintained Supabase schema types
+supabase/
+  sql/                  Migration SQL files
+```
+
+---
+
+## Environment
+
+Create a `.env` file (or set secrets in EAS) with your Supabase project credentials:
+
+```env
+EXPO_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
+```
+
+These are referenced in `lib/supabase.ts`.
+
+---
+
+## Local development
+
+### 1. Install dependencies
 
 ```bash
 npm install
 ```
 
-### 2) One-time EAS setup
+### 2. Start the dev server
+
+```bash
+npm run start
+```
+
+Open on a specific platform:
+
+```bash
+npm run android
+npm run ios
+npm run web
+```
+
+Clear Metro cache if you see stale bundle issues:
+
+```bash
+npm run start:clear
+```
+
+---
+
+## Quality checks
+
+```bash
+npm run lint        # ESLint (expo + prettier config)
+npm run typecheck   # tsc --noEmit
+```
+
+---
+
+## EAS setup (first time)
 
 ```bash
 npx eas login
 npm run eas:configure
 ```
 
-This links the app to an EAS project and creates platform build credentials when needed.
+Links the app to EAS project `55bce2dd-5c0f-4aca-a7f6-634e684acd3f` and generates platform signing credentials.
 
-## Run locally
+---
 
-```bash
-npm run start
-```
+## Build & publish
 
-Useful variants:
-
-```bash
-npm run android
-npm run ios
-npm run web
-npm run start:clear
-```
-
-## Quality checks
-
-```bash
-npm run lint
-npm run typecheck
-```
-
-## Build and publish with EAS
-
-### Internal preview builds
+### Preview builds (internal distribution)
 
 ```bash
 npm run build:preview:android
@@ -53,25 +152,56 @@ npm run build:preview:ios
 ### Production store builds
 
 ```bash
-npm run build:production
+npm run build:production   # both platforms, auto-increments build number
 ```
 
-### Submit latest builds to stores
+### Submit to stores
 
 ```bash
 npm run submit:android
 npm run submit:ios
 ```
 
-### Publish OTA updates (EAS Update)
+### OTA updates (EAS Update)
 
 ```bash
-npm run publish:preview
-npm run publish:production
+npm run publish:preview      # → preview branch
+npm run publish:production   # → production branch
 ```
+
+OTA updates deliver JS/asset changes without a new store release. The runtime version policy is `appVersion` — updates are compatible within the same `version` in `app.json`.
+
+---
+
+## Supabase
+
+See [`supabase/README.md`](supabase/README.md) for:
+
+- Notification automation SQL (triggers, scheduled jobs, Edge Function contract)
+- Required Vault secrets
+- `pg_cron` schedule for due-soon / overdue notifications
+
+### Push token schema
+
+`user_push_tokens` tracks one row per device:
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid | PK |
+| `user_id` | uuid | FK → `auth.users` |
+| `expo_push_token` | text | Expo token string |
+| `device_name` | text \| null | |
+| `platform` | text \| null | `ios` \| `android` |
+| `is_active` | bool \| null | Set to `false` on token error |
+| `created_at` | timestamptz | |
+| `updated_at` | timestamptz | NOT NULL DEFAULT now() |
+| `last_seen_at` | timestamptz \| null | Updated on each app open |
+
+---
 
 ## Notes
 
-- Build profiles are defined in `eas.json`.
-- `publish:*` sends JavaScript/asset updates to the matching branch.
-- App store metadata and signing credentials must be configured in EAS before first submit.
+- Build profiles are in `eas.json` (`development`, `preview`, `production`).
+- App store metadata and signing credentials must be configured in EAS before first store submit.
+- New Architecture (`newArchEnabled: true`) and React Compiler (`reactCompiler: true`) are both enabled.
+- The app uses `expo-secure-store` for session persistence and biometric state storage.

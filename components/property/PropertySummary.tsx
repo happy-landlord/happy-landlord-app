@@ -20,7 +20,7 @@ export const PropertySummary = memo(function PropertySummary({
       (sum, ks) =>
         sum +
         (ks.inventory?.items ?? []).reduce(
-          (itemSum, item) => itemSum + (item.quantity ?? 0),
+          (itemSum, item) => itemSum + (item.count ?? 0),
           0,
         ),
       0,

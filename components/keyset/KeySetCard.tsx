@@ -13,7 +13,7 @@ export type KeySetCardProps = {
 
 export const KeySetCard = memo(function KeySetCard({ keySet, onPress }: KeySetCardProps) {
   const totalKeys = (keySet.inventory?.items ?? []).reduce(
-    (sum, item) => sum + (item.quantity ?? 0),
+    (sum, item) => sum + (item.count ?? 0),
     0,
   );
   const typeLabel = `${SET_TYPE_LABEL[keySet.set_type] ?? keySet.set_type} Keyset`;

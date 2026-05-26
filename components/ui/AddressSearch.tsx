@@ -6,7 +6,9 @@ import {
 } from "react-native-google-places-autocomplete";
 
 import { FEATURES } from "@/constants/features";
+import { SYDNEY_BIAS } from "@/constants/places";
 import { theme } from "@/constants/theme";
+import { normaliseSuburb } from "@/lib/places";
 
 export type PlaceResult = {
   placeId: string;
@@ -14,6 +16,8 @@ export type PlaceResult = {
   streetNumber?: string;
   street?: string;
   suburb?: string;
+  /** Local Government Area / council name (administrative_area_level_2) */
+  council?: string;
   state?: string;
   postcode?: string;
   country?: string;
@@ -25,6 +29,8 @@ type AddressSearchProps = {
   onSelect: (place: PlaceResult) => void;
   placeholder?: string;
   label?: string;
+  /** Remove the component's own border/radius so it can sit inside an OutlinedField */
+  borderless?: boolean;
 };
 
 export type AddressSearchRef = {
@@ -33,8 +39,14 @@ export type AddressSearchRef = {
 
 const API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY ?? "";
 
+
+// ── Suggestion list scroll patch ──────────────────────────────────────────────
+// flatListProps is supported at runtime but omitted from the published types.
+// Spreading as unknown bypasses the type error while touching nothing else.
+const DISABLE_LIST_SCROLL = { flatListProps: { scrollEnabled: false } } as unknown as object;
+
 export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
-  function AddressSearch({ onSelect, placeholder = "Search address…" }, ref) {
+  function AddressSearch({ onSelect, placeholder = "Search address…", borderless = false }, ref) {
     // ── Fallback plain-text input (used when FEATURES.GOOGLE_PLACES = false) ──
     const [text, setText] = useState("");
 
@@ -50,12 +62,31 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
       },
     }));
 
+    const resolvedTextInputStyle = borderless
+      ? {
+          ...styles.textInput,
+          borderWidth: 0,
+          borderRadius: 0,
+          paddingHorizontal: 0,
+          marginBottom: 0,
+          backgroundColor: "transparent",
+        }
+      : styles.textInput;
+
+    const resolvedContainerStyle = borderless
+      ? styles.containerBorderless
+      : styles.container;
+
+    const resolvedListViewStyle = borderless
+      ? styles.listViewBorderless
+      : styles.listView;
+
     // ── Bypass: plain TextInput ───────────────────────────────────────────────
     if (!FEATURES.GOOGLE_PLACES) {
       return (
         <View>
           <TextInput
-            style={styles.textInput}
+            style={resolvedTextInputStyle}
             placeholder={placeholder}
             placeholderTextColor={theme.colors.textLight}
             selectionColor={theme.colors.primary}
@@ -87,6 +118,8 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
           language: "en",
           components: "country:au",
           types: "address",
+          // Bias toward Greater Sydney (soft — other cities still discoverable)
+          ...SYDNEY_BIAS,
         }}
         onPress={(data, details) => {
           const components = details?.address_components ?? [];
@@ -106,7 +139,12 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
             description: data.description,
             streetNumber: get("street_number"),
             street: get("route"),
-            suburb: get("locality"),
+            suburb: normaliseSuburb(
+              get("sublocality_level_1") ??
+              get("locality") ??
+              get("postal_town"),
+            ),
+            council: get("administrative_area_level_2"),
             state: getShort("administrative_area_level_1"),
             postcode: get("postal_code"),
             country: get("country"),
@@ -115,10 +153,10 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
           });
         }}
         styles={{
-          container: styles.container,
+          container: resolvedContainerStyle,
           textInputContainer: styles.textInputContainer,
-          textInput: styles.textInput,
-          listView: styles.listView,
+          textInput: resolvedTextInputStyle,
+          listView: resolvedListViewStyle,
           row: styles.row,
           description: styles.description,
           separator: styles.separator,
@@ -129,6 +167,9 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
           selectionColor: theme.colors.primary,
         }}
         keyboardShouldPersistTaps="handled"
+        // Disable internal list scrolling — max 5 suggestions, never needs scroll,
+        // and this prevents Android scroll-stealing from the outer ScrollView.
+        {...DISABLE_LIST_SCROLL}
       />
     );
   },
@@ -137,6 +178,12 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
 const styles = StyleSheet.create({
   container: {
     flex: 0,
+  },
+  containerBorderless: {
+    flex: 0,
+    height: 48,
+    zIndex: 9999,
+    elevation: 24,
   },
   textInputContainer: {
     backgroundColor: "transparent",
@@ -159,6 +206,24 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     marginTop: theme.spacing.xs,
     overflow: "hidden",
+  },
+  listViewBorderless: {
+    position: "absolute",
+    top: 48,
+    left: -theme.spacing.sm,
+    right: -theme.spacing.sm,
+    maxHeight: 280,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.surface,
+    overflow: "hidden",
+    zIndex: 9999,
+    elevation: 24,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
   },
   row: {
     backgroundColor: theme.colors.surface,

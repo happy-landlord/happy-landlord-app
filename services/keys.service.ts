@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import type {
   DbKeySet,
+  DbKeySetInsert,
   KeyInventory,
   KeyInventoryItem,
   KeyItemType,
@@ -9,6 +10,7 @@ import type {
 export type KeySet = DbKeySet;
 export type KeySetType = KeySet["set_type"];
 export type KeySetStatus = KeySet["status"];
+// Re-export inventory types so consumers don't need to reach into @/types/database directly
 export type { KeyInventory, KeyInventoryItem, KeyItemType };
 
 /** Resolved holder data joined from the key_holders table. */
@@ -275,3 +277,28 @@ export async function fetchKeySetsForProperty(
   if (error) throw error;
   return data as KeySetWithHolder[];
 }
+
+/** Creates a single key_set row and returns the inserted record. */
+export async function createKeySet(input: DbKeySetInsert): Promise<KeySet> {
+  const { data, error } = await supabase
+    .from("key_sets")
+    .insert(input)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/** Creates multiple key_set rows in a single request and returns them. */
+export async function createKeySets(inputs: DbKeySetInsert[]): Promise<KeySet[]> {
+  if (inputs.length === 0) return [];
+  const { data, error } = await supabase
+    .from("key_sets")
+    .insert(inputs)
+    .select();
+
+  if (error) throw error;
+  return data;
+}
+
