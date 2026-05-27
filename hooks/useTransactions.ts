@@ -1,7 +1,6 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { QUERY_KEYS } from "@/constants/queryKeys";
-import { useSession } from "@/hooks/useSession";
-import { useRole } from "@/hooks/useRole";
+import { useQueryScope } from "@/hooks/useRole";
 import {
   fetchMyActivity,
   fetchAllActivity,
@@ -13,19 +12,15 @@ export type { ActivityTransaction };
 const ACTIVITY_PAGE_SIZE = 25;
 
 export function useMyActivity() {
-  const { session } = useSession();
-  const { isAdmin, isLoading: roleLoading } = useRole();
-  const userId = session?.user.id;
+  const { userId, isAdmin, ready } = useQueryScope();
   return useQuery({
     queryKey: isAdmin
       ? QUERY_KEYS.activity.all
       : userId
         ? QUERY_KEYS.activity.mine(userId)
         : ["activity", "none"],
-    queryFn: isAdmin
-      ? fetchAllActivity
-      : () => fetchMyActivity(userId!),
-    enabled: !roleLoading && Boolean(userId),
+    queryFn: isAdmin ? fetchAllActivity : () => fetchMyActivity(userId!),
+    enabled: ready,
     staleTime: 1000 * 30,
   });
 }
@@ -37,10 +32,7 @@ export function useInfiniteActivity({
   search?: string;
   propertyId?: string;
 } = {}) {
-  const { session } = useSession();
-  const { isAdmin, isLoading: roleLoading } = useRole();
-  const userId = session?.user.id;
-  const scope = isAdmin ? "admin" : userId ?? "none";
+  const { userId, isAdmin, scope, ready } = useQueryScope();
 
   return useInfiniteQuery<ActivityTransaction[], Error>({
     queryKey: QUERY_KEYS.activity.infinite(scope, search, propertyId),
@@ -55,8 +47,7 @@ export function useInfiniteActivity({
     initialPageParam: 0,
     getNextPageParam: (lastPage, allPages) =>
       lastPage.length === ACTIVITY_PAGE_SIZE ? allPages.length : undefined,
-    enabled: !roleLoading && Boolean(userId),
+    enabled: ready,
     staleTime: 1000 * 30,
   });
 }
-

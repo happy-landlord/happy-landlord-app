@@ -7,8 +7,7 @@ import {
   fetchKeyById,
   fetchKeysForProperty,
 } from "@/services/keys.service";
-import { useRole } from "@/hooks/useRole";
-import { useSession } from "@/hooks/useSession";
+import { useQueryScope } from "@/hooks/useRole";
 import type { DbKeyInsert } from "@/types/database";
 
 export function useKeys(propertyId: string) {
@@ -30,15 +29,12 @@ export function useKey(keyId: string) {
 }
 
 export function useCheckedOutKeys(limit = 5) {
-  const { session } = useSession();
-  const { isAdmin, isLoading: roleLoading } = useRole();
-  const userId = session?.user.id;
-  const scope = isAdmin ? "admin" : userId ?? "none";
+  const { userId, isAdmin, scope, ready } = useQueryScope();
 
   return useQuery({
     queryKey: [...QUERY_KEYS.keys.checkedOut(scope), limit],
     queryFn: () => fetchCheckedOutKeys({ userId: userId!, isAdmin, limit }),
-    enabled: !roleLoading && Boolean(userId),
+    enabled: ready,
     staleTime: 1000 * 30,
   });
 }

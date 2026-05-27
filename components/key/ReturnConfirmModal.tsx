@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import { Archive, Calendar, CheckCircle2, KeyRound } from "lucide-react-native";
+import * as Haptics from "expo-haptics";
 
 import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
 import { theme } from "@/constants/theme";
@@ -152,7 +153,10 @@ export const ReturnConfirmModal = memo(function ReturnConfirmModal({
               label={isPending ? "Returning…" : "Confirm return"}
               loading={isPending}
               disabled={isPending}
-              onPress={onConfirm}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+                onConfirm();
+              }}
             />
           </View>
         </View>

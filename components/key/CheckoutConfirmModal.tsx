@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import {
   Calendar,
   Check,
@@ -116,6 +117,7 @@ export const CheckoutConfirmModal = memo(function CheckoutConfirmModal({
   };
 
   const handleConfirm = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     closeDurationPicker();
     onConfirm();
   };

@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import { QUERY_KEYS } from "@/constants/queryKeys";
 import { supabase } from "@/lib/supabase";
 import { useLockStore } from "@/lib/lockStore";
+import { useCurrentUserId } from "@/hooks/useSession";
 import {
   createNotification,
   deactivateAllPushTokens,
@@ -22,7 +23,10 @@ import {
   type PushStatus,
 } from "@/services/notifications.service";
 
-export function useNotifications(userId: string | undefined) {
+// ── Notifications list / unread count ────────────────────────────────────────
+
+export function useNotifications() {
+  const userId = useCurrentUserId();
   return useQuery<AppNotification[], Error>({
     queryKey: userId ? QUERY_KEYS.notifications.all(userId) : ["notifications", "none"],
     queryFn: () => fetchNotifications(userId!),
@@ -30,7 +34,8 @@ export function useNotifications(userId: string | undefined) {
   });
 }
 
-export function useUnreadNotificationCount(userId: string | undefined) {
+export function useUnreadNotificationCount() {
+  const userId = useCurrentUserId();
   return useQuery<number, Error>({
     queryKey: userId
       ? QUERY_KEYS.notifications.unreadCount(userId)
@@ -40,7 +45,8 @@ export function useUnreadNotificationCount(userId: string | undefined) {
   });
 }
 
-export function useMarkNotificationRead(userId: string | undefined) {
+export function useMarkNotificationRead() {
+  const userId = useCurrentUserId();
   const queryClient = useQueryClient();
 
   return useMutation<void, Error, string>({
@@ -107,13 +113,15 @@ export function useMarkNotificationRead(userId: string | undefined) {
   });
 }
 
-export function useRegisterPushToken(userId: string | undefined) {
+// ── Push registration / realtime / foreground listeners ──────────────────────
+
+export function useRegisterPushToken() {
+  const userId = useCurrentUserId();
   useEffect(() => {
     let cancelled = false;
 
     async function register() {
       if (!userId) return;
-
       try {
         const token = await requestExpoPushToken();
         if (!token || cancelled) return;
@@ -131,7 +139,8 @@ export function useRegisterPushToken(userId: string | undefined) {
   }, [userId]);
 }
 
-export function useNotificationRealtime(userId: string | undefined) {
+export function useNotificationRealtime() {
+  const userId = useCurrentUserId();
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -188,9 +197,10 @@ export function useNotificationResponseNavigation() {
 
 /**
  * Listens for notifications received while the app is in the foreground and
- * refreshes the notification list / unread count for the given user.
+ * refreshes the notification list / unread count for the current user.
  */
-export function useForegroundNotificationListener(userId: string | undefined) {
+export function useForegroundNotificationListener() {
+  const userId = useCurrentUserId();
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -204,6 +214,8 @@ export function useForegroundNotificationListener(userId: string | undefined) {
     return () => subscription.remove();
   }, [queryClient, userId]);
 }
+
+// ── Admin test ───────────────────────────────────────────────────────────────
 
 type AdminTestNotificationParams = {
   recipientUserId: string;
@@ -239,7 +251,8 @@ export function useAdminSendTestNotification() {
 // ── Push settings hooks ──────────────────────────────────────────────────────
 
 /** Fetches OS permission status + whether the user has an active DB token. */
-export function usePushStatus(userId: string | undefined) {
+export function usePushStatus() {
+  const userId = useCurrentUserId();
   return useQuery<PushStatus, Error>({
     queryKey: userId
       ? QUERY_KEYS.notifications.pushStatus(userId)
@@ -255,7 +268,8 @@ export function usePushStatus(userId: string | undefined) {
  *   ON  → request OS permission if needed, then upsert active token
  *   OFF → deactivate all tokens in DB
  */
-export function useTogglePush(userId: string | undefined) {
+export function useTogglePush() {
+  const userId = useCurrentUserId();
   const queryClient = useQueryClient();
 
   return useMutation<void, Error, boolean>({
@@ -263,9 +277,7 @@ export function useTogglePush(userId: string | undefined) {
       if (!userId) return;
       if (enable) {
         const token = await requestExpoPushToken();
-        if (token) {
-          await saveUserPushToken(userId, token);
-        }
+        if (token) await saveUserPushToken(userId, token);
       } else {
         await deactivateAllPushTokens(userId);
       }
@@ -280,7 +292,8 @@ export function useTogglePush(userId: string | undefined) {
 }
 
 /** Marks every unread notification for this user as read. */
-export function useMarkAllNotificationsRead(userId: string | undefined) {
+export function useMarkAllNotificationsRead() {
+  const userId = useCurrentUserId();
   const queryClient = useQueryClient();
 
   return useMutation<void, Error, void>({
@@ -297,4 +310,3 @@ export function useMarkAllNotificationsRead(userId: string | undefined) {
     },
   });
 }
-

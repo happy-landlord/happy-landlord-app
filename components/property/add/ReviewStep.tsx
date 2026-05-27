@@ -1,16 +1,14 @@
 import type { ComponentType, ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import {
-  Briefcase,
   Building2,
   KeyRound,
-  Package,
   User,
 } from "lucide-react-native";
 
 import { theme } from "@/constants/theme";
 import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
-import { PROPERTY_TYPES, type KeySetDraft, type PropertyStep } from "./types";
+import { PROPERTY_TYPES, type KeyEntry, type PropertyStep } from "./types";
 
 type IconComponent = ComponentType<{
   size?: number;
@@ -18,44 +16,17 @@ type IconComponent = ComponentType<{
   strokeWidth?: number;
 }>;
 
-const SET_TYPE_META: Record<
-  KeySetDraft["setType"],
-  { label: string; Icon: IconComponent; color: string; bg: string }
-> = {
-  tenant: {
-    label: "Tenant",
-    Icon: User,
-    color: theme.colors.info,
-    bg: theme.colors.infoSoft,
-  },
-  company: {
-    label: "Company",
-    Icon: Briefcase,
-    color: theme.colors.primary,
-    bg: theme.colors.primarySoft,
-  },
-  unused: {
-    label: "Utility",
-    Icon: Package,
-    color: theme.colors.warning,
-    bg: theme.colors.warningSoft,
-  },
-};
-
 type Props = {
   propertyData: PropertyStep;
-  keySets: KeySetDraft[];
+  keys: KeyEntry[];
 };
 
-export function ReviewStep({ propertyData, keySets }: Props) {
+export function ReviewStep({ propertyData, keys }: Props) {
   const selectedTypeLabel =
     PROPERTY_TYPES.find((t) => t.value === propertyData.propertyType)?.label ??
     "";
 
-  const totalPhysicalKeys = keySets.reduce(
-    (sum, set) => sum + set.keys.reduce((keySum, key) => keySum + key.count, 0),
-    0,
-  );
+  const totalPhysicalKeys = keys.reduce((sum, key) => sum + key.count, 0);
 
   const descriptionParts =
     propertyData.selectedPlace?.description
@@ -139,27 +110,37 @@ export function ReviewStep({ propertyData, keySets }: Props) {
       </View>
 
       <InfoSection
-        title="Key sets"
+        title="Keys"
         icon={KeyRound}
         trailing={`${totalPhysicalKeys} ${totalPhysicalKeys === 1 ? "key" : "keys"}`}
       >
-        {keySets.length === 0 ? (
-          <View style={styles.emptyKeySetCard}>
+        {keys.length === 0 ? (
+          <View style={styles.emptyKeyCard}>
             <KeyRound
               size={18}
               color={theme.colors.textLight}
               strokeWidth={1.8}
             />
-            <Text style={styles.noSets}>No key sets added.</Text>
+            <Text style={styles.noKeys}>No keys added.</Text>
           </View>
         ) : (
-          <View style={styles.keySetList}>
-            {keySets.map((ks, idx) => (
-              <KeySetReviewCard key={ks.id} keySet={ks} index={idx} />
-            ))}
+          <View style={styles.keyPillGrid}>
+            {keys.map((key) => {
+              const KeyIcon = KEY_TYPE_ICON[key.type] ?? KeyRound;
+              return (
+                <View key={key.id} style={styles.keyPill}>
+                  <KeyIcon size={15} color={theme.colors.primary} strokeWidth={1.8} />
+                  <Text style={styles.keyPillLabel} numberOfLines={1}>
+                    {KEY_TYPE_LABEL[key.type] ?? key.type}
+                  </Text>
+                  <Text style={styles.keyPillCount}>
+                    × {key.count}
+                  </Text>
+                </View>
+              );
+            })}
           </View>
         )}
-        {/* TODO: show master-set and per-keyset photo thumbnails here */}
       </InfoSection>
     </View>
   );
@@ -190,93 +171,6 @@ function InfoSection({
         ) : null}
       </View>
       <View style={styles.sectionBody}>{children}</View>
-    </View>
-  );
-}
-
-function KeySetReviewCard({
-  keySet,
-  index,
-}: {
-  keySet: KeySetDraft;
-  index: number;
-}) {
-  const meta = SET_TYPE_META[keySet.setType];
-  const totalKeys = keySet.keys.reduce((sum, key) => sum + key.count, 0);
-  const Icon = meta.Icon;
-
-  return (
-    <View style={[styles.setCard, { borderColor: `${meta.color}44` }]}>
-      <View style={[styles.setAccent, { backgroundColor: meta.color }]} />
-      <View style={styles.setContent}>
-        <View style={styles.setHeader}>
-          <View style={styles.setTitleWrap}>
-            <View style={[styles.setIconWrap, { backgroundColor: meta.bg }]}>
-              <Icon size={18} color={meta.color} strokeWidth={1.9} />
-            </View>
-            <View style={styles.setTitleTextWrap}>
-              <Text style={[styles.setEyebrow, { color: meta.color }]}>
-                Set {index + 1}
-              </Text>
-              <Text style={styles.setTitle}>{keySet.label || meta.label}</Text>
-            </View>
-          </View>
-          <View style={[styles.keyCountBadge, { backgroundColor: meta.bg }]}>
-            <KeyRound size={13} color={meta.color} strokeWidth={2} />
-            <Text style={[styles.keyCountText, { color: meta.color }]}>
-              {totalKeys} {totalKeys === 1 ? "key" : "keys"}
-            </Text>
-          </View>
-        </View>
-
-        {keySet.setType === "tenant" &&
-        (keySet.tenantName || keySet.tenantContact) ? (
-          <View style={[styles.tenantPanel, { backgroundColor: meta.bg }]}>
-            {keySet.tenantName ? (
-              <Text style={[styles.tenantText, { color: meta.color }]}>
-                Tenant:{" "}
-                <Text style={styles.tenantTextStrong}>{keySet.tenantName}</Text>
-              </Text>
-            ) : null}
-            {keySet.tenantContact ? (
-              <Text style={[styles.tenantText, { color: meta.color }]}>
-                Contact:{" "}
-                <Text style={styles.tenantTextStrong}>
-                  {keySet.tenantContact}
-                </Text>
-              </Text>
-            ) : null}
-          </View>
-        ) : null}
-
-        {keySet.keys.length > 0 ? (
-          <View style={styles.keyPillGrid}>
-            {keySet.keys.map((key) => {
-              const KeyIcon = KEY_TYPE_ICON[key.type] ?? KeyRound;
-              return (
-                <View key={key.id} style={styles.keyPill}>
-                  <KeyIcon size={15} color={meta.color} strokeWidth={1.8} />
-                  <Text style={styles.keyPillLabel} numberOfLines={1}>
-                    {KEY_TYPE_LABEL[key.type] ?? key.type}
-                  </Text>
-                  <Text style={[styles.keyPillCount, { color: meta.color }]}>
-                    × {key.count}
-                  </Text>
-                </View>
-              );
-            })}
-          </View>
-        ) : (
-          <Text style={styles.emptyKeyText}>No keys added to this set.</Text>
-        )}
-
-        {keySet.notes ? (
-          <View style={styles.notesBox}>
-            <Text style={styles.notesLabel}>Notes</Text>
-            <Text style={styles.notesText}>{keySet.notes}</Text>
-          </View>
-        ) : null}
-      </View>
     </View>
   );
 }
@@ -415,83 +309,21 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
     gap: theme.spacing.sm,
   },
-  keySetList: {
-    gap: theme.spacing.md,
-  },
-  setCard: {
+  emptyKeyCard: {
     flexDirection: "row",
-    borderWidth: 1,
-    borderRadius: theme.radius.lg,
-    backgroundColor: theme.colors.background,
-    overflow: "hidden",
-  },
-  setAccent: {
-    width: 5,
-  },
-  setContent: {
-    flex: 1,
+    alignItems: "center",
+    gap: theme.spacing.sm,
     padding: theme.spacing.md,
-    gap: theme.spacing.sm,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.background,
   },
-  setHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: theme.spacing.sm,
-  },
-  setTitleWrap: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-  },
-  setIconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: theme.radius.md,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  setTitleTextWrap: {
-    flex: 1,
-  },
-  setEyebrow: {
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-  },
-  setTitle: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: theme.colors.text,
-  },
-  keyCountBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: theme.radius.pill,
-  },
-  keyCountText: {
-    fontSize: 12,
-    fontWeight: "800",
-  },
-  tenantPanel: {
-    borderRadius: theme.radius.md,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.sm,
-    gap: 3,
-  },
-  tenantText: {
-    fontSize: 12,
-    fontWeight: "700",
-    lineHeight: 17,
-  },
-  tenantTextStrong: {
-    color: theme.colors.text,
-    fontWeight: "800",
+  noKeys: {
+    fontSize: 14,
+    color: theme.colors.textLight,
+    fontWeight: "600",
   },
   keyPillGrid: {
     flexDirection: "row",
@@ -518,44 +350,6 @@ const styles = StyleSheet.create({
   keyPillCount: {
     fontSize: 13,
     fontWeight: "900",
-  },
-  emptyKeySetCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-    padding: theme.spacing.md,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.background,
-  },
-  noSets: {
-    fontSize: 14,
-    color: theme.colors.textLight,
-    fontWeight: "600",
-  },
-  emptyKeyText: {
-    fontSize: 13,
-    color: theme.colors.textLight,
-    fontStyle: "italic",
-  },
-  notesBox: {
-    paddingTop: theme.spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
-    gap: 3,
-  },
-  notesLabel: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: theme.colors.textLight,
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-  },
-  notesText: {
-    fontSize: 13,
-    lineHeight: 18,
-    color: theme.colors.textMuted,
+    color: theme.colors.primary,
   },
 });

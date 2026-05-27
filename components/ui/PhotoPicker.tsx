@@ -18,12 +18,12 @@
 import {
   Alert,
   Dimensions,
-  Image,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { Image } from "expo-image";
 import { Camera, Plus, X } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 
@@ -161,7 +161,9 @@ export function PhotoPicker({
               <Image
                 source={{ uri }}
                 style={styles.thumbImg}
-                resizeMode="cover"
+                contentFit="cover"
+                cachePolicy="memory-disk"
+                transition={150}
               />
               <Pressable
                 style={[styles.removeBtn, compact && styles.removeBtnCompact]}

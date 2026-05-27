@@ -1,11 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { QUERY_KEYS } from "@/constants/queryKeys";
 import type { RegistrationRequest } from "@/services/requests.service";
 import {
   approveRequest,
   fetchRegistrationRequests,
-  fetchPendingRequests,
   fetchMyLatestRequest,
   rejectRequest,
   resubmitRequest,
@@ -19,11 +18,22 @@ export function useRegistrationRequests() {
   });
 }
 
-/** Returns only pending requests — used for badge count. */
+/**
+ * Pending requests — derived from `useRegistrationRequests` via `select` so
+ * both hooks share one cached fetch.
+ *
+ * The list is returned oldest-first (the order admins want when reviewing
+ * the backlog) while the parent query stays newest-first.
+ */
 export function usePendingRequests() {
-  return useQuery<RegistrationRequest[], Error>({
-    queryKey: QUERY_KEYS.requests.pending,
-    queryFn: fetchPendingRequests,
+  return useQuery<RegistrationRequest[], Error, RegistrationRequest[]>({
+    queryKey: QUERY_KEYS.requests.all,
+    queryFn: fetchRegistrationRequests,
+    select: (rows) =>
+      rows
+        .filter((r) => r.status === "pending")
+        .slice()
+        .reverse(),
   });
 }
 
@@ -45,7 +55,6 @@ export function useReviewRequest() {
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: QUERY_KEYS.requests.all });
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.requests.pending });
   };
 
   const approve = useMutation<void, Error, ApproveVars>({
@@ -76,4 +85,3 @@ export function useResubmitRequest() {
     },
   });
 }
-

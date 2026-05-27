@@ -1,4 +1,3 @@
-import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -11,7 +10,6 @@ import {
   Text,
   View,
 } from "react-native";
-import { useFocusEffect } from "expo-router";
 import {
   AlertCircle,
   BellOff,
@@ -27,7 +25,6 @@ import * as Device from "expo-device";
 
 import { theme } from "@/constants/theme";
 import { FEATURES } from "@/constants/features";
-import { useSession } from "@/hooks/useSession";
 import {
   useMarkAllNotificationsRead,
   usePushStatus,
@@ -35,13 +32,10 @@ import {
   useUnreadNotificationCount,
 } from "@/hooks/useNotifications";
 import {
-  authenticateWithBiometrics,
-  getBiometricCapability,
-  getBiometricLabel,
-  isBiometricEnabled,
-  setBiometricEnabled,
-  type BiometricCapability,
-} from "@/services/biometric.service";
+  useBiometricSettings,
+  useToggleBiometric,
+} from "@/hooks/useBiometric";
+import { getBiometricLabel } from "@/services/biometric.service";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -111,88 +105,17 @@ function SettingRow({
 // ── main screen ───────────────────────────────────────────────────────────────
 
 export default function SettingsScreen() {
-  const { session } = useSession();
-  const userId = session?.user.id;
-
   // ── Notifications ─────────────────────────────────────────────────────
-  const { data: unreadCount = 0 } = useUnreadNotificationCount(userId);
-  const {
-    data: pushStatus,
-    isLoading: pushLoading,
-    refetch: refetchPushStatus,
-  } = usePushStatus(userId);
-  const togglePush = useTogglePush(userId);
-  const markAllRead = useMarkAllNotificationsRead(userId);
+  const { data: unreadCount = 0 } = useUnreadNotificationCount();
+  const { data: pushStatus, isLoading: pushLoading } = usePushStatus();
+  const togglePush = useTogglePush();
+  const markAllRead = useMarkAllNotificationsRead();
 
   // ── Biometrics ────────────────────────────────────────────────────────
-  const [biometricCapability, setBiometricCapability] =
-    useState<BiometricCapability | null>(null);
-  const [biometricEnabled, setBiometricEnabledState] = useState(false);
-  const [biometricToggling, setBiometricToggling] = useState(false);
-
-  async function loadBiometricState() {
-    const [cap, enabled] = await Promise.all([
-      getBiometricCapability(),
-      userId ? isBiometricEnabled(userId) : Promise.resolve(false),
-    ]);
-    setBiometricCapability(cap);
-    setBiometricEnabledState(enabled);
-  }
-
-  useFocusEffect(
-    useCallback(() => {
-      refetchPushStatus();
-      loadBiometricState();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [userId]),
-  );
-
-  async function handleBiometricToggle(value: boolean) {
-    if (!userId || biometricToggling) return;
-    setBiometricToggling(true);
-
-    try {
-      if (value) {
-        // Require a successful biometric prompt before enabling —
-        // prevents someone else from enabling it without your face/fingerprint.
-        const result = await authenticateWithBiometrics(
-          "Verify your identity to enable biometric login",
-        );
-        if (!result.success) {
-          setBiometricToggling(false);
-          return;
-        }
-        await setBiometricEnabled(userId, true);
-        setBiometricEnabledState(true);
-      } else {
-        Alert.alert(
-          "Disable biometric login?",
-          "You will need to enter your password the next time you open the app.",
-          [
-            {
-              text: "Cancel",
-              style: "cancel",
-              onPress: () => setBiometricToggling(false),
-            },
-            {
-              text: "Disable",
-              style: "destructive",
-              onPress: async () => {
-                await setBiometricEnabled(userId, false);
-                setBiometricEnabledState(false);
-                setBiometricToggling(false);
-              },
-            },
-          ],
-        );
-        return;
-      }
-    } catch {
-      // silently ignore
-    } finally {
-      setBiometricToggling(false);
-    }
-  }
+  const { data: biometric } = useBiometricSettings();
+  const toggleBiometric = useToggleBiometric();
+  const biometricCapability = biometric?.capability ?? null;
+  const biometricEnabled = biometric?.enabled ?? false;
 
   // ── Shared ────────────────────────────────────────────────────────────
   const permissionDenied = pushStatus?.permissionStatus === "denied";
@@ -256,9 +179,11 @@ export default function SettingsScreen() {
                   ? `Unlock the app with ${biometricLabel}`
                   : "Not available on this device"
               }
-              disabled={!biometricCapability?.isAvailable || biometricToggling}
+              disabled={
+                !biometricCapability?.isAvailable || toggleBiometric.isPending
+              }
               right={
-                biometricToggling ? (
+                toggleBiometric.isPending ? (
                   <ActivityIndicator
                     size="small"
                     color={theme.colors.primary}
@@ -267,9 +192,10 @@ export default function SettingsScreen() {
                 ) : (
                   <Switch
                     value={biometricEnabled}
-                    onValueChange={handleBiometricToggle}
+                    onValueChange={(v) => toggleBiometric.mutate(v)}
                     disabled={
-                      !biometricCapability?.isAvailable || biometricToggling
+                      !biometricCapability?.isAvailable ||
+                      toggleBiometric.isPending
                     }
                     trackColor={{
                       false: theme.colors.neutralSoft,

@@ -1,32 +1,24 @@
 import {
   ActivityIndicator,
   Pressable,
+  StyleSheet,
   Text,
+  View,
   type PressableProps,
+  type StyleProp,
+  type ViewStyle,
 } from "react-native";
+
+import { theme } from "@/constants/theme";
 
 type ButtonVariant = "primary" | "accent" | "outline" | "ghost" | "danger";
 
-type ButtonProps = PressableProps & {
+type ButtonProps = Omit<PressableProps, "style"> & {
   title: string;
   variant?: ButtonVariant;
   loading?: boolean;
-};
-
-const variants: Record<ButtonVariant, string> = {
-  primary: "bg-primary",
-  accent: "bg-accent",
-  outline: "border border-border bg-transparent",
-  ghost: "bg-transparent",
-  danger: "bg-danger",
-};
-
-const textVariants: Record<ButtonVariant, string> = {
-  primary: "text-textInverse",
-  accent: "text-text",
-  outline: "text-text",
-  ghost: "text-primary",
-  danger: "text-textInverse",
+  /** Optional override for the outer container style. */
+  style?: StyleProp<ViewStyle>;
 };
 
 export function Button({
@@ -34,7 +26,7 @@ export function Button({
   variant = "primary",
   loading = false,
   disabled,
-  className = "",
+  style,
   ...props
 }: ButtonProps) {
   const isDisabled = disabled || loading;
@@ -42,18 +34,81 @@ export function Button({
   return (
     <Pressable
       disabled={isDisabled}
-      className={`min-h-12 items-center justify-center rounded-pill px-5 py-3 ${
-        variants[variant]
-      } ${isDisabled ? "opacity-50" : "opacity-100"} ${className}`}
+      style={({ pressed }) => [
+        styles.base,
+        variantStyles[variant].container,
+        isDisabled && styles.disabled,
+        pressed && !isDisabled && styles.pressed,
+        style,
+      ]}
       {...props}
     >
       {loading ? (
-        <ActivityIndicator />
+        <ActivityIndicator color={variantStyles[variant].spinner} />
       ) : (
-        <Text className={`text-base font-semibold ${textVariants[variant]}`}>
-          {title}
-        </Text>
+        <View style={styles.row}>
+          <Text style={[styles.label, variantStyles[variant].label]}>
+            {title}
+          </Text>
+        </View>
       )}
     </Pressable>
   );
 }
+
+const styles = StyleSheet.create({
+  base: {
+    minHeight: 48,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: theme.radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  disabled: { opacity: 0.5 },
+  pressed: { opacity: 0.85 },
+});
+
+const variantStyles: Record<
+  ButtonVariant,
+  { container: StyleProp<ViewStyle>; label: { color: string }; spinner: string }
+> = {
+  primary: {
+    container: { backgroundColor: theme.colors.primary },
+    label: { color: theme.colors.textInverse },
+    spinner: theme.colors.textInverse,
+  },
+  accent: {
+    container: { backgroundColor: theme.colors.accent },
+    label: { color: theme.colors.text },
+    spinner: theme.colors.text,
+  },
+  outline: {
+    container: {
+      backgroundColor: "transparent",
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    label: { color: theme.colors.text },
+    spinner: theme.colors.text,
+  },
+  ghost: {
+    container: { backgroundColor: "transparent" },
+    label: { color: theme.colors.primary },
+    spinner: theme.colors.primary,
+  },
+  danger: {
+    container: { backgroundColor: theme.colors.danger },
+    label: { color: theme.colors.textInverse },
+    spinner: theme.colors.textInverse,
+  },
+};

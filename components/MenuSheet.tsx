@@ -1,15 +1,5 @@
-import {
-  Animated,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { useEffect, useRef } from "react";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Settings,
   HelpCircle,
@@ -17,12 +7,11 @@ import {
   ClipboardList,
 } from "lucide-react-native";
 
-import { supabase } from "@/lib/supabase";
-import { useLockStore } from "@/lib/lockStore";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 import { RoleGate } from "@/components/RoleGate";
 import { theme } from "@/constants/theme";
-import { FEATURES } from "@/constants/features";
 import { usePendingRequests } from "@/hooks/useAgentRequests";
+import { useSignOut } from "@/hooks/useSession";
 
 type MenuSheetProps = {
   visible: boolean;
@@ -30,45 +19,9 @@ type MenuSheetProps = {
 };
 
 export function MenuSheet({ visible, onClose }: MenuSheetProps) {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
-  const queryClient = useQueryClient();
-  const slideAnim = useRef(new Animated.Value(300)).current;
   const { data: pendingRequests } = usePendingRequests();
-
-  useEffect(() => {
-    if (visible) {
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        bounciness: 0,
-        speed: 20,
-      }).start();
-    } else {
-      Animated.timing(slideAnim, {
-        toValue: 300,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [visible, slideAnim]);
-
-  const signOutMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      // Clear all cached data so the next user starts fresh.
-      queryClient.clear();
-      // Reset biometric lock state on logout.
-      // When biometrics is disabled we immediately re-initialise to the
-      // unlocked state so the next sign-in has no stale initialised=false window.
-      const store = useLockStore.getState();
-      store.reset();
-      if (!FEATURES.BIOMETRIC_LOCK) {
-        store.initialize(false);
-      }
-    },
-  });
+  const signOut = useSignOut();
 
   const navigate = (path: string) => {
     onClose();
@@ -77,67 +30,46 @@ export function MenuSheet({ visible, onClose }: MenuSheetProps) {
 
   const handleLogout = () => {
     onClose();
-    setTimeout(() => signOutMutation.mutate(), 220);
+    setTimeout(() => signOut.mutate(), 220);
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="none"
-      onRequestClose={onClose}
-      statusBarTranslucent
-    >
-      {/* Dimmed backdrop */}
-      <Pressable style={styles.backdrop} onPress={onClose} />
+    <BottomSheet visible={visible} onClose={onClose}>
+      <Text style={styles.sheetTitle}>Menu</Text>
 
-      {/* Sheet */}
-      <Animated.View
-        style={[
-          styles.sheet,
-          { paddingBottom: insets.bottom + theme.spacing.md },
-          { transform: [{ translateY: slideAnim }] },
-        ]}
-      >
-        {/* Handle at top */}
-        <View style={styles.handle} />
-
-        <Text style={styles.sheetTitle}>Menu</Text>
-
-        <View style={styles.items}>
-          {/* Admin-only section */}
-          <RoleGate allow="admin">
-            <MenuItem
-              Icon={ClipboardList}
-              label="Agent Requests"
-              onPress={() => navigate("/(app)/requests")}
-              badge={pendingRequests?.length ?? 0}
-            />
-            <View style={styles.divider} />
-          </RoleGate>
-
+      <View style={styles.items}>
+        {/* Admin-only section */}
+        <RoleGate allow="admin">
           <MenuItem
-            Icon={Settings}
-            label="Settings"
-            onPress={() => navigate("/(app)/settings")}
+            Icon={ClipboardList}
+            label="Agent Requests"
+            onPress={() => navigate("/(app)/requests")}
+            badge={pendingRequests?.length ?? 0}
           />
           <View style={styles.divider} />
-          <MenuItem
-            Icon={HelpCircle}
-            label="Help"
-            onPress={() => navigate("/(app)/help")}
-          />
-          <View style={styles.divider} />
-          <MenuItem
-            Icon={LogOut}
-            label="Sign out"
-            onPress={handleLogout}
-            danger
-            loading={signOutMutation.isPending}
-          />
-        </View>
-      </Animated.View>
-    </Modal>
+        </RoleGate>
+
+        <MenuItem
+          Icon={Settings}
+          label="Settings"
+          onPress={() => navigate("/(app)/settings")}
+        />
+        <View style={styles.divider} />
+        <MenuItem
+          Icon={HelpCircle}
+          label="Help"
+          onPress={() => navigate("/(app)/help")}
+        />
+        <View style={styles.divider} />
+        <MenuItem
+          Icon={LogOut}
+          label="Sign out"
+          onPress={handleLogout}
+          danger
+          loading={signOut.isPending}
+        />
+      </View>
+    </BottomSheet>
   );
 }
 
@@ -166,9 +98,7 @@ function MenuItem({
       style={({ pressed }) => [styles.item, pressed && styles.itemPressed]}
     >
       <Icon size={20} color={color} strokeWidth={1.8} />
-      <Text
-        style={[styles.itemLabel, danger && styles.itemLabelDanger]}
-      >
+      <Text style={[styles.itemLabel, danger && styles.itemLabelDanger]}>
         {loading ? "Signing out…" : label}
       </Text>
       {badge != null && badge > 0 && (
@@ -181,34 +111,6 @@ function MenuItem({
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(38, 38, 38, 0.4)",
-  },
-  sheet: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: theme.colors.surface,
-    borderTopLeftRadius: theme.radius.xl,
-    borderTopRightRadius: theme.radius.xl,
-    paddingTop: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.screen,
-    shadowColor: theme.colors.charcoal,
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 12,
-  },
-  handle: {
-    alignSelf: "center",
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: theme.colors.border,
-    marginBottom: theme.spacing.md,
-  },
   sheetTitle: {
     fontSize: 13,
     fontWeight: "600",

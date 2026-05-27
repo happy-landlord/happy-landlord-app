@@ -2,34 +2,23 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MessageSquare, XCircle } from "lucide-react-native";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { TextInput, Button, HelperText } from "react-native-paper";
 
 import { theme } from "@/constants/theme";
-import { supabase } from "@/lib/supabase";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { Logo } from "@/components/ui/Logo";
 import { useMyLatestRequest, useResubmitRequest } from "@/hooks/useAgentRequests";
-import { useLockStore } from "@/lib/lockStore";
+import { useSignOut } from "@/hooks/useSession";
 
 export default function RejectedScreen() {
   const insets = useSafeAreaInsets();
   const { data: lastRequest } = useMyLatestRequest();
   const resubmit = useResubmitRequest();
-  const queryClient = useQueryClient();
+  const signOut = useSignOut();
 
   const [showForm, setShowForm] = useState(false);
   const [message, setMessage] = useState("");
 
-  const signOutMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      // Clean up inside mutationFn so it runs even after the component
-      // unmounts due to the SIGNED_OUT auth-state redirect.
-      queryClient.clear();
-      useLockStore.getState().reset();
-    },
-  });
 
   const handleResubmit = () => {
     resubmit.mutate({ message: message.trim() || null });
@@ -81,26 +70,15 @@ export default function RejectedScreen() {
           <Text style={styles.formLabel}>
             Add an optional message for the admin:
           </Text>
-          <TextInput
-            activeOutlineColor={theme.colors.primary}
+          <Input
             label="Message (optional)"
-            mode="outlined"
             multiline
             numberOfLines={3}
-            onChangeText={setMessage}
-            outlineColor={theme.colors.border}
             placeholder="Explain your role or why you need access..."
-            placeholderTextColor={theme.colors.textLight}
-            style={styles.input}
-            textColor={theme.colors.text}
             value={message}
+            onChangeText={setMessage}
+            error={resubmit.error?.message || undefined}
           />
-
-          {resubmit.error && (
-            <HelperText padding="none" type="error" visible style={styles.errorText}>
-              {resubmit.error.message || "Failed to submit request. Please try again."}
-            </HelperText>
-          )}
 
           <View style={styles.formActions}>
             <Pressable
@@ -111,29 +89,24 @@ export default function RejectedScreen() {
             </Pressable>
 
             <Button
-              buttonColor={theme.colors.primary}
-              contentStyle={styles.submitContent}
+              title="Submit request"
+              variant="primary"
               disabled={resubmit.isPending}
-              labelStyle={styles.submitLabel}
               loading={resubmit.isPending}
-              mode="contained"
               onPress={handleResubmit}
               style={styles.submitBtn}
-              textColor={theme.colors.textInverse}
-            >
-              Submit request
-            </Button>
+            />
           </View>
         </View>
       )}
 
       <Pressable
         style={({ pressed }) => [styles.signOutBtn, pressed && styles.btnPressed]}
-        onPress={() => signOutMutation.mutate()}
-        disabled={signOutMutation.isPending}
+        onPress={() => signOut.mutate()}
+        disabled={signOut.isPending}
       >
         <Text style={styles.signOutLabel}>
-          {signOutMutation.isPending ? "Signing out…" : "Sign out"}
+          {signOut.isPending ? "Signing out…" : "Sign out"}
         </Text>
       </Pressable>
     </View>

@@ -4,6 +4,7 @@ import {
   GooglePlacesAutocomplete,
   type GooglePlacesAutocompleteRef,
 } from "react-native-google-places-autocomplete";
+import { useDebouncedCallback } from "use-debounce";
 
 import { FEATURES } from "@/constants/features";
 import { SYDNEY_BIAS } from "@/constants/places";
@@ -50,6 +51,19 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
     // ── Fallback plain-text input (used when FEATURES.GOOGLE_PLACES = false) ──
     const [text, setText] = useState("");
 
+    // Debounce the fallback input's `onSelect` so we do not fire a synthetic
+    // selection on every keystroke when the parent wires `onChangeText`-style
+    // listeners. Keeps the behaviour consistent with the debounced Google
+    // Places autocomplete below.
+    const debouncedFallbackSelect = useDebouncedCallback(
+      (raw: string) => {
+        const trimmed = raw.trim();
+        if (!trimmed) return;
+        onSelect({ placeId: "", description: trimmed, suburb: trimmed });
+      },
+      400,
+    );
+
     const placesRef = useRef<GooglePlacesAutocompleteRef>(null);
 
     useImperativeHandle(ref, () => ({
@@ -91,13 +105,18 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
             placeholderTextColor={theme.colors.textLight}
             selectionColor={theme.colors.primary}
             value={text}
-            onChangeText={setText}
+            onChangeText={(v) => {
+              setText(v);
+              debouncedFallbackSelect(v);
+            }}
             onSubmitEditing={() => {
-              if (!text.trim()) return;
+              debouncedFallbackSelect.cancel();
+              const trimmed = text.trim();
+              if (!trimmed) return;
               onSelect({
                 placeId: "",
-                description: text.trim(),
-                suburb: text.trim(),
+                description: trimmed,
+                suburb: trimmed,
               });
             }}
             returnKeyType="search"
@@ -112,6 +131,8 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
         ref={placesRef}
         placeholder={placeholder}
         fetchDetails
+        // Debounce keystrokes → fewer Places API hits, lower bill, smoother UI.
+        debounce={400}
         enablePoweredByContainer={false}
         query={{
           key: API_KEY,

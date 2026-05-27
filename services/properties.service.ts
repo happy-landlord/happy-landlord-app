@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import type { DbProperty, DbPropertyInsert } from "@/types/database";
+import type { DbKeyHolder, DbKeyHolderInsert, DbProperty, DbPropertyInsert } from "@/types/database";
 import { COUNCIL_CODES } from "@/constants/places";
 
 export type Property = DbProperty;
@@ -192,6 +192,18 @@ export async function fetchNextPropertyCodeSeq(
 
   if (error) return 1;
   return (count ?? 0) + 1;
+}
+
+/** Creates a new key_holder row and returns the inserted record. */
+export async function createKeyHolder(input: DbKeyHolderInsert): Promise<DbKeyHolder> {
+  const { data, error } = await supabase
+    .from("key_holders")
+    .insert(input)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
 }
 
 /** Creates a new property row and returns the inserted record. */

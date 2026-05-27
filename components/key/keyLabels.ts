@@ -48,3 +48,19 @@ export const KEY_TYPE_LABEL: Record<KeyType, string> = {
   balcony: "Balcony Key",
   other: "Other Key",
 };
+
+/** 2-letter suffix used when building per-key `key_code` strings. */
+export const KEY_TYPE_SHORT: Record<KeyType, string> = {
+  main_door: "MD",
+  swipe_fob: "SF",
+  mailbox: "MB",
+  window: "WN",
+  garage_remote: "GR",
+  key_card: "KC",
+  storage_cage: "SC",
+  common_area: "CA",
+  security: "SY",
+  balcony: "BL",
+  other: "OT",
+};
+

@@ -9,9 +9,9 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { HelperText, TextInput } from "react-native-paper";
-import { Fingerprint, ShieldCheck } from "lucide-react-native";
+import { Eye, EyeOff, Fingerprint, ShieldCheck } from "lucide-react-native";
 
+import { Input } from "@/components/ui/Input";
 import { Logo } from "@/components/ui/Logo";
 import { theme } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
@@ -229,39 +229,37 @@ export function LockScreen({ userName, userEmail }: LockScreenProps) {
               <Text style={styles.emailLabel}>{userEmail}</Text>
             ) : null}
 
-            <TextInput
-              activeOutlineColor={theme.colors.primary}
+            <Input
               autoCapitalize="none"
               autoComplete="current-password"
               autoFocus
               label="Password"
-              mode="outlined"
               onChangeText={(v) => {
                 setPassword(v);
                 setPasswordError("");
               }}
               onSubmitEditing={handlePasswordUnlock}
-              outlineColor={passwordError ? theme.colors.danger : theme.colors.border}
               placeholder="Enter your password"
-              placeholderTextColor={theme.colors.textLight}
-              right={
-                <TextInput.Icon
-                  icon={showPassword ? "eye-off" : "eye"}
-                  onPress={() => setShowPassword((v) => !v)}
-                  color={theme.colors.textLight}
-                />
-              }
               secureTextEntry={!showPassword}
-              style={styles.input}
-              textColor={theme.colors.text}
               value={password}
+              error={passwordError || undefined}
+              rightIcon={
+                <Pressable
+                  onPress={() => setShowPassword((v) => !v)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    showPassword ? "Hide password" : "Show password"
+                  }
+                >
+                  {showPassword ? (
+                    <EyeOff size={18} color={theme.colors.textLight} strokeWidth={2} />
+                  ) : (
+                    <Eye size={18} color={theme.colors.textLight} strokeWidth={2} />
+                  )}
+                </Pressable>
+              }
             />
-
-            {passwordError ? (
-              <HelperText padding="none" type="error" visible style={styles.errorText}>
-                {passwordError}
-              </HelperText>
-            ) : null}
 
             <Pressable
               onPress={handlePasswordUnlock}

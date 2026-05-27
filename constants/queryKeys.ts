@@ -23,7 +23,6 @@ export const QUERY_KEYS = {
   },
   requests: {
     all: ["requests"] as const,
-    pending: ["requests", "pending"] as const,
     mine: ["requests", "mine"] as const,
   },
   notifications: {

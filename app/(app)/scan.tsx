@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import type { BarcodeScanningResult } from "expo-camera";
+import * as Haptics from "expo-haptics";
 import { ScanLine, X, RefreshCw } from "lucide-react-native";
 
 import { fetchPropertyByCode } from "@/services/properties.service";
@@ -77,6 +78,7 @@ export default function ScanScreen() {
       const payload = parseQrPayload(data);
 
       if (!payload) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
         setScanState({
           status: "error",
           message: "This QR code isn't recognised. Please scan a Happy Landlord QR code.",
@@ -89,11 +91,14 @@ export default function ScanScreen() {
       try {
         const property = await fetchPropertyByCode(payload.code);
         if (!property) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
           setScanState({ status: "notFound" });
           return;
         }
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         router.replace(`/(app)/properties/${property.id}` as never);
       } catch {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
         setScanState({
           status: "error",
           message: "Something went wrong while looking up this QR code.",

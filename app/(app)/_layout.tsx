@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { Redirect, Stack, useRouter, useSegments } from 'expo-router';
 
@@ -14,15 +14,10 @@ import {
   useRegisterPushToken,
   useForegroundNotificationListener,
 } from '@/hooks/useNotifications';
+import { useBiometricEnrolmentPrompt } from '@/hooks/useBiometric';
 import { theme } from '@/constants/theme';
 import { useLockStore } from '@/lib/lockStore';
-import {
-  getBiometricCapability,
-  getBiometricLabel,
-  hasBiometricDecision,
-  isBiometricEnabled,
-  setBiometricEnabled,
-} from '@/services/biometric.service';
+import { isBiometricEnabled } from '@/services/biometric.service';
 
 export default function AppLayout() {
   const { isLoading: sessionLoading, isAuthenticated, session } = useSession();
@@ -33,15 +28,13 @@ export default function AppLayout() {
 
   // ── Biometric lock state ────────────────────────────────────────────────
   const lockStore = useLockStore();
-  const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
-  const [promptBiometricLabel, setPromptBiometricLabel] = useState("Fingerprint");
+  const enrolmentPrompt = useBiometricEnrolmentPrompt();
 
-  // Step 1: Once we have a userId, read SecureStore to decide whether to lock.
+  // Once we have a userId, read SecureStore to decide whether to lock.
   // Skip the gate when the user *just* authenticated via email/password.
   useEffect(() => {
     if (!userId || lockStore.initialized) return;
 
-    // Biometric lock is disabled globally — skip straight to unlocked.
     if (!FEATURES.BIOMETRIC_LOCK) {
       lockStore.initialize(false);
       return;
@@ -60,35 +53,14 @@ export default function AppLayout() {
     });
   }, [userId, lockStore.initialized, lockStore]);
 
-  // Step 2: After lock is resolved and app is unlocked, check if we should
-  //         show the first-time "Enable biometrics?" prompt.
-  useEffect(() => {
-    if (!FEATURES.BIOMETRIC_LOCK) return;           // feature disabled globally
-    if (!userId || !lockStore.initialized || lockStore.isLocked) return;
-
-    async function checkPrompt() {
-      const alreadyDecided = await hasBiometricDecision(userId!);
-      if (alreadyDecided) return;
-
-      const capability = await getBiometricCapability();
-      if (!capability.isAvailable) return;
-
-      setPromptBiometricLabel(getBiometricLabel(capability.type));
-      setShowBiometricPrompt(true);
-    }
-
-    checkPrompt();
-  }, [userId, lockStore.initialized, lockStore.isLocked]);
-
-  // ── Notification hooks ──────────────────────────────────────────────────
-  useRegisterPushToken(isAuthenticated ? userId : undefined);
-  useNotificationRealtime(isAuthenticated ? userId : undefined);
-  useForegroundNotificationListener(isAuthenticated ? userId : undefined);
+  // ── Notification hooks (auto-read current user internally) ──────────────
+  useRegisterPushToken();
+  useNotificationRealtime();
+  useForegroundNotificationListener();
   useNotificationResponseNavigation();
 
   // ── Loading ─────────────────────────────────────────────────────────────
   // Only block on lock initialisation when biometrics is actually enabled.
-  // When the feature is off the lock store is irrelevant, so skip the gate.
   const isLockCheckPending =
     FEATURES.BIOMETRIC_LOCK &&
     isAuthenticated && Boolean(userId) && !lockStore.initialized;
@@ -112,18 +84,13 @@ export default function AppLayout() {
         profile.status === 'inactive');
 
     if (isOnStatusScreen) {
-      if (!needsStatusScreen) {
-        router.replace('/(app)/(tabs)');
-      }
+      if (!needsStatusScreen) router.replace('/(app)/(tabs)');
       return;
     }
 
     if (needsStatusScreen) {
-      if (profile.status === 'pending') {
-        router.replace('/(app)/pending');
-      } else {
-        router.replace('/(app)/rejected');
-      }
+      if (profile.status === 'pending') router.replace('/(app)/pending');
+      else router.replace('/(app)/rejected');
     }
   }, [isLoading, isAuthenticated, profile, isOnStatusScreen, router]);
 
@@ -169,17 +136,10 @@ export default function AppLayout() {
       {/* First-login biometric enrolment prompt — only when feature is enabled */}
       {FEATURES.BIOMETRIC_LOCK && (
         <BiometricEnablePrompt
-          visible={showBiometricPrompt}
-          biometricLabel={promptBiometricLabel}
-          onEnable={async () => {
-            if (userId) await setBiometricEnabled(userId, true);
-            setShowBiometricPrompt(false);
-          }}
-          onDismiss={async () => {
-            // "Maybe later" — store the decision so we don't ask again
-            if (userId) await setBiometricEnabled(userId, false);
-            setShowBiometricPrompt(false);
-          }}
+          visible={enrolmentPrompt.visible}
+          biometricLabel={enrolmentPrompt.biometricLabel}
+          onEnable={enrolmentPrompt.onEnable}
+          onDismiss={enrolmentPrompt.onDismiss}
         />
       )}
     </>

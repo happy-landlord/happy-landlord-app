@@ -1,11 +1,10 @@
-import { forwardRef, useImperativeHandle, useRef, useState } from "react";
+import { useState } from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { theme } from "@/constants/theme";
 import {
   AddressSearch,
-  type AddressSearchRef,
   type PlaceResult,
 } from "@/components/ui/AddressSearch";
 import { Input } from "@/components/ui/Input";
@@ -20,23 +19,21 @@ import { PhotoPicker } from "@/components/ui/PhotoPicker";
 
 import { PROPERTY_TYPES, formatDate, type PropertyStep } from "./types";
 
-/** Methods exposed to the parent wizard via ref. */
-export type PropertyInfoStepRef = {
-  clearAddress: () => void;
-};
-
 type Props = {
   data: PropertyStep;
   onChange: (patch: Partial<PropertyStep>) => void;
-  /** True while add.tsx is generating the property code after address selection. */
+  /** True while the parent is generating the property code. */
   codeLoading: boolean;
-  /** Called by add.tsx when an address is selected — triggers code generation. */
+  /** Fired when a new address is picked — parent triggers code generation. */
   onAddressSelect: (place: PlaceResult) => void;
 };
 
-export const PropertyInfoStep = forwardRef<PropertyInfoStepRef, Props>(
-  function PropertyInfoStep({ data, onChange, codeLoading, onAddressSelect }, ref) {
-  const addressRef = useRef<AddressSearchRef>(null);
+export function PropertyInfoStep({
+  data,
+  onChange,
+  codeLoading,
+  onAddressSelect,
+}: Props) {
   const [showTypePicker, setShowTypePicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -44,15 +41,11 @@ export const PropertyInfoStep = forwardRef<PropertyInfoStepRef, Props>(
     PROPERTY_TYPES.find((t) => t.value === data.propertyType)?.label ??
     "Select…";
 
-  useImperativeHandle(ref, () => ({
-    clearAddress: () => addressRef.current?.clear(),
-  }));
   return (
     <View style={styles.container}>
       {/* Address — dropdown is absolutely positioned and overlays content below */}
       <OutlinedField label="Address" required style={styles.addressField}>
         <AddressSearch
-          ref={addressRef}
           placeholder="Search address…"
           onSelect={(place) => {
             onChange({ selectedPlace: place, propertyCode: null });
@@ -81,7 +74,7 @@ export const PropertyInfoStep = forwardRef<PropertyInfoStepRef, Props>(
         label="Landlord / Owner"
         placeholder="Full name"
         value={data.landlordName}
-        onChangeText={(v) => onChange({ landlordName: v })}
+        onChangeText={(landlordName) => onChange({ landlordName })}
         autoCapitalize="words"
       />
 
@@ -91,7 +84,7 @@ export const PropertyInfoStep = forwardRef<PropertyInfoStepRef, Props>(
           label="Landlord Contact"
           placeholder="Phone number"
           value={data.landlordContact}
-          onChangeText={(v) => onChange({ landlordContact: v })}
+          onChangeText={(landlordContact) => onChange({ landlordContact })}
           keyboardType="phone-pad"
           containerStyle={styles.phoneField}
         />
@@ -119,7 +112,7 @@ export const PropertyInfoStep = forwardRef<PropertyInfoStepRef, Props>(
       <View style={styles.photoSection}>
         <PhotoPicker
           uris={data.photoUris}
-          onChange={(uris) => onChange({ photoUris: uris })}
+          onChange={(photoUris) => onChange({ photoUris })}
           label="Photos – Master Set"
           hint="Tap to add photos of keys received"
         />
@@ -137,7 +130,7 @@ export const PropertyInfoStep = forwardRef<PropertyInfoStepRef, Props>(
       )}
     </View>
   );
-});
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -156,17 +149,8 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: theme.spacing.sm,
   },
-  phoneField: {
-    flex: 1,
-    marginTop: 10,
-  },
-  dateField: {
-    width: 155,
-  },
-  photoSection: {
-    marginTop: theme.spacing.md,
-  },
-  stickerCardSpacing: {
-    marginTop: theme.spacing.md,
-  },
+  phoneField: { flex: 1, marginTop: 10 },
+  dateField: { width: 155 },
+  photoSection: { marginTop: theme.spacing.md },
+  stickerCardSpacing: { marginTop: theme.spacing.md },
 });

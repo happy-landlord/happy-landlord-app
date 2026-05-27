@@ -3,9 +3,11 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { LogBox } from 'react-native';
-import { PaperProvider } from 'react-native-paper';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
+import * as SystemUI from 'expo-system-ui';
 import 'react-native-reanimated';
-import "../global.css";
 
 import { queryClient } from '@/lib/queryClient';
 
@@ -13,6 +15,12 @@ import { queryClient } from '@/lib/queryClient';
 // The warning is cosmetic — scroll-stealing is prevented by
 // keyboardShouldPersistTaps="handled" on the outer ScrollView.
 LogBox.ignoreLogs(['VirtualizedLists should never be nested']);
+
+// Set the native root background colour BEFORE JS mounts so there is no white
+// flash between the splash screen and the first React render.
+SystemUI.setBackgroundColorAsync('#FAF9F5').catch(() => {
+  // No-op: not fatal if it fails (e.g. on web).
+});
 
 const AppTheme = {
   ...DefaultTheme,
@@ -24,16 +32,20 @@ const AppTheme = {
 
 export default function RootLayout() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider value={AppTheme}>
-        <PaperProvider>
-          <Stack initialRouteName="(app)" screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(app)" />
-          </Stack>
-          <StatusBar style="dark" />
-        </PaperProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <BottomSheetModalProvider>
+        <QueryClientProvider client={queryClient}>
+          <KeyboardProvider>
+            <ThemeProvider value={AppTheme}>
+              <Stack initialRouteName="(app)" screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen name="(app)" />
+              </Stack>
+              <StatusBar style="dark" />
+            </ThemeProvider>
+          </KeyboardProvider>
+        </QueryClientProvider>
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }

@@ -3,7 +3,6 @@ import { Bell } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
 import { theme } from "@/constants/theme";
-import { useSession } from "@/hooks/useSession";
 import { useUnreadNotificationCount } from "@/hooks/useNotifications";
 
 type NotificationBellProps = {
@@ -12,9 +11,7 @@ type NotificationBellProps = {
 
 export function NotificationBell({ size = 38 }: NotificationBellProps) {
   const router = useRouter();
-  const { session } = useSession();
-  const userId = session?.user.id;
-  const { data: unreadCount = 0 } = useUnreadNotificationCount(userId);
+  const { data: unreadCount = 0 } = useUnreadNotificationCount();
 
   return (
     <Pressable
@@ -72,4 +69,3 @@ const styles = StyleSheet.create({
     color: theme.colors.surface,
   },
 });
-

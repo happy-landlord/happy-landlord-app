@@ -1,26 +1,13 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { theme } from "@/constants/theme";
-import { supabase } from "@/lib/supabase";
 import { Logo } from "@/components/ui/Logo";
-import { useLockStore } from "@/lib/lockStore";
+import { useSignOut } from "@/hooks/useSession";
 
 export default function PendingApprovalScreen() {
   const insets = useSafeAreaInsets();
-  const queryClient = useQueryClient();
-
-  const signOutMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      // Clean up inside mutationFn so it runs even after the component
-      // unmounts due to the SIGNED_OUT auth-state redirect.
-      queryClient.clear();
-      useLockStore.getState().reset();
-    },
-  });
+  const signOut = useSignOut();
 
   return (
     <View
@@ -55,11 +42,11 @@ export default function PendingApprovalScreen() {
           styles.signOutBtn,
           pressed && styles.btnPressed,
         ]}
-        onPress={() => signOutMutation.mutate()}
-        disabled={signOutMutation.isPending}
+        onPress={() => signOut.mutate()}
+        disabled={signOut.isPending}
       >
         <Text style={styles.signOutLabel}>
-          {signOutMutation.isPending ? "Signing out…" : "Sign out"}
+          {signOut.isPending ? "Signing out…" : "Sign out"}
         </Text>
       </Pressable>
     </View>

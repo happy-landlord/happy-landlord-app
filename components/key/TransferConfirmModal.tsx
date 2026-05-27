@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { Calendar, KeyRound, UserCheck } from "lucide-react-native";
+import * as Haptics from "expo-haptics";
 
 import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
 import { theme } from "@/constants/theme";
@@ -102,7 +103,10 @@ export const TransferConfirmModal = memo(function TransferConfirmModal({
               label={isPending ? "Transferring…" : "Transfer to me"}
               loading={isPending}
               disabled={isPending}
-              onPress={onConfirm}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+                onConfirm();
+              }}
             />
           </View>
         </View>

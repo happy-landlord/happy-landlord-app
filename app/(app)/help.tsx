@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
+import * as WebBrowser from "expo-web-browser";
 
 import { theme } from "@/constants/theme";
 
@@ -621,7 +622,7 @@ export default function HelpScreen() {
           icon="shield-checkmark-outline"
           label="Privacy Policy"
           onPress={() =>
-            Linking.openURL("https://happylandlord.com.au/privacy").catch(() =>
+            WebBrowser.openBrowserAsync("https://happylandlord.com.au/privacy").catch(() =>
               Alert.alert("Unavailable", "Could not open Privacy Policy."),
             )
           }
@@ -630,7 +631,7 @@ export default function HelpScreen() {
           icon="reader-outline"
           label="Terms of Use"
           onPress={() =>
-            Linking.openURL("https://happylandlord.com.au/terms").catch(() =>
+            WebBrowser.openBrowserAsync("https://happylandlord.com.au/terms").catch(() =>
               Alert.alert("Unavailable", "Could not open Terms of Use."),
             )
           }

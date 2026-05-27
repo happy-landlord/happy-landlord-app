@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+
 import type { Database } from "@/types/database";
 
 export type RegistrationRequest =
@@ -15,17 +16,6 @@ export async function fetchRegistrationRequests(): Promise<RegistrationRequest[]
   return (data ?? []) as RegistrationRequest[];
 }
 
-/** Fetch only pending requests (admin only) — used for badge count. */
-export async function fetchPendingRequests(): Promise<RegistrationRequest[]> {
-  const { data, error } = await supabase
-    .from("registration_requests")
-    .select("*")
-    .eq("status", "pending")
-    .order("created_at", { ascending: true });
-
-  if (error) throw error;
-  return (data ?? []) as RegistrationRequest[];
-}
 
 /** Fetch the current user's most recent registration request. */
 export async function fetchMyLatestRequest(): Promise<RegistrationRequest | null> {

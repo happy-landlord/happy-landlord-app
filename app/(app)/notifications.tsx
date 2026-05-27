@@ -27,7 +27,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { theme } from "@/constants/theme";
 import { formatNotificationTimestamp } from "@/lib/format";
-import { useSession } from "@/hooks/useSession";
+import { useCurrentUserId } from "@/hooks/useSession";
 import {
   useAdminSendTestNotification,
   useMarkNotificationRead,
@@ -112,11 +112,10 @@ function getVisual(type: string): NotificationVisual {
 
 export default function NotificationsScreen() {
   const router = useRouter();
-  const { session } = useSession();
-  const userId = session?.user.id;
+  const userId = useCurrentUserId();
   const { isAdmin } = useRole();
-  const { data, isLoading, isError, isFetching, refetch } = useNotifications(userId);
-  const markRead = useMarkNotificationRead(userId);
+  const { data, isLoading, isError, isFetching, refetch } = useNotifications();
+  const markRead = useMarkNotificationRead();
 
   const handlePress = useCallback(
     (notification: AppNotification) => {
