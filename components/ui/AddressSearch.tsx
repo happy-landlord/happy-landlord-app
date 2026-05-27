@@ -117,7 +117,9 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
           key: API_KEY,
           language: "en",
           components: "country:au",
-          types: "address",
+          // "geocode" returns precise addresses, partial street inputs, AND
+          // locality/suburb names — unlike "address" which requires a street number.
+          types: "geocode",
           // Bias toward Greater Sydney (soft — other cities still discoverable)
           ...SYDNEY_BIAS,
         }}

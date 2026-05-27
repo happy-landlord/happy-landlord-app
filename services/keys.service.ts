@@ -1,39 +1,28 @@
 import { supabase } from "@/lib/supabase";
-import type {
-  DbKeySet,
-  DbKeySetInsert,
-  KeyInventory,
-  KeyInventoryItem,
-  KeyItemType,
-} from "@/types/database";
+import type { DbKey, DbKeyInsert, DbKeyUpdate } from "@/types/database";
 
-export type KeySet = DbKeySet;
-export type KeySetType = KeySet["set_type"];
-export type KeySetStatus = KeySet["status"];
-// Re-export inventory types so consumers don't need to reach into @/types/database directly
-export type { KeyInventory, KeyInventoryItem, KeyItemType };
+export type Key = DbKey;
+export type KeyType = Key["key_type"];
+export type KeyStatus = Key["status"];
+export type { DbKeyInsert, DbKeyUpdate };
 
 /** Resolved holder data joined from the key_holders table. */
 export type ResolvedKeyHolder = {
   profile_id: string | null;
   full_name: string | null;
-  holder_type: "agent" | "tenant";
+  holder_type: "agent" | "tenant" | "landlord";
 };
 
 /**
- * KeySet enriched with the resolved current holder's profile info.
- * Used on agent-facing screens so we can determine whether the current user
- * is the one holding the key (checked_out_by_me vs checked_out_by_other).
- *
- * `due_back_at` is populated from the latest "borrowed" movement when the
- * keyset is currently checked out — used to drive the countdown timer.
+ * Key enriched with the resolved current holder's profile info.
+ * `due_back_at` is populated from the latest "borrowed" transaction.
  */
-export type KeySetWithHolder = KeySet & {
+export type KeyWithHolder = Key & {
   current_holder: ResolvedKeyHolder | null;
   due_back_at?: string | null;
 };
 
-export type CheckedOutKeySet = KeySetWithHolder & {
+export type CheckedOutKey = KeyWithHolder & {
   property: {
     id: string;
     address: string;
@@ -45,165 +34,57 @@ export type CheckedOutKeySet = KeySetWithHolder & {
   due_back_at: string | null;
 };
 
-type CheckoutDueMovement = {
-  key_set_id: string;
-  due_back_at: string | null;
-  created_at: string;
-};
-
-export type FetchKeySetsOptions = {
-  /** Filter to a specific set_type — agents pass "company" */
-  setType?: KeySetType;
-};
-
-const KEY_SET_SELECT =
+const KEY_SELECT =
   "*, current_holder:current_holder_id(profile_id, full_name, holder_type)" as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Checkout / return params
+// Fetch helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type CheckoutParams = {
-  keySetId: string;
-  /** ISO string — defaults to 7 days from now when omitted. */
-  dueBackAt?: string | null;
-  notes?: string | null;
-};
-
-export type ReturnParams = {
-  keySetId: string;
-  notes?: string | null;
-};
-
-export type TransferParams = {
-  keySetId: string;
-  notes?: string | null;
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Checkout
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Checks a keyset out to the calling agent via the `checkout_key_set` RPC.
- *
- * The RPC runs as SECURITY DEFINER so it bypasses RLS on key_sets,
- * key_holders and key_movements — all three writes are handled atomically
- * server-side.  Returns the agent's key_holders.id (holderId).
- */
-export async function checkoutKeyset({
-  keySetId,
-  dueBackAt,
-  notes,
-}: CheckoutParams): Promise<string> {
-  const resolvedDueBack =
-    dueBackAt !== undefined
-      ? dueBackAt
-      : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-
-  const { data, error } = await supabase.rpc("checkout_key_set", {
-    p_key_set_id: keySetId,
-    p_due_back_at: resolvedDueBack,
-    p_notes: notes ?? null,
-  });
-
-  if (error) throw error;
-  return data as string;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Return
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Returns a keyset via the `checkin_key_set` RPC.
- *
- * The RPC runs as SECURITY DEFINER so it bypasses RLS on key_sets and
- * key_movements — both writes are handled atomically server-side.
- */
-export async function returnKeyset({
-  keySetId,
-  notes,
-}: ReturnParams): Promise<void> {
-  const { data, error } = await supabase.rpc("return_key_set", {
-    p_key_set_id: keySetId,
-    p_notes: notes ?? null,
-  });
-
-  if (error) throw error;
-  return data;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Transfer
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Transfers a borrowed keyset from its current holder to the calling agent
- * via the `transfer_key_set_to_me` RPC.
- *
- * The keyset stays in 'borrowed' status — only current_holder_id changes.
- * Returns the caller's key_holders.id.
- */
-export async function transferKeyset({
-  keySetId,
-  notes,
-}: TransferParams): Promise<string> {
-  const { data, error } = await supabase.rpc("transfer_key_set_to_me", {
-    p_key_set_id: keySetId,
-    p_notes: notes ?? null,
-  });
-
-  if (error) throw error;
-  return data as string;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-
-export async function fetchKeySetByCode(
-  setCode: string,
-): Promise<KeySetWithHolder | null> {
+export async function fetchKeyByCode(
+  keyCode: string,
+): Promise<KeyWithHolder | null> {
   const { data, error } = await supabase
-    .from("key_sets")
-    .select(KEY_SET_SELECT)
-    .eq("set_code", setCode.trim().toUpperCase())
+    .from("keys")
+    .select(KEY_SELECT)
+    .eq("key_code", keyCode.trim().toUpperCase())
     .maybeSingle();
   if (error) throw error;
-  return data as KeySetWithHolder | null;
+  return data as KeyWithHolder | null;
 }
 
-export async function fetchKeySetById(
-  keySetId: string,
-): Promise<KeySetWithHolder | null> {
+export async function fetchKeyById(
+  keyId: string,
+): Promise<KeyWithHolder | null> {
   const { data, error } = await supabase
-    .from("key_sets")
-    .select(KEY_SET_SELECT)
-    .eq("id", keySetId)
+    .from("keys")
+    .select(KEY_SELECT)
+    .eq("id", keyId)
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
 
-  const keySet = data as KeySetWithHolder;
+  const key = data as KeyWithHolder;
 
-  // If the keyset is currently checked out, look up the most recent
-  // "borrowed" movement to get the due_back_at for the countdown timer.
-  if (keySet.status === "borrowed" || keySet.status === "overdue") {
-    const { data: movement } = await supabase
-      .from("key_movements")
-      .select("due_back_at")
-      .eq("key_set_id", keySetId)
-      .eq("movement_type", "borrowed")
+  // Populate due_back_at from the most recent "borrowed" transaction for this key.
+  if (key.status === "borrowed" || key.status === "overdue") {
+    const { data: tx } = await supabase
+      .from("key_transactions")
+      .select("due_back_at, key_transaction_items!inner(key_id)")
+      .eq("transaction_type", "borrowed")
+      .eq("key_transaction_items.key_id", keyId)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    keySet.due_back_at = movement?.due_back_at ?? null;
+    key.due_back_at =
+      (tx as { due_back_at: string | null } | null)?.due_back_at ?? null;
   }
 
-  return keySet;
+  return key;
 }
 
-export async function fetchCheckedOutKeySets({
+export async function fetchCheckedOutKeys({
   userId,
   isAdmin,
   limit = 5,
@@ -211,77 +92,115 @@ export async function fetchCheckedOutKeySets({
   userId: string;
   isAdmin: boolean;
   limit?: number;
-}): Promise<CheckedOutKeySet[]> {
+}): Promise<CheckedOutKey[]> {
   const { data, error } = await supabase
-    .from("key_sets")
+    .from("keys")
     .select(
-      `
-      *,
+      `*,
       current_holder:current_holder_id(profile_id, full_name, holder_type),
       property:property_id(id, address, suburb, city, postcode, formatted_address)
-    `,
+      `,
     )
     .in("status", ["borrowed", "overdue"])
     .order("updated_at", { ascending: false })
-    .limit(isAdmin ? limit : 50);
+    .limit(isAdmin ? Math.max(limit * 5, 100) : 50);
 
   if (error) throw error;
 
-  const rows = (data ?? []) as CheckedOutKeySet[];
+  const rows = (data ?? []) as CheckedOutKey[];
   const visibleRows = isAdmin
     ? rows
-    : rows.filter((keySet) => keySet.current_holder?.profile_id === userId);
+    : rows.filter((key) => key.current_holder?.profile_id === userId);
 
   const limitedRows = visibleRows.slice(0, limit);
-  const keySetIds = limitedRows.map((keySet) => keySet.id);
+  const keyIds = limitedRows.map((k) => k.id);
 
-  if (keySetIds.length === 0) return limitedRows;
+  if (keyIds.length === 0) return limitedRows;
 
-  const { data: checkoutMovements, error: movementError } = await supabase
-    .from("key_movements")
-    .select("key_set_id, due_back_at, created_at")
-    .in("key_set_id", keySetIds)
-    .eq("movement_type", "borrowed")
+  // Fetch due_back_at from the most recent "borrowed" transaction for each key.
+  const { data: txData } = await supabase
+    .from("key_transactions")
+    .select("due_back_at, created_at, key_transaction_items!inner(key_id)")
+    .eq("transaction_type", "borrowed")
+    .in("key_transaction_items.key_id", keyIds)
     .order("created_at", { ascending: false });
 
-  if (movementError) throw movementError;
+  type TxRow = {
+    due_back_at: string | null;
+    created_at: string;
+    key_transaction_items: { key_id: string }[];
+  };
 
-  const dueByKeySet = new Map<string, string | null>();
-  for (const movement of (checkoutMovements ?? []) as CheckoutDueMovement[]) {
-    if (!dueByKeySet.has(movement.key_set_id)) {
-      dueByKeySet.set(movement.key_set_id, movement.due_back_at);
+  const dueByKey = new Map<string, string | null>();
+  for (const tx of (txData ?? []) as unknown as TxRow[]) {
+    for (const item of tx.key_transaction_items) {
+      if (!dueByKey.has(item.key_id)) {
+        dueByKey.set(item.key_id, tx.due_back_at);
+      }
     }
   }
 
-  return limitedRows.map((keySet) => ({
-    ...keySet,
-    due_back_at: dueByKeySet.get(keySet.id) ?? null,
+  return limitedRows.map((key) => ({
+    ...key,
+    due_back_at: dueByKey.get(key.id) ?? null,
   }));
 }
 
-export async function fetchKeySetsForProperty(
+export async function fetchKeysForProperty(
   propertyId: string,
-  { setType }: FetchKeySetsOptions = {},
-): Promise<KeySetWithHolder[]> {
-  let query = supabase
-    .from("key_sets")
-    .select(KEY_SET_SELECT)
+): Promise<KeyWithHolder[]> {
+  const { data, error } = await supabase
+    .from("keys")
+    .select(KEY_SELECT)
     .eq("property_id", propertyId)
-    .order("set_code", { ascending: true });
+    .order("key_code", { ascending: true });
 
-  if (setType) {
-    query = query.eq("set_type", setType);
+  if (error) throw error;
+
+  const keys = (data ?? []) as KeyWithHolder[];
+
+  // Populate due_back_at for borrowed/overdue keys from the most recent transaction.
+  const borrowedIds = keys
+    .filter((k) => k.status === "borrowed" || k.status === "overdue")
+    .map((k) => k.id);
+
+  if (borrowedIds.length === 0) return keys;
+
+  const { data: txData } = await supabase
+    .from("key_transactions")
+    .select("due_back_at, created_at, key_transaction_items!inner(key_id)")
+    .eq("transaction_type", "borrowed")
+    .in("key_transaction_items.key_id", borrowedIds)
+    .order("created_at", { ascending: false });
+
+  type TxRow = {
+    due_back_at: string | null;
+    created_at: string;
+    key_transaction_items: { key_id: string }[];
+  };
+
+  const dueByKey = new Map<string, string | null>();
+  for (const tx of (txData ?? []) as unknown as TxRow[]) {
+    for (const item of tx.key_transaction_items) {
+      if (!dueByKey.has(item.key_id)) {
+        dueByKey.set(item.key_id, tx.due_back_at);
+      }
+    }
   }
 
-  const { data, error } = await query;
-  if (error) throw error;
-  return data as KeySetWithHolder[];
+  return keys.map((k) =>
+    dueByKey.has(k.id) ? { ...k, due_back_at: dueByKey.get(k.id) ?? null } : k,
+  );
 }
 
-/** Creates a single key_set row and returns the inserted record. */
-export async function createKeySet(input: DbKeySetInsert): Promise<KeySet> {
+// ─────────────────────────────────────────────────────────────────────────────
+// Mutations
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Creates a single key row and returns the inserted record. */
+export async function createKey(input: DbKeyInsert): Promise<Key> {
   const { data, error } = await supabase
-    .from("key_sets")
+    .from("keys")
     .insert(input)
     .select()
     .single();
@@ -290,15 +209,29 @@ export async function createKeySet(input: DbKeySetInsert): Promise<KeySet> {
   return data;
 }
 
-/** Creates multiple key_set rows in a single request and returns them. */
-export async function createKeySets(inputs: DbKeySetInsert[]): Promise<KeySet[]> {
+/** Creates multiple key rows in a single request and returns them. */
+export async function createKeys(inputs: DbKeyInsert[]): Promise<Key[]> {
   if (inputs.length === 0) return [];
-  const { data, error } = await supabase
-    .from("key_sets")
-    .insert(inputs)
-    .select();
+  const { data, error } = await supabase.from("keys").insert(inputs).select();
 
   if (error) throw error;
   return data;
 }
 
+/** Updates a single key row. */
+export async function updateKey(
+  keyId: string,
+  patch: DbKeyUpdate,
+): Promise<Key> {
+  const { data, error } = await supabase
+    .from("keys")
+    .update(patch)
+    .eq("id", keyId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+// Checkout / return / transfer RPCs live in @/services/transactions.service

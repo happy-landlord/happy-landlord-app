@@ -57,6 +57,7 @@ export function formatDateTime(iso: string): string {
 export type Remaining = {
   /** Milliseconds remaining; negative when past due. */
   total: number;
+  days: number;
   hours: number;
   minutes: number;
   seconds: number;
@@ -67,7 +68,8 @@ export function getRemainingTime(endAt: string, now: number = Date.now()): Remai
   const clamped = Math.max(0, total);
   return {
     total,
-    hours:   Math.floor(clamped / 1000 / 60 / 60),
+    days:    Math.floor(clamped / 1000 / 60 / 60 / 24),
+    hours:   Math.floor((clamped / 1000 / 60 / 60) % 24),
     minutes: Math.floor((clamped / 1000 / 60) % 60),
     seconds: Math.floor((clamped / 1000) % 60),
   };
@@ -76,6 +78,17 @@ export function getRemainingTime(endAt: string, now: number = Date.now()): Remai
 export function formatHMS({ hours, minutes, seconds }: Remaining): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+}
+
+/**
+ * Human-readable countdown for multi-day checkout windows:
+ * "2d 4h" | "4h 30m" | "45m 30s" | "< 1m"
+ */
+export function formatCountdown(r: Remaining): string {
+  if (r.days >= 1)    return `${r.days}d ${r.hours}h`;
+  if (r.hours >= 1)   return `${r.hours}h ${r.minutes}m`;
+  if (r.minutes >= 1) return `${r.minutes}m ${r.seconds}s`;
+  return "< 1m";
 }
 
 /**

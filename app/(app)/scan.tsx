@@ -13,7 +13,6 @@ import type { BarcodeScanningResult } from "expo-camera";
 import { ScanLine, X, RefreshCw } from "lucide-react-native";
 
 import { fetchPropertyByCode } from "@/services/properties.service";
-import { fetchKeySetByCode } from "@/services/keys.service";
 import { theme } from "@/constants/theme";
 
 // ---------------------------------------------------------------------------
@@ -21,16 +20,13 @@ import { theme } from "@/constants/theme";
 // ---------------------------------------------------------------------------
 function parseQrPayload(
   raw: string,
-): { type: "property"; code: string } | { type: "keyset"; code: string } | null {
+): { type: "property"; code: string } | null {
   const trimmed = raw.trim();
 
   try {
     const parsed = JSON.parse(trimmed) as { type?: string; code?: string };
-    if (
-      (parsed.type === "property" || parsed.type === "keyset") &&
-      typeof parsed.code === "string"
-    ) {
-      return { type: parsed.type, code: parsed.code };
+    if (parsed.type === "property" && typeof parsed.code === "string") {
+      return { type: "property", code: parsed.code };
     }
     return null;
   } catch {
@@ -91,32 +87,12 @@ export default function ScanScreen() {
       setScanState({ status: "loading" });
 
       try {
-        if (payload.type === "property") {
-          const property = await fetchPropertyByCode(payload.code);
-          if (!property) {
-            setScanState({ status: "notFound" });
-            return;
-          }
-          router.replace(`/(app)/properties/${property.id}` as never);
+        const property = await fetchPropertyByCode(payload.code);
+        if (!property) {
+          setScanState({ status: "notFound" });
           return;
         }
-
-        if (payload.type === "keyset") {
-          const keyset = await fetchKeySetByCode(payload.code);
-          if (!keyset) {
-            setScanState({ status: "notFound" });
-            return;
-          }
-          router.replace(
-            `/(app)/properties/${keyset.property_id}/keysets/${keyset.id}` as never,
-          );
-          return;
-        }
-
-        setScanState({
-          status: "error",
-          message: `QR type "${(payload as { type: string }).type}" is not yet supported.`,
-        });
+        router.replace(`/(app)/properties/${property.id}` as never);
       } catch {
         setScanState({
           status: "error",
@@ -281,4 +257,3 @@ const styles = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
   },
 });
-

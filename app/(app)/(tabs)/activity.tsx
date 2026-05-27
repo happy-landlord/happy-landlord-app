@@ -1,5 +1,6 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   SectionList,
   Text,
   View,
@@ -9,7 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FileText, X } from "lucide-react-native";
-
+import { useLocalSearchParams } from "expo-router";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -20,49 +21,53 @@ import {
 } from "@/components/ui/AddressSearch";
 import { useSession } from "@/hooks/useSession";
 import { useRole } from "@/hooks/useRole";
-import { useMyActivity } from "@/hooks/useKeyMovements";
+import { useInfiniteActivity } from "@/hooks/useTransactions";
 import { theme } from "@/constants/theme";
 import { MOVEMENT_CONFIG, getMovementLabel } from "@/constants/movements";
 import { formatShortAddress, toDateLabel, formatTime } from "@/lib/format";
-import type { ActivityMovement } from "@/types/database";
+import type { ActivityTransaction } from "@/types/database";
 
-// ─── Section grouping ────────────────────────────────────────────────────────
-
+// --- Section grouping ---
 type Section = {
   title: string;
-  data: ActivityMovement[];
+  data: ActivityTransaction[];
 };
-
-function groupByDate(movements: ActivityMovement[]): Section[] {
-  const map: Map<string, ActivityMovement[]> = new Map();
-
-  for (const m of movements) {
-    const label = toDateLabel(m.created_at);
+function groupByDate(transactions: ActivityTransaction[]): Section[] {
+  const map: Map<string, ActivityTransaction[]> = new Map();
+  for (const t of transactions) {
+    const label = toDateLabel(t.created_at);
     const existing = map.get(label);
     if (existing) {
-      existing.push(m);
+      existing.push(t);
     } else {
-      map.set(label, [m]);
+      map.set(label, [t]);
     }
   }
-
   return Array.from(map.entries()).map(([title, data]) => ({ title, data }));
 }
 
-// ─── Activity item ───────────────────────────────────────────────────────────
-
-function ActivityItem({ item, currentUserId }: { item: ActivityMovement; currentUserId?: string }) {
-  const { Icon, color, bg } = MOVEMENT_CONFIG[item.movement_type];
-  const propertyLine = formatShortAddress(item.key_set?.property);
-  const setCode = item.key_set?.set_code ?? "—";
+// --- Activity item ---
+function ActivityItem({
+  item,
+  currentUserId,
+}: {
+  item: ActivityTransaction;
+  currentUserId?: string;
+}) {
+  const { Icon, color, bg } = MOVEMENT_CONFIG[item.transaction_type];
+  const propertyLine = formatShortAddress(item.property);
   const label = getMovementLabel(item, currentUserId);
-
+  const keysLine =
+    item.items.length > 0
+      ? item.items
+          .map((i) => i.key?.label ?? i.key?.key_code ?? "Key")
+          .join(" · ")
+      : null;
   return (
     <View style={styles.item}>
       <View style={[styles.iconBadge, { backgroundColor: bg }]}>
         <Icon size={18} color={color} strokeWidth={2} />
       </View>
-
       <View style={styles.itemContent}>
         <View style={styles.itemTop}>
           <Text style={[styles.itemLabel, { color }]} numberOfLines={2}>
@@ -73,7 +78,11 @@ function ActivityItem({ item, currentUserId }: { item: ActivityMovement; current
         <Text style={styles.itemAddress} numberOfLines={1}>
           {propertyLine}
         </Text>
-        <Text style={styles.itemSetCode}>Set {setCode}</Text>
+        {keysLine ? (
+          <Text style={styles.itemKeys} numberOfLines={2}>
+            {keysLine}
+          </Text>
+        ) : null}
         {item.notes ? (
           <Text style={styles.itemNotes} numberOfLines={2}>
             {item.notes}
@@ -84,37 +93,54 @@ function ActivityItem({ item, currentUserId }: { item: ActivityMovement; current
   );
 }
 
-// ─── Screen ───────────────────────────────────────────────────────────────────
-
+// --- Screen ---
 export default function ActivityScreen() {
   const insets = useSafeAreaInsets();
   const { session } = useSession();
   const { isAdmin } = useRole();
-  const { data, isLoading, isError, refetch, isFetching } = useMyActivity();
   const currentUserId = session?.user.id;
-
   const searchRef = useRef<AddressSearchRef>(null);
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
+  const { propertyId } = useLocalSearchParams<{ propertyId?: string }>();
 
-  const filtered = useMemo(() => {
-    const all = data ?? [];
-    if (!selectedPlace) return all;
-    const suburb = selectedPlace.suburb?.toLowerCase();
-    const street = selectedPlace.description.split(",")[0].trim().toLowerCase();
-    return all.filter((m) => {
-      const propSuburb = m.key_set?.property?.suburb?.toLowerCase() ?? "";
-      const propAddr = (
-        m.key_set?.property?.formatted_address ??
-        [m.key_set?.property?.address, m.key_set?.property?.suburb]
-          .filter(Boolean)
-          .join(" ")
-      ).toLowerCase();
-      if (suburb && propSuburb.includes(suburb)) return true;
-      return propAddr.includes(street);
-    });
-  }, [data, selectedPlace]);
+  const search =
+    selectedPlace?.suburb ??
+    (selectedPlace ? selectedPlace.description.split(",")[0].trim() : "") ??
+    "";
 
-  const sections = useMemo(() => groupByDate(filtered), [filtered]);
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch,
+    isFetching,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteActivity({ search, propertyId });
+
+  const allItems = useMemo(
+    () => data?.pages.flat() ?? [],
+    [data],
+  );
+
+  const sections = useMemo(() => groupByDate(allItems), [allItems]);
+
+  const renderItem = useCallback(
+    ({ item }: { item: ActivityTransaction }) => (
+      <ActivityItem item={item} currentUserId={currentUserId} />
+    ),
+    [currentUserId],
+  );
+
+  const renderFooter = useCallback(() => {
+    if (!isFetchingNextPage) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color={theme.colors.primary} />
+      </View>
+    );
+  }, [isFetchingNextPage]);
 
   if (isLoading) {
     return (
@@ -130,11 +156,10 @@ export default function ActivityScreen() {
         <View style={styles.searchWrap}>
           <AddressSearch
             ref={searchRef}
-            placeholder="Filter by property address…"
+            placeholder="Filter by property address"
             onSelect={setSelectedPlace}
           />
         </View>
-
         {selectedPlace ? (
           <Pressable
             onPress={() => {
@@ -150,7 +175,6 @@ export default function ActivityScreen() {
           </Pressable>
         ) : null}
       </View>
-
       <SectionList
         sections={sections}
         keyExtractor={(item) => item.id}
@@ -158,7 +182,7 @@ export default function ActivityScreen() {
         contentContainerStyle={[
           styles.list,
           { paddingBottom: insets.bottom + 96 },
-          filtered.length === 0 && styles.listEmpty,
+          sections.length === 0 && styles.listEmpty,
         ]}
         stickySectionHeadersEnabled={false}
         refreshControl={
@@ -167,6 +191,8 @@ export default function ActivityScreen() {
             onRefresh={refetch}
           />
         }
+        onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
+        onEndReachedThreshold={0.3}
         ListHeaderComponent={
           isError ? (
             <ErrorState
@@ -182,18 +208,19 @@ export default function ActivityScreen() {
               title={selectedPlace ? "No results" : "No activity yet"}
               message={
                 selectedPlace
-                  ? `No movements for "${selectedPlace.suburb ?? selectedPlace.description.split(",")[0].trim()}"`
+                  ? `No transactions for "${selectedPlace.suburb ?? selectedPlace.description.split(",")[0].trim()}"`
                   : isAdmin
-                    ? "No key movements have been recorded yet."
-                    : "Key movements you record will appear here."
+                    ? "No key transactions have been recorded yet."
+                    : "Key transactions you record will appear here."
               }
             />
           ) : null
         }
+        ListFooterComponent={renderFooter}
         renderSectionHeader={({ section: { title } }) => (
           <Text style={styles.sectionHeader}>{title}</Text>
         )}
-        renderItem={({ item }) => <ActivityItem item={item} currentUserId={currentUserId} />}
+        renderItem={renderItem}
         SectionSeparatorComponent={() => <View style={styles.sectionSep} />}
         ItemSeparatorComponent={() => <View style={styles.itemSep} />}
         showsVerticalScrollIndicator={false}
@@ -202,14 +229,12 @@ export default function ActivityScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
+// --- Styles ---
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -231,8 +256,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexShrink: 0,
   },
-
-  // ── List ──────────────────────────────────────────────────────────────────
   sectionList: {
     flex: 1,
     backgroundColor: theme.colors.background,
@@ -300,14 +323,19 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     fontWeight: "500",
   },
-  itemSetCode: {
+  itemKeys: {
     fontSize: 12,
     color: theme.colors.textMuted,
+    fontWeight: "500",
   },
   itemNotes: {
     fontSize: 12,
     color: theme.colors.textLight,
     marginTop: 4,
     fontStyle: "italic",
+  },
+  footerLoader: {
+    paddingVertical: theme.spacing.lg,
+    alignItems: "center",
   },
 });

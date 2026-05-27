@@ -14,28 +14,23 @@ import { PickerModal } from "@/components/ui/PickerModal";
 import { CodeStickerCard } from "@/components/ui/CodeStickerCard";
 import { PhotoPicker } from "@/components/ui/PhotoPicker";
 import type { StickerEntry } from "@/lib/print";
-import type { KeyItemType } from "@/services/keys.service";
-import {
-  makeKeySetCode,
-  KEYSET_TYPE_LETTERS,
-} from "@/services/properties.service";
-import {
-  FALLBACK_ITEM_ICON,
-  ITEM_TYPE_ICON,
-  ITEM_TYPE_LABEL,
-} from "@/components/keyset/keysetLabels";
-import type { KeyEntry, KeySetDraft } from "./types";
+import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
+import type { KeyEntry, KeyItemType, KeySetDraft } from "./types";
 
 type SetType = KeySetDraft["setType"];
 
-// ── Key type options — derived from the shared ITEM_TYPE_LABEL registry ────────
+// TODO: implement makeKeySetCode + KEYSET_TYPE_LETTERS when keyset codes are added to DB
+const makeKeySetCode = (_propertyCode: string, _setType: string): string | null => null;
+const KEYSET_TYPE_LETTERS: Record<string, string> = {};
 
-const KEY_TYPE_OPTIONS = (Object.keys(ITEM_TYPE_LABEL) as KeyItemType[]).map(
+// ── Key type options — derived from the shared KEY_TYPE_LABEL registry ────────
+
+const KEY_TYPE_OPTIONS = (Object.keys(KEY_TYPE_LABEL) as KeyItemType[]).map(
   (type) => {
-    const Icon = ITEM_TYPE_ICON[type] ?? FALLBACK_ITEM_ICON;
+    const Icon = KEY_TYPE_ICON[type] ?? KeyRound;
     return {
       value: type,
-      label: ITEM_TYPE_LABEL[type],
+      label: KEY_TYPE_LABEL[type],
       icon: <Icon size={16} color={theme.colors.textMuted} strokeWidth={1.8} />,
     };
   },
@@ -275,12 +270,12 @@ export function KeysetsStep({ keySets, onChange, propertyCode }: Props) {
           {activeSet.keys.length > 0 && (
             <View style={styles.keyList}>
               {activeSet.keys.map((entry) => {
-                const Icon = ITEM_TYPE_ICON[entry.type] ?? FALLBACK_ITEM_ICON;
+                const Icon = KEY_TYPE_ICON[entry.type] ?? KeyRound;
                 return (
                   <View key={entry.id} style={styles.keyEntry}>
                     <Icon size={15} color={activeCfg.color} strokeWidth={1.8} />
                     <Text style={styles.keyEntryLabel} numberOfLines={1}>
-                      {ITEM_TYPE_LABEL[entry.type]}
+                      {KEY_TYPE_LABEL[entry.type]}
                     </Text>
                     <Text style={styles.keyEntryCount}>× {entry.count}</Text>
                     <Pressable
@@ -317,7 +312,7 @@ export function KeysetsStep({ keySets, onChange, propertyCode }: Props) {
               >
                 {(() => {
                   const Icon =
-                    ITEM_TYPE_ICON[pendingType] ?? FALLBACK_ITEM_ICON;
+                    KEY_TYPE_ICON[pendingType] ?? KeyRound;
                   return (
                     <Icon
                       size={15}
@@ -327,7 +322,7 @@ export function KeysetsStep({ keySets, onChange, propertyCode }: Props) {
                   );
                 })()}
                 <Text style={styles.keyTypePickerText} numberOfLines={1}>
-                  {ITEM_TYPE_LABEL[pendingType]}
+                  {KEY_TYPE_LABEL[pendingType]}
                 </Text>
                 <ChevronDown
                   size={14}
@@ -391,7 +386,7 @@ export function KeysetsStep({ keySets, onChange, propertyCode }: Props) {
               ? activeSet.keys.map(
                   (k): StickerEntry => ({
                     code: keySetCode,
-                    label: ITEM_TYPE_LABEL[k.type],
+                    label: KEY_TYPE_LABEL[k.type],
                     count: k.count,
                   }),
                 )

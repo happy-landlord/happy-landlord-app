@@ -3,35 +3,26 @@ import { StyleSheet, Text, View } from "react-native";
 
 import { theme } from "@/constants/theme";
 import type { Property } from "@/services/properties.service";
-import type { KeySetWithHolder } from "@/services/keys.service";
+import type { KeyWithHolder } from "@/services/keys.service";
 
 export type PropertySummaryProps = {
   property: Property;
-  keySets: KeySetWithHolder[] | undefined;
+  keys: KeyWithHolder[] | undefined;
 };
 
 export const PropertySummary = memo(function PropertySummary({
-  property,
-  keySets,
+  property: _property,
+  keys,
 }: PropertySummaryProps) {
-  const keysetCount = keySets?.length ?? 0;
-  const keyCount =
-    keySets?.reduce(
-      (sum, ks) =>
-        sum +
-        (ks.inventory?.items ?? []).reduce(
-          (itemSum, item) => itemSum + (item.count ?? 0),
-          0,
-        ),
-      0,
-    ) ?? 0;
-  const landlordCount = property.landlord_name ? 1 : 0;
+  const total     = keys?.reduce((s, k) => s + (k.total_quantity ?? 1), 0) ?? 0;
+  const available = keys?.reduce((s, k) => s + (k.available_quantity ?? 0), 0) ?? 0;
+  const inUse     = total - available;
 
   return (
     <View style={styles.row}>
-      <StatCell value={keysetCount} label="Keysets" />
-      <StatCell value={keyCount} label="Keys" />
-      <StatCell value={landlordCount} label="Landlord" />
+      <StatCell value={total} label="Keys" />
+      <StatCell value={available} label="Available" />
+      <StatCell value={inUse} label="In Use" />
     </View>
   );
 });

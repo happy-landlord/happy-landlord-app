@@ -6,25 +6,44 @@ export type Property = DbProperty;
 export type PropertyType = Property["property_type"];
 export type PropertyKeyStatus = Property["key_status"];
 
-// Fields visible to agents — no landlord details, no audit/internal columns
-// TODO: confirm with business whether agents should have access to any landlord info
+/** Property with the resolved landlord key holder joined in. */
+export type PropertyWithLandlord = Property & {
+  landlord: {
+    id: string;
+    full_name: string | null;
+    phone: string | null;
+    email: string | null;
+  } | null;
+};
+
+const LANDLORD_SELECT =
+  "*, landlord:landlord_holder_id(id, full_name, phone, email)" as const;
+
+// Fields visible to agents — no audit/internal columns
 const AGENT_SELECT =
   "id,property_code,address,unit_number,suburb,city,postcode,formatted_address,property_type,key_status,status,latitude,longitude" as const;
 
 export type FetchPropertiesOptions = {
   search?: string;
   keyStatus?: PropertyKeyStatus;
+  page?: number;
+  pageSize?: number;
 };
+
+const DEFAULT_PAGE_SIZE = 20;
 
 export async function fetchProperties({
   search,
   keyStatus,
+  page = 0,
+  pageSize = DEFAULT_PAGE_SIZE,
 }: FetchPropertiesOptions = {}): Promise<Property[]> {
   let query = supabase
     .from("properties")
     .select("*")
     .eq("status", "active")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .range(page * pageSize, (page + 1) * pageSize - 1);
 
   if (keyStatus) {
     query = query.eq("key_status", keyStatus);
@@ -53,30 +72,28 @@ export async function fetchPropertyByCode(code: string): Promise<Property | null
   return data;
 }
 
-/** Admin — fetches all columns including landlord info and audit fields */
-export async function fetchPropertyById(id: string): Promise<Property | null> {
+/** Admin — fetches all columns including joined landlord holder */
+export async function fetchPropertyById(id: string): Promise<PropertyWithLandlord | null> {
   const { data, error } = await supabase
     .from("properties")
-    .select("*")
+    .select(LANDLORD_SELECT)
     .eq("id", id)
     .maybeSingle();
 
   if (error) throw error;
-  return data;
+  return data as PropertyWithLandlord | null;
 }
 
-/** Agent — fetches only non-sensitive columns (no landlord info, no audit) */
-export async function fetchPropertyByIdForAgent(id: string): Promise<Property | null> {
+/** Agent — fetches only non-sensitive columns + landlord holder */
+export async function fetchPropertyByIdForAgent(id: string): Promise<PropertyWithLandlord | null> {
   const { data, error } = await supabase
     .from("properties")
-    .select(AGENT_SELECT)
+    .select(`${AGENT_SELECT}, landlord:landlord_holder_id(id, full_name, phone, email)`)
     .eq("id", id)
     .maybeSingle();
 
   if (error) throw error;
-  // Cast is safe — missing columns are simply not fetched and typed as `never`
-  // in the partial select; we only access them behind RoleGate in the UI.
-  return data as Property | null;
+  return data as PropertyWithLandlord | null;
 }
 
 // ── Property code generation ───────────────────────────────────────────────
@@ -155,27 +172,6 @@ export function makePropertyCode(
   return `${councilCode}-${subCode}-${typeCode}${seqPad}`;
 }
 
-/** Single-letter codes for each keyset type. Used to build keyset codes. */
-export const KEYSET_TYPE_LETTERS = {
-  tenant:  "T",
-  company: "C",
-  unused:  "U",
-} as const;
-
-/**
- * Builds a keyset code from a property code + set type + sequence.
- * Format: `{PROPERTY_CODE}-{TYPE_LETTER}{SEQ2}`
- * e.g.  `SYD-CBD-A001-C01`  (Company set, 1st keyset of that type)
- *        `SYD-CBD-A001-T01`  (Tenant set)
- */
-export function makeKeySetCode(
-  propertyCode: string,
-  setType: keyof typeof KEYSET_TYPE_LETTERS,
-  seq = 1,
-): string {
-  const letter = KEYSET_TYPE_LETTERS[setType] ?? "X";
-  return `${propertyCode}-${letter}${String(seq).padStart(2, "0")}`;
-}
 
 /**
  * Queries the DB for how many properties already share the same

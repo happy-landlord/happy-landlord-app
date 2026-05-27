@@ -9,14 +9,14 @@ import {
 } from "lucide-react-native";
 
 import { theme } from "@/constants/theme";
-import {
-  FALLBACK_ITEM_ICON,
-  ITEM_TYPE_ICON,
-  ITEM_TYPE_LABEL,
-} from "@/components/keyset/keysetLabels";
+import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
 import { PROPERTY_TYPES, type KeySetDraft, type PropertyStep } from "./types";
 
-type IconComponent = ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
+type IconComponent = ComponentType<{
+  size?: number;
+  color?: string;
+  strokeWidth?: number;
+}>;
 
 const SET_TYPE_META: Record<
   KeySetDraft["setType"],
@@ -49,22 +49,29 @@ type Props = {
 
 export function ReviewStep({ propertyData, keySets }: Props) {
   const selectedTypeLabel =
-    PROPERTY_TYPES.find((t) => t.value === propertyData.propertyType)?.label ?? "";
+    PROPERTY_TYPES.find((t) => t.value === propertyData.propertyType)?.label ??
+    "";
 
   const totalPhysicalKeys = keySets.reduce(
     (sum, set) => sum + set.keys.reduce((keySum, key) => keySum + key.count, 0),
     0,
   );
 
-  const descriptionParts = propertyData.selectedPlace?.description
-    ?.split(",")
-    .map((part) => part.trim())
-    .filter(Boolean) ?? [];
+  const descriptionParts =
+    propertyData.selectedPlace?.description
+      ?.split(",")
+      .map((part) => part.trim())
+      .filter(Boolean) ?? [];
 
   const addressPrimaryLine = propertyData.selectedPlace
-    ? [propertyData.selectedPlace.streetNumber, propertyData.selectedPlace.street]
+    ? [
+        propertyData.selectedPlace.streetNumber,
+        propertyData.selectedPlace.street,
+      ]
         .filter(Boolean)
-        .join(" ") || descriptionParts[0] || "—"
+        .join(" ") ||
+      descriptionParts[0] ||
+      "—"
     : "—";
 
   const addressSecondaryLine = propertyData.selectedPlace
@@ -86,10 +93,16 @@ export function ReviewStep({ propertyData, keySets }: Props) {
       <View style={styles.overviewCard}>
         <View style={styles.overviewHeaderRow}>
           <View style={styles.propertyIconTile}>
-            <Building2 size={28} color={theme.colors.primary} strokeWidth={1.7} />
+            <Building2
+              size={28}
+              color={theme.colors.primary}
+              strokeWidth={1.7}
+            />
           </View>
           <View style={styles.overviewMain}>
-            <Text style={styles.overviewLabel}>{selectedTypeLabel || "Property"}</Text>
+            <Text style={styles.overviewLabel}>
+              {selectedTypeLabel || "Property"}
+            </Text>
             <Text style={styles.overviewTitle} numberOfLines={2}>
               {addressPrimaryLine}
             </Text>
@@ -101,20 +114,28 @@ export function ReviewStep({ propertyData, keySets }: Props) {
           </View>
         </View>
 
-        <View style={styles.overviewMetaRow}>
-          <View style={styles.overviewMetaItem}>
-            <Text style={styles.overviewMetaLabel}>Landlord</Text>
-            <Text style={styles.overviewMetaValue} numberOfLines={1}>
-              {propertyData.landlordName || "—"}
-            </Text>
-          </View>
-          <View style={styles.overviewMetaItem}>
-            <Text style={styles.overviewMetaLabel}>Contact</Text>
-            <Text style={styles.overviewMetaValue} numberOfLines={1}>
-              {propertyData.landlordContact || "—"}
-            </Text>
-          </View>
-        </View>
+        {(propertyData.landlordName || propertyData.landlordContact) ? (
+          <>
+            <View style={styles.overviewDivider} />
+            <View style={styles.overviewMetaRow}>
+              <User size={13} color={theme.colors.textLight} strokeWidth={1.8} />
+              <View style={styles.overviewMetaItem}>
+                <Text style={styles.overviewMetaLabel}>Landlord</Text>
+                <Text style={styles.overviewMetaValue} numberOfLines={1}>
+                  {propertyData.landlordName || "—"}
+                </Text>
+              </View>
+              {propertyData.landlordContact ? (
+                <View style={[styles.overviewMetaItem, styles.overviewMetaItemBorder]}>
+                  <Text style={styles.overviewMetaLabel}>Contact</Text>
+                  <Text style={styles.overviewMetaValue} numberOfLines={1}>
+                    {propertyData.landlordContact}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </>
+        ) : null}
       </View>
 
       <InfoSection
@@ -124,7 +145,11 @@ export function ReviewStep({ propertyData, keySets }: Props) {
       >
         {keySets.length === 0 ? (
           <View style={styles.emptyKeySetCard}>
-            <KeyRound size={18} color={theme.colors.textLight} strokeWidth={1.8} />
+            <KeyRound
+              size={18}
+              color={theme.colors.textLight}
+              strokeWidth={1.8}
+            />
             <Text style={styles.noSets}>No key sets added.</Text>
           </View>
         ) : (
@@ -160,14 +185,22 @@ function InfoSection({
           </View>
           <Text style={styles.sectionTitle}>{title}</Text>
         </View>
-        {trailing ? <Text style={styles.sectionTrailing}>{trailing}</Text> : null}
+        {trailing ? (
+          <Text style={styles.sectionTrailing}>{trailing}</Text>
+        ) : null}
       </View>
       <View style={styles.sectionBody}>{children}</View>
     </View>
   );
 }
 
-function KeySetReviewCard({ keySet, index }: { keySet: KeySetDraft; index: number }) {
+function KeySetReviewCard({
+  keySet,
+  index,
+}: {
+  keySet: KeySetDraft;
+  index: number;
+}) {
   const meta = SET_TYPE_META[keySet.setType];
   const totalKeys = keySet.keys.reduce((sum, key) => sum + key.count, 0);
   const Icon = meta.Icon;
@@ -182,7 +215,9 @@ function KeySetReviewCard({ keySet, index }: { keySet: KeySetDraft; index: numbe
               <Icon size={18} color={meta.color} strokeWidth={1.9} />
             </View>
             <View style={styles.setTitleTextWrap}>
-              <Text style={[styles.setEyebrow, { color: meta.color }]}>Set {index + 1}</Text>
+              <Text style={[styles.setEyebrow, { color: meta.color }]}>
+                Set {index + 1}
+              </Text>
               <Text style={styles.setTitle}>{keySet.label || meta.label}</Text>
             </View>
           </View>
@@ -194,16 +229,21 @@ function KeySetReviewCard({ keySet, index }: { keySet: KeySetDraft; index: numbe
           </View>
         </View>
 
-        {keySet.setType === "tenant" && (keySet.tenantName || keySet.tenantContact) ? (
+        {keySet.setType === "tenant" &&
+        (keySet.tenantName || keySet.tenantContact) ? (
           <View style={[styles.tenantPanel, { backgroundColor: meta.bg }]}>
             {keySet.tenantName ? (
               <Text style={[styles.tenantText, { color: meta.color }]}>
-                Tenant: <Text style={styles.tenantTextStrong}>{keySet.tenantName}</Text>
+                Tenant:{" "}
+                <Text style={styles.tenantTextStrong}>{keySet.tenantName}</Text>
               </Text>
             ) : null}
             {keySet.tenantContact ? (
               <Text style={[styles.tenantText, { color: meta.color }]}>
-                Contact: <Text style={styles.tenantTextStrong}>{keySet.tenantContact}</Text>
+                Contact:{" "}
+                <Text style={styles.tenantTextStrong}>
+                  {keySet.tenantContact}
+                </Text>
               </Text>
             ) : null}
           </View>
@@ -212,14 +252,16 @@ function KeySetReviewCard({ keySet, index }: { keySet: KeySetDraft; index: numbe
         {keySet.keys.length > 0 ? (
           <View style={styles.keyPillGrid}>
             {keySet.keys.map((key) => {
-              const KeyIcon = ITEM_TYPE_ICON[key.type] ?? FALLBACK_ITEM_ICON;
+              const KeyIcon = KEY_TYPE_ICON[key.type] ?? KeyRound;
               return (
                 <View key={key.id} style={styles.keyPill}>
                   <KeyIcon size={15} color={meta.color} strokeWidth={1.8} />
                   <Text style={styles.keyPillLabel} numberOfLines={1}>
-                    {ITEM_TYPE_LABEL[key.type] ?? key.type}
+                    {KEY_TYPE_LABEL[key.type] ?? key.type}
                   </Text>
-                  <Text style={[styles.keyPillCount, { color: meta.color }]}>× {key.count}</Text>
+                  <Text style={[styles.keyPillCount, { color: meta.color }]}>
+                    × {key.count}
+                  </Text>
                 </View>
               );
             })}
@@ -295,23 +337,35 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
     lineHeight: 18,
   },
+  overviewDivider: {
+    height: 1,
+    backgroundColor: theme.colors.border,
+  },
   overviewMetaRow: {
     flexDirection: "row",
-    gap: theme.spacing.md,
+    alignItems: "center",
+    gap: theme.spacing.sm,
   },
   overviewMetaItem: {
     flex: 1,
-    gap: 4,
+    gap: 2,
+  },
+  overviewMetaItemBorder: {
+    paddingLeft: theme.spacing.sm,
+    borderLeftWidth: 1,
+    borderLeftColor: theme.colors.border,
   },
   overviewMetaLabel: {
     fontSize: 11,
-    fontWeight: "800",
+    fontWeight: "700",
     color: theme.colors.textLight,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
     lineHeight: 14,
   },
   overviewMetaValue: {
     fontSize: 13,
-    fontWeight: "800",
+    fontWeight: "600",
     color: theme.colors.text,
     lineHeight: 18,
   },
@@ -505,4 +559,3 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
   },
 });
-

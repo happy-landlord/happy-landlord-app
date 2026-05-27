@@ -1,5 +1,5 @@
-import { useCallback, useRef, useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Plus, X } from "lucide-react-native";
@@ -13,7 +13,7 @@ import {
   type AddressSearchRef,
   type PlaceResult,
 } from "@/components/ui/AddressSearch";
-import { useProperties } from "@/hooks/useProperties";
+import { useInfiniteProperties } from "@/hooks/useProperties";
 import { useRole } from "@/hooks/useRole";
 import { RoleGate } from "@/components/RoleGate";
 import type {
@@ -39,16 +39,25 @@ export default function KeysScreen() {
   const { isAdmin } = useRole();
   const keyStatus: PropertyKeyStatus = isAdmin ? adminTab : "available";
 
-  // Derive a plain search string from the selected place for the server query
   const search =
     selectedPlace?.suburb ??
     selectedPlace?.description.split(",")[0].trim() ??
     "";
 
-  const { data, isLoading, isError, refetch } = useProperties({
-    search,
-    keyStatus,
-  });
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteProperties({ search, keyStatus });
+
+  const properties = useMemo(
+    () => data?.pages.flat() ?? [],
+    [data],
+  );
 
   const renderItem = useCallback(
     ({ item }: { item: Property }) => <PropertyCard property={item} />,
@@ -70,6 +79,15 @@ export default function KeysScreen() {
       />
     );
   }, [isLoading, selectedPlace, adminTab]);
+
+  const renderFooter = useCallback(() => {
+    if (!isFetchingNextPage) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color={theme.colors.primary} />
+      </View>
+    );
+  }, [isFetchingNextPage]);
 
   return (
     <View style={styles.screen}>
@@ -111,7 +129,7 @@ export default function KeysScreen() {
         </Pressable>
       </View>
 
-      {/* Admin-only tab strip — RoleGate handles the loading state so no flash */}
+      {/* Admin-only tab strip */}
       <RoleGate allow="admin">
         <View style={styles.tabStrip}>
           {TABS.map((tab) => {
@@ -146,14 +164,17 @@ export default function KeysScreen() {
         <LoadingState message="Loading keys…" />
       ) : (
         <FlatList
-          data={data}
+          data={properties}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           ListEmptyComponent={renderEmpty}
+          ListFooterComponent={renderFooter}
+          onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
+          onEndReachedThreshold={0.3}
           contentContainerStyle={[
             styles.list,
             { paddingBottom: insets.bottom + 96 },
-            (!data || data.length === 0) && styles.listEmpty,
+            properties.length === 0 && styles.listEmpty,
           ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -243,5 +264,9 @@ const styles = StyleSheet.create({
   },
   listEmpty: {
     flexGrow: 1,
+  },
+  footerLoader: {
+    paddingVertical: theme.spacing.lg,
+    alignItems: "center",
   },
 });

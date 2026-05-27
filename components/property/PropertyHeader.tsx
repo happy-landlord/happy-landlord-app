@@ -3,12 +3,12 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Building2, MapPin, Pencil } from "lucide-react-native";
 
 import { theme } from "@/constants/theme";
-import type { Property } from "@/services/properties.service";
+import type { PropertyWithLandlord } from "@/services/properties.service";
 
 import { PROPERTY_TYPE_LABEL } from "./propertyLabels";
 
 export type PropertyHeaderProps = {
-  property: Property;
+  property: PropertyWithLandlord;
   onEdit?: () => void;
 };
 
@@ -20,6 +20,8 @@ export const PropertyHeader = memo(function PropertyHeader({ property, onEdit }:
   const location = [property.suburb, property.city, property.postcode]
     .filter(Boolean)
     .join(", ");
+
+  const landlord = property.landlord;
 
   return (
     <View style={styles.header}>
@@ -55,6 +57,28 @@ export const PropertyHeader = memo(function PropertyHeader({ property, onEdit }:
           </Pressable>
         ) : null}
       </View>
+
+      {landlord ? (
+        <View style={styles.metaRow}>
+          <View style={styles.metaDivider} />
+          <View style={styles.metaContent}>
+            <View style={styles.metaItem}>
+              <Text style={styles.metaLabel}>Landlord</Text>
+              <Text style={styles.metaValue} numberOfLines={1}>
+                {landlord.full_name || "—"}
+              </Text>
+            </View>
+            {(landlord.phone || landlord.email) ? (
+              <View style={styles.metaItem}>
+                <Text style={styles.metaLabel}>Contact</Text>
+                <Text style={styles.metaValue} numberOfLines={1}>
+                  {landlord.phone ?? landlord.email ?? "—"}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 });
@@ -122,5 +146,34 @@ const styles = StyleSheet.create({
   editBtnPressed: {
     opacity: 0.6,
   },
+  metaRow: {
+    paddingHorizontal: theme.spacing.md,
+    paddingBottom: theme.spacing.md,
+  },
+  metaDivider: {
+    height: 1,
+    backgroundColor: theme.colors.border,
+    marginBottom: theme.spacing.sm,
+  },
+  metaContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
+  metaItem: {
+    flex: 1,
+    gap: 2,
+  },
+  metaLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: theme.colors.textLight,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  metaValue: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.text,
+  },
 });
-

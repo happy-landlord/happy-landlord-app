@@ -1,9 +1,13 @@
 import type { PlaceResult } from "@/components/ui/AddressSearch";
-import type { DbKeySet, DbProperty, KeyItemType } from "@/types/database";
+import type { DbProperty } from "@/types/database";
+import type { KeyType } from "@/services/keys.service";
 
 // Local aliases derived from the DB schema (single source of truth)
 export type PropertyType = DbProperty["property_type"];
-export type KeySetType = DbKeySet["set_type"];
+/** Wizard-only keyset category — not stored as a DB enum. */
+export type KeySetType = "tenant" | "company" | "unused";
+/** Key item type in the wizard draft — same union as the DB key_type column. */
+export type KeyItemType = KeyType;
 
 // ── Shared wizard types ───────────────────────────────────────────────────────
 

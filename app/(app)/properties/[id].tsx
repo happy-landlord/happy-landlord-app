@@ -2,21 +2,26 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { KeySetsSection } from "@/components/property/KeySetsSection";
-import { LandlordCard } from "@/components/property/LandlordCard";
+import { KeysSection } from "@/components/property/KeysSection";
 import { PropertyHeader } from "@/components/property/PropertyHeader";
-import { PropertySummary } from "@/components/property/PropertySummary";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { theme } from "@/constants/theme";
-import { useKeySets } from "@/hooks/useKeySets";
+import { useKeys } from "@/hooks/useKeySets";
 import { useProperty } from "@/hooks/useProperties";
 import { useRole } from "@/hooks/useRole";
+import { useSession } from "@/hooks/useSession";
 
 export default function PropertyDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, selectDueAt, selectHolderId } = useLocalSearchParams<{
+    id: string;
+    selectDueAt?: string;
+    selectHolderId?: string;
+  }>();
   const insets = useSafeAreaInsets();
   const { isAdmin } = useRole();
+  const { session } = useSession();
+  const currentUserId = session?.user.id;
 
   const {
     data: property,
@@ -26,11 +31,11 @@ export default function PropertyDetailScreen() {
   } = useProperty(id);
 
   const {
-    data: keySets,
+    data: keys,
     isLoading: keysLoading,
     isError: keysError,
     refetch: refetchKeys,
-  } = useKeySets(id);
+  } = useKeys(id);
 
   if (propertyLoading) {
     return <LoadingState message="Loading property…" />;
@@ -60,18 +65,20 @@ export default function PropertyDetailScreen() {
           property={property}
           onEdit={isAdmin ? () => {} : undefined}
         />
-        <PropertySummary property={property} keySets={keySets} />
       </View>
 
-      <KeySetsSection
+      <KeysSection
         propertyId={id}
-        keySets={keySets}
+        propertyCode={property.property_code}
+        keys={keys}
         isLoading={keysLoading}
         isError={keysError}
         onRetry={refetchKeys}
+        currentUserId={currentUserId}
+        isAdmin={isAdmin}
+        selectDueAt={selectDueAt ?? null}
+        selectHolderId={selectHolderId ?? null}
       />
-
-      <LandlordCard property={property} />
     </ScrollView>
   );
 }

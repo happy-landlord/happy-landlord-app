@@ -2,39 +2,34 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { QUERY_KEYS } from "@/constants/queryKeys";
 import {
-  createKeySets,
-  fetchCheckedOutKeySets,
-  fetchKeySetById,
-  fetchKeySetsForProperty,
-  type FetchKeySetsOptions,
+  createKeys,
+  fetchCheckedOutKeys,
+  fetchKeyById,
+  fetchKeysForProperty,
 } from "@/services/keys.service";
 import { useRole } from "@/hooks/useRole";
 import { useSession } from "@/hooks/useSession";
-import type { DbKeySetInsert } from "@/types/database";
+import type { DbKeyInsert } from "@/types/database";
 
-export function useKeySets(
-  propertyId: string,
-  options: FetchKeySetsOptions = {}
-) {
-  const { setType } = options;
+export function useKeys(propertyId: string) {
   return useQuery({
-    queryKey: [...QUERY_KEYS.keys.byProperty(propertyId), setType ?? "all"],
-    queryFn: () => fetchKeySetsForProperty(propertyId, { setType }),
+    queryKey: QUERY_KEYS.keys.byProperty(propertyId),
+    queryFn: () => fetchKeysForProperty(propertyId),
     enabled: Boolean(propertyId),
     staleTime: 1000 * 30,
   });
 }
 
-export function useKeySet(keySetId: string) {
+export function useKey(keyId: string) {
   return useQuery({
-    queryKey: QUERY_KEYS.keys.detail(keySetId),
-    queryFn: () => fetchKeySetById(keySetId),
-    enabled: Boolean(keySetId),
+    queryKey: QUERY_KEYS.keys.detail(keyId),
+    queryFn: () => fetchKeyById(keyId),
+    enabled: Boolean(keyId),
     staleTime: 1000 * 30,
   });
 }
 
-export function useCheckedOutKeySets(limit = 5) {
+export function useCheckedOutKeys(limit = 5) {
   const { session } = useSession();
   const { isAdmin, isLoading: roleLoading } = useRole();
   const userId = session?.user.id;
@@ -42,16 +37,16 @@ export function useCheckedOutKeySets(limit = 5) {
 
   return useQuery({
     queryKey: [...QUERY_KEYS.keys.checkedOut(scope), limit],
-    queryFn: () => fetchCheckedOutKeySets({ userId: userId!, isAdmin, limit }),
+    queryFn: () => fetchCheckedOutKeys({ userId: userId!, isAdmin, limit }),
     enabled: !roleLoading && Boolean(userId),
     staleTime: 1000 * 30,
   });
 }
 
-export function useCreateKeySets(propertyId: string) {
+export function useCreateKeys(propertyId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (inputs: DbKeySetInsert[]) => createKeySets(inputs),
+    mutationFn: (inputs: DbKeyInsert[]) => createKeys(inputs),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.keys.byProperty(propertyId),
@@ -59,4 +54,3 @@ export function useCreateKeySets(propertyId: string) {
     },
   });
 }
-

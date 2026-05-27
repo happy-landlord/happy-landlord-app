@@ -1,30 +1,36 @@
 import { memo } from "react";
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from "react-native";
-import { Clock3, KeyRound } from "lucide-react-native";
+import { Calendar, KeyRound, UserCheck } from "lucide-react-native";
 
+import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
 import { theme } from "@/constants/theme";
 import { formatDateTime } from "@/lib/format";
+import type { KeyWithHolder } from "@/services/keys.service";
 
-import { CHECKOUT_DURATION_HOURS } from "./keysetLabels";
-
-export type CheckoutConfirmModalProps = {
+export type TransferConfirmModalProps = {
   visible: boolean;
-  /** ISO due-back timestamp — when the agent is expected to return the keyset. */
-  dueBackAt: string | null;
+  /** Name of the agent currently holding the keyset. */
+  currentHolderName?: string | null;
+  /** Keys being transferred — shown as a summary in the modal. */
+  transferringKeys?: KeyWithHolder[];
   isPending: boolean;
   onCancel: () => void;
   onConfirm: () => void;
 };
 
-export const CheckoutConfirmModal = memo(function CheckoutConfirmModal({
+export const TransferConfirmModal = memo(function TransferConfirmModal({
   visible,
-  dueBackAt,
+  currentHolderName,
+  transferringKeys = [],
   isPending,
   onCancel,
   onConfirm,
-}: CheckoutConfirmModalProps) {
-  // While the mutation is in-flight, suppress cancel paths to avoid orphaned UI.
+}: TransferConfirmModalProps) {
   const handleDismiss = isPending ? undefined : onCancel;
+  const returnBy = transferringKeys
+    .map((k) => k.due_back_at)
+    .filter(Boolean)
+    .sort()[0] ?? null;
 
   return (
     <Modal
@@ -39,30 +45,48 @@ export const CheckoutConfirmModal = memo(function CheckoutConfirmModal({
           style={styles.backdrop}
           onPress={handleDismiss}
           accessibilityRole="button"
-          accessibilityLabel="Dismiss checkout"
+          accessibilityLabel="Dismiss transfer"
         />
 
         <View style={styles.card}>
-          <View style={styles.iconWrap}>
-            <KeyRound size={26} color={theme.colors.primary} strokeWidth={1.8} />
-          </View>
-
-          <Text style={styles.title}>Checkout keyset?</Text>
+          <Text style={styles.title}>Transfer keys?</Text>
           <Text style={styles.subtitle}>
-            Confirm you are taking the keys. Please return them within the checkout window.
+            Confirm these keys are being transferred into your custody. You will be
+            responsible for returning them when done.
           </Text>
 
           <View style={styles.summary}>
+            {transferringKeys.length > 0 && (
+              <>
+                <SelectedKeysSummary selectedKeys={transferringKeys} />
+                <View style={styles.dividerFull} />
+              </>
+            )}
+
             <SummaryRow
-              icon={<Clock3 size={15} color={theme.colors.primary} strokeWidth={1.8} />}
-              label="Duration"
-              value={`${CHECKOUT_DURATION_HOURS} hours`}
+              icon={
+                <UserCheck
+                  size={15}
+                  color={theme.colors.primary}
+                  strokeWidth={1.8}
+                />
+              }
+              label="Currently with"
+              value={currentHolderName ?? "Unknown holder"}
             />
+
             <View style={styles.divider} />
+
             <SummaryRow
-              icon={<KeyRound size={15} color={theme.colors.primary} strokeWidth={1.8} />}
+              icon={
+                <Calendar
+                  size={15}
+                  color={theme.colors.primary}
+                  strokeWidth={1.8}
+                />
+              }
               label="Return by"
-              value={dueBackAt ? formatDateTime(dueBackAt) : "—"}
+              value={returnBy ? formatDateTime(returnBy) : "Return time not set"}
             />
           </View>
 
@@ -75,7 +99,7 @@ export const CheckoutConfirmModal = memo(function CheckoutConfirmModal({
             />
             <ActionButton
               variant="confirm"
-              label={isPending ? "Checking out…" : "Checkout"}
+              label={isPending ? "Transferring…" : "Transfer to me"}
               loading={isPending}
               disabled={isPending}
               onPress={onConfirm}
@@ -88,6 +112,40 @@ export const CheckoutConfirmModal = memo(function CheckoutConfirmModal({
 });
 
 // ─── Sub-components ────────────────────────────────────────────────────────
+
+function SelectedKeysSummary({
+  selectedKeys,
+}: {
+  selectedKeys: KeyWithHolder[];
+}) {
+  return (
+    <View style={styles.keysSection}>
+      <View style={styles.keysHeaderRow}>
+        <Text style={styles.summaryLabel}>Keys selected</Text>
+        <Text style={styles.keysCount}>{selectedKeys.length}</Text>
+      </View>
+      <View>
+        {selectedKeys.map((k) => {
+          const Icon = KEY_TYPE_ICON[k.key_type] ?? KeyRound;
+          const label =
+            k.key_type === "other"
+              ? k.label
+              : (KEY_TYPE_LABEL[k.key_type] ?? k.key_type);
+          return (
+            <View key={k.id} style={styles.keyRow}>
+              <View style={styles.keyIconCircle}>
+                <Icon size={13} color={theme.colors.primary} strokeWidth={1.8} />
+              </View>
+              <Text style={styles.keyRowLabel} numberOfLines={1}>
+                {label}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
 
 function SummaryRow({
   icon,
@@ -103,7 +161,9 @@ function SummaryRow({
       <View style={styles.summaryIcon}>{icon}</View>
       <View style={styles.summaryTextBlock}>
         <Text style={styles.summaryLabel}>{label}</Text>
-        <Text style={styles.summaryValue}>{value}</Text>
+        <Text style={styles.summaryValue} numberOfLines={1}>
+          {value}
+        </Text>
       </View>
     </View>
   );
@@ -171,15 +231,6 @@ const styles = StyleSheet.create({
     shadowRadius: 28,
     elevation: 10,
   },
-  iconWrap: {
-    width: 58,
-    height: 58,
-    borderRadius: theme.radius.lg,
-    backgroundColor: theme.colors.primarySoft,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: theme.spacing.sm,
-  },
   title: {
     fontSize: 22,
     fontWeight: "800",
@@ -238,6 +289,56 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.border,
     marginLeft: theme.spacing.md + 32 + theme.spacing.sm,
   },
+  dividerFull: {
+    height: 1,
+    backgroundColor: theme.colors.border,
+  },
+  keysSection: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 12,
+    gap: theme.spacing.sm,
+  },
+  keysHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing.sm,
+    marginLeft: 32 + theme.spacing.sm,
+  },
+  keysCount: {
+    minWidth: 24,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: theme.radius.pill,
+    overflow: "hidden",
+    backgroundColor: theme.colors.primarySoft,
+    color: theme.colors.primaryDark,
+    fontSize: 12,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  keyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    paddingVertical: 6,
+  },
+  keyIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  keyRowLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.colors.text,
+  },
   actions: {
     flexDirection: "row",
     width: "100%",
@@ -261,14 +362,10 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   btnConfirm: {
-    backgroundColor: theme.colors.success,
+    backgroundColor: theme.colors.primary,
   },
-  btnPressed: {
-    opacity: 0.75,
-  },
-  btnDisabled: {
-    opacity: 0.7,
-  },
+  btnPressed: { opacity: 0.75 },
+  btnDisabled: { opacity: 0.7 },
   btnCancelLabel: {
     fontSize: 15,
     fontWeight: "700",
@@ -280,4 +377,3 @@ const styles = StyleSheet.create({
     color: theme.colors.textInverse,
   },
 });
-

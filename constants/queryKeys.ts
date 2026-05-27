@@ -6,17 +6,20 @@ export const QUERY_KEYS = {
   properties: {
 	all: ["properties"] as const,
 	detail: (id: string) => ["properties", id] as const,
+    infinite: (search: string, keyStatus: string) =>
+      ["properties", "infinite", search, keyStatus] as const,
   },
   keys: {
 	all: ["keys"] as const,
 	detail: (id: string) => ["keys", id] as const,
-	movements: ["keys", "movements"] as const,
 	byProperty: (propertyId: string) => ["keys", "property", propertyId] as const,
     checkedOut: (scope: string) => ["keys", "checkedOut", scope] as const,
   },
   activity: {
     all: ["activity", "all"] as const,
     mine: (userId: string) => ["activity", "mine", userId] as const,
+    infinite: (scope: string, search: string, propertyId?: string) =>
+      ["activity", "infinite", scope, search, propertyId ?? ""] as const,
   },
   requests: {
     all: ["requests"] as const,

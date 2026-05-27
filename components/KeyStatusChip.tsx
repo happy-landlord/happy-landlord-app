@@ -1,12 +1,12 @@
 import { StyleSheet, Text, View } from "react-native";
-import type { KeySetStatus, KeySetType } from "@/services/keys.service";
+import type { KeyStatus, KeyType } from "@/services/keys.service";
 import { theme } from "@/constants/theme";
 
 // ── Status display config ─────────────────────────────────────────────────────
 
 type ChipConfig = { label: string; bg: string; color: string };
 
-const STATUS_CONFIG: Record<KeySetStatus, ChipConfig> = {
+const STATUS_CONFIG: Record<KeyStatus, ChipConfig> = {
   available: {
     label: "Available",
     bg: theme.colors.successSoft,
@@ -32,11 +32,6 @@ const STATUS_CONFIG: Record<KeySetStatus, ChipConfig> = {
     bg: theme.colors.neutralSoft,
     color: theme.colors.charcoal,
   },
-  tenant: {
-    label: "With Tenant",
-    bg: theme.colors.accentSoft,
-    color: theme.colors.accentDark,
-  },
   inactive: {
     label: "Inactive",
     bg: theme.colors.neutralSoft,
@@ -44,16 +39,24 @@ const STATUS_CONFIG: Record<KeySetStatus, ChipConfig> = {
   },
 };
 
-export const SET_TYPE_LABEL: Record<KeySetType, string> = {
-  company: "Company",
-  tenant: "Tenant",
-  unused: "Utility",
+export const KEY_TYPE_LABEL: Record<KeyType, string> = {
+  main_door: "Main Door",
+  swipe_fob: "Swipe Fob",
+  mailbox: "Mailbox",
+  window: "Window",
+  garage_remote: "Garage Remote",
+  key_card: "Key Card",
+  storage_cage: "Storage Cage",
+  common_area: "Common Area",
+  security: "Security",
+  balcony: "Balcony",
+  other: "Other",
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 type KeyStatusChipProps = {
-  status: KeySetStatus;
+  status: KeyStatus;
 };
 
 export function KeyStatusChip({ status }: KeyStatusChipProps) {

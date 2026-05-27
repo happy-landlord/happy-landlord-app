@@ -5,8 +5,8 @@ import { useRouter } from "expo-router";
 
 import { useRole } from "@/hooks/useRole";
 import { useSession } from "@/hooks/useSession";
-import { useMyActivity, type ActivityMovement } from "@/hooks/useKeyMovements";
-import { useCheckedOutKeySets } from "@/hooks/useKeySets";
+import { useMyActivity, type ActivityTransaction } from "@/hooks/useTransactions";
+import { useCheckedOutKeys } from "@/hooks/useKeySets";
 import { theme } from "@/constants/theme";
 import { MOVEMENT_CONFIG, getMovementLabel } from "@/constants/movements";
 import {
@@ -15,7 +15,47 @@ import {
   formatReturnDueLabel,
   isPastDue,
 } from "@/lib/format";
-import type { CheckedOutKeySet } from "@/services/keys.service";
+import type { CheckedOutKey } from "@/services/keys.service";
+
+// ── Group checked-out keys by property + holder ───────────────────────────────
+
+type CheckedOutGroup = {
+  groupKey: string;
+  property: CheckedOutKey["property"];
+  property_id: string;
+  current_holder: CheckedOutKey["current_holder"];
+  keyLabels: string[];
+  due_back_at: string | null;
+};
+
+function groupCheckedOutKeys(keys: CheckedOutKey[]): CheckedOutGroup[] {
+  const map = new Map<string, CheckedOutGroup>();
+  for (const k of keys) {
+    // Include due_back_at in the group key so separate checkout activities
+    // at the same property by the same holder appear as separate cards.
+    const groupKey = `${k.property_id}::${k.current_holder_id ?? "none"}::${k.due_back_at ?? "no-due"}`;
+    const existing = map.get(groupKey);
+    if (existing) {
+      existing.keyLabels.push(k.label);
+    } else {
+      map.set(groupKey, {
+        groupKey,
+        property: k.property,
+        property_id: k.property_id,
+        current_holder: k.current_holder,
+        keyLabels: [k.label],
+        due_back_at: k.due_back_at,
+      });
+    }
+  }
+  // Sort by due date ascending (earliest first)
+  return Array.from(map.values()).sort((a, b) => {
+    if (!a.due_back_at && !b.due_back_at) return 0;
+    if (!a.due_back_at) return 1;
+    if (!b.due_back_at) return -1;
+    return a.due_back_at.localeCompare(b.due_back_at);
+  });
+}
 
 
 export default function HomeScreen() {
@@ -23,11 +63,12 @@ export default function HomeScreen() {
   const router = useRouter();
   const { session } = useSession();
   const { isAdmin } = useRole();
-  const { data: checkedOut = [], isLoading: checkedOutLoading } = useCheckedOutKeySets(4);
+  const { data: checkedOut = [], isLoading: checkedOutLoading } = useCheckedOutKeys(isAdmin ? 20 : 6);
   const { data: activity = [], isLoading: activityLoading } = useMyActivity();
   const currentUserId = session?.user.id;
 
   const recentActivity = activity.slice(0, 4);
+  const checkedOutGroups = groupCheckedOutKeys(checkedOut);
 
   return (
     <ScrollView
@@ -43,21 +84,24 @@ export default function HomeScreen() {
         <View style={styles.compactCard}>
           {checkedOutLoading ? (
             <Text style={styles.emptyText}>Loading checked out keys…</Text>
-          ) : checkedOut.length === 0 ? (
+          ) : checkedOutGroups.length === 0 ? (
             <Text style={styles.emptyText}>No keys currently checked out.</Text>
           ) : (
-            checkedOut.map((keySet, index) => (
+            checkedOutGroups.map((group, index) => (
               <CheckedOutRow
-                key={keySet.id}
-                keySet={keySet}
-                showDivider={index < checkedOut.length - 1}
+                key={group.groupKey}
+                group={group}
+                showDivider={index < checkedOutGroups.length - 1}
                 showHolder={isAdmin}
                 currentUserId={currentUserId}
-                onPress={() =>
-                  router.push(
-                    `/(app)/properties/${keySet.property_id}/keysets/${keySet.id}` as never,
-                  )
-                }
+                onPress={() => {
+                  const params = new URLSearchParams();
+                  if (group.due_back_at) params.set("selectDueAt", group.due_back_at);
+                  if (group.current_holder?.profile_id)
+                    params.set("selectHolderId", group.current_holder.profile_id);
+                  const qs = params.toString() ? `?${params.toString()}` : "";
+                  router.push(`/(app)/properties/${group.property_id}${qs}` as never);
+                }}
               />
             ))
           )}
@@ -122,24 +166,27 @@ function DashboardSection({
 }
 
 function CheckedOutRow({
-  keySet,
+  group,
   showDivider,
   showHolder,
   currentUserId,
   onPress,
 }: {
-  keySet: CheckedOutKeySet;
+  group: CheckedOutGroup;
   showDivider: boolean;
   showHolder: boolean;
   currentUserId?: string;
   onPress: () => void;
 }) {
-  const address = keySet.property?.address ?? keySet.property?.formatted_address ?? "Property";
-  const location = formatPropertyLocation(keySet.property);
+  const address = group.property?.address ?? group.property?.formatted_address ?? "Property";
+  const location = formatPropertyLocation(group.property);
   const isOtherHolder =
-    showHolder && keySet.current_holder?.profile_id !== currentUserId;
-  const holderName = isOtherHolder ? keySet.current_holder?.full_name : null;
-  const isReturnOverdue = isPastDue(keySet.due_back_at);
+    showHolder && group.current_holder?.profile_id !== currentUserId;
+  const holderName = isOtherHolder
+    ? group.current_holder?.full_name
+    : null;
+  const isReturnOverdue = isPastDue(group.due_back_at);
+  const keysLine = group.keyLabels.join(" · ");
 
   return (
     <Pressable
@@ -158,13 +205,21 @@ function CheckedOutRow({
         {location ? (
           <Text style={styles.locationText} numberOfLines={1}>{location}</Text>
         ) : null}
+        <Text style={styles.keyLabel} numberOfLines={1}>{keysLine}</Text>
         {holderName ? (
           <Text style={styles.rowSubtitle} numberOfLines={1}>With {holderName}</Text>
         ) : null}
         <View style={styles.returnByRow}>
-          <Clock3 size={13} color={isReturnOverdue ? theme.colors.danger : theme.colors.primary} strokeWidth={2} />
-          <Text style={[styles.returnLabel, isReturnOverdue && styles.returnLabelOverdue]} numberOfLines={1}>
-            {formatReturnDueLabel(keySet.due_back_at)}
+          <Clock3
+            size={13}
+            color={isReturnOverdue ? theme.colors.danger : theme.colors.primary}
+            strokeWidth={2}
+          />
+          <Text
+            style={[styles.returnLabel, isReturnOverdue && styles.returnLabelOverdue]}
+            numberOfLines={1}
+          >
+            {formatReturnDueLabel(group.due_back_at)}
           </Text>
         </View>
       </View>
@@ -173,22 +228,27 @@ function CheckedOutRow({
   );
 }
 
-function formatPropertyLocation(property: CheckedOutKeySet["property"]): string {
+function formatPropertyLocation(property: CheckedOutKey["property"]): string {
   if (!property) return "";
-
   return [property.suburb, property.city, property.postcode]
     .filter((part, index, parts) => {
       if (!part) return false;
-      return parts.findIndex((value) => value?.toLowerCase() === part.toLowerCase()) === index;
+      return parts.findIndex((v) => v?.toLowerCase() === part.toLowerCase()) === index;
     })
     .join(" · ");
 }
 
-
-function ActivityRow({ item, currentUserId, showDivider }: { item: ActivityMovement; currentUserId?: string; showDivider: boolean }) {
-  const movement = MOVEMENT_CONFIG[item.movement_type];
-  const property = item.key_set?.property;
-  const address = formatShortAddress(property);
+function ActivityRow({
+  item,
+  currentUserId,
+  showDivider,
+}: {
+  item: ActivityTransaction;
+  currentUserId?: string;
+  showDivider: boolean;
+}) {
+  const movement = MOVEMENT_CONFIG[item.transaction_type];
+  const address = formatShortAddress(item.property);
   const ActivityIcon = movement.Icon;
   const label = getMovementLabel(item, currentUserId);
 
@@ -204,7 +264,9 @@ function ActivityRow({ item, currentUserId, showDivider }: { item: ActivityMovem
         <Text style={styles.rowSubtitle} numberOfLines={1}>{address}</Text>
         <View style={styles.activityMetaRow}>
           <Clock3 size={12} color={theme.colors.textLight} strokeWidth={2} />
-          <Text style={styles.rowMeta} numberOfLines={1}>{formatActivityTimestamp(item.created_at)}</Text>
+          <Text style={styles.rowMeta} numberOfLines={1}>
+            {formatActivityTimestamp(item.created_at)}
+          </Text>
         </View>
       </View>
     </View>
@@ -327,6 +389,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+  },
+  keyLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: theme.colors.textMuted,
   },
   emptyText: {
     padding: theme.spacing.md,

@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { Clock } from "lucide-react-native";
 
 import { theme } from "@/constants/theme";
-import { formatDateTime, formatHMS, getRemainingTime } from "@/lib/format";
+import { formatCountdown, formatDateTime, getRemainingTime } from "@/lib/format";
 
 export type CountdownTimerProps = {
   /** ISO timestamp the timer counts down to. */
@@ -14,10 +14,16 @@ export const CountdownTimer = memo(function CountdownTimer({ endAt }: CountdownT
   const [remaining, setRemaining] = useState(() => getRemainingTime(endAt));
 
   useEffect(() => {
-    setRemaining(getRemainingTime(endAt));
-    const id = setInterval(() => setRemaining(getRemainingTime(endAt)), 1000);
+    const tick = () => setRemaining(getRemainingTime(endAt));
+    tick();
+    // Tick every second when < 1 hour left; every minute otherwise.
+    const ms = remaining.total > 0 && remaining.days === 0 && remaining.hours === 0
+      ? 1_000
+      : 60_000;
+    const id = setInterval(tick, ms);
     return () => clearInterval(id);
-  }, [endAt]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [endAt, remaining.days, remaining.hours]);
 
   const isOverdue = remaining.total <= 0;
   const accent = theme.colors.danger;
@@ -32,7 +38,7 @@ export const CountdownTimer = memo(function CountdownTimer({ endAt }: CountdownT
         </Text>
       </View>
       <Text style={[styles.countdown, { color: accent }]}>
-        {isOverdue ? "00:00:00" : formatHMS(remaining)}
+        {isOverdue ? "Overdue" : formatCountdown(remaining)}
       </Text>
     </View>
   );
@@ -75,4 +81,3 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 });
-
