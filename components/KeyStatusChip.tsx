@@ -6,7 +6,9 @@ import { theme } from "@/constants/theme";
 
 type ChipConfig = { label: string; bg: string; color: string };
 
-const STATUS_CONFIG: Record<KeyStatus, ChipConfig> = {
+export type KeyChipStatus = KeyStatus | "tenant";
+
+const STATUS_CONFIG: Record<KeyChipStatus, ChipConfig> = {
   available: {
     label: "Available",
     bg: theme.colors.successSoft,
@@ -37,6 +39,11 @@ const STATUS_CONFIG: Record<KeyStatus, ChipConfig> = {
     bg: theme.colors.neutralSoft,
     color: theme.colors.textLight,
   },
+  tenant: {
+    label: "With Tenant",
+    bg: theme.colors.infoSoft,
+    color: theme.colors.info,
+  },
 };
 
 export const KEY_TYPE_LABEL: Record<KeyType, string> = {
@@ -53,10 +60,18 @@ export const KEY_TYPE_LABEL: Record<KeyType, string> = {
   other: "Other",
 };
 
+/** Labels for key-set `set_type` values. Falls back to raw value in callers. */
+export const SET_TYPE_LABEL: Record<string, string> = {
+  standard: "Standard",
+  full: "Full Access",
+  partial: "Partial",
+  ...KEY_TYPE_LABEL,
+};
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 type KeyStatusChipProps = {
-  status: KeyStatus;
+  status: KeyChipStatus;
 };
 
 export function KeyStatusChip({ status }: KeyStatusChipProps) {

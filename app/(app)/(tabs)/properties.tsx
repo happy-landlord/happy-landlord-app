@@ -22,10 +22,11 @@ import type {
 } from "@/services/properties.service";
 import { theme } from "@/constants/theme";
 
-type AdminTab = "available" | "landlord";
+type AdminTab = "available" | "leased" | "landlord";
 
 const TABS: { id: AdminTab; label: string }[] = [
   { id: "available", label: "Active" },
+  { id: "leased", label: "Leased" },
   { id: "landlord", label: "Inactive" },
 ];
 
@@ -72,9 +73,11 @@ export default function KeysScreen() {
         message={
           selectedPlace
             ? `No properties found in "${selectedPlace.suburb ?? selectedPlace.description.split(",")[0].trim()}"`
-            : adminTab === "landlord"
-              ? "No keys have been returned to landlords."
-              : "No keys are currently in the office."
+            : adminTab === "leased"
+              ? "No properties are currently leased."
+              : adminTab === "landlord"
+                ? "No keys have been returned to landlords."
+                : "No keys are currently in the office."
         }
       />
     );

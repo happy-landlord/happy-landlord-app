@@ -44,6 +44,7 @@ export default function AddPropertyScreen() {
   const [keys, setKeys] = useState<KeyEntry[]>([]);
   const [keyPhotoUris, setKeyPhotoUris] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [submitLabel, setSubmitLabel] = useState<string | null>(null);
 
   const propertyCode = usePropertyCode(
     property.selectedPlace,
@@ -111,6 +112,11 @@ export default function AddPropertyScreen() {
 
   async function handleSubmit() {
     setSubmitting(true);
+    setSubmitLabel(
+      property.photoUris.length > 0
+        ? `Uploading ${property.photoUris.length} photo${property.photoUris.length === 1 ? "" : "s"}…`
+        : "Saving…",
+    );
     try {
       await submitNewProperty({
         property,
@@ -131,6 +137,7 @@ export default function AddPropertyScreen() {
       );
     } finally {
       setSubmitting(false);
+      setSubmitLabel(null);
     }
   }
 
@@ -188,8 +195,15 @@ export default function AddPropertyScreen() {
           accessibilityRole="button"
           accessibilityLabel={nextLabel}
         >
-          {submitting ? (
-            <ActivityIndicator color="#fff" size="small" />
+          {isSaving ? (
+            <>
+              <ActivityIndicator color="#fff" size="small" />
+              {submitLabel ? (
+                <Text style={[styles.footerBtnLabel, styles.footerBtnSavingLabel]}>
+                  {submitLabel}
+                </Text>
+              ) : null}
+            </>
           ) : (
             <Text style={styles.footerBtnLabel}>{nextLabel}</Text>
           )}
@@ -283,11 +297,13 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   footerBtn: {
+    flexDirection: "row",
     backgroundColor: theme.colors.primary,
     borderRadius: theme.radius.lg,
     paddingVertical: 15,
     alignItems: "center",
     justifyContent: "center",
+    gap: 8,
     shadowColor: "#000",
     shadowOpacity: 0.14,
     shadowRadius: 8,
@@ -301,5 +317,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#FFFFFF",
     letterSpacing: 0.2,
+  },
+  footerBtnSavingLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    letterSpacing: 0,
   },
 });

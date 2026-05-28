@@ -10,6 +10,7 @@ export type Database = {
           phone: string | null;
           status: "pending" | "approved" | "rejected" | "inactive";
           created_at: string;
+          profile_image: string | null;
         };
         Insert: {
           id: string;
@@ -19,6 +20,7 @@ export type Database = {
           phone?: string | null;
           status?: "pending" | "approved" | "rejected" | "inactive";
           created_at?: string;
+          profile_image?: string | null;
         };
         Update: {
           id?: string;
@@ -28,6 +30,7 @@ export type Database = {
           phone?: string | null;
           status?: "pending" | "approved" | "rejected" | "inactive";
           created_at?: string;
+          profile_image?: string | null;
         };
         Relationships: [];
       };
@@ -184,13 +187,14 @@ export type Database = {
             | "duplex"
             | "villa"
             | "other";
-          key_status: "available" | "tenant" | "landlord";
+          key_status: "available" | "leased" | "landlord";
           status: "active" | "inactive" | "archived";
           unit_number: string | null;
           landlord_holder_id: string | null;
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          images: { path: string; sort_order: number; is_hidden: boolean }[];
         };
         Insert: {
           id?: string;
@@ -211,13 +215,14 @@ export type Database = {
             | "duplex"
             | "villa"
             | "other";
-          key_status?: "available" | "tenant" | "landlord";
+          key_status?: "available" | "leased" | "landlord";
           status?: "active" | "inactive" | "archived";
           unit_number?: string | null;
           landlord_holder_id?: string | null;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          images?: { path: string; sort_order: number; is_hidden: boolean }[];
         };
         Update: {
           id?: string;
@@ -238,13 +243,14 @@ export type Database = {
             | "duplex"
             | "villa"
             | "other";
-          key_status?: "available" | "tenant" | "landlord";
+          key_status?: "available" | "leased" | "landlord";
           status?: "active" | "inactive" | "archived";
           unit_number?: string | null;
           landlord_holder_id?: string | null;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          images?: { path: string; sort_order: number; is_hidden: boolean }[];
         };
         Relationships: [];
       };

@@ -30,6 +30,16 @@ export const QUERY_KEYS = {
     unreadCount: (userId: string) => ["notifications", userId, "unreadCount"] as const,
     pushStatus: (userId: string) => ["notifications", userId, "pushStatus"] as const,
   },
+  storage: {
+    /** Signed URL for a single storage path. */
+    signedUrl: (path: string) => ["storage", "signedUrl", path] as const,
+    /** Signed URLs for a set of paths (e.g. all images of one property). */
+    signedUrls: (paths: string[]) => ["storage", "signedUrls", ...paths] as const,
+  },
+  dashboard: {
+    counts: ["dashboard", "counts"] as const,
+    attention: (userId: string) => ["dashboard", "attention", userId] as const,
+  },
 };
 
 

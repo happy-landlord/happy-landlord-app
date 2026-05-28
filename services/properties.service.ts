@@ -1,10 +1,89 @@
 import { supabase } from "@/lib/supabase";
-import type { DbKeyHolder, DbKeyHolderInsert, DbProperty, DbPropertyInsert } from "@/types/database";
+import type { DbKeyHolder, DbKeyHolderInsert, DbProperty, DbPropertyInsert, DbPropertyUpdate } from "@/types/database";
 import { COUNCIL_CODES } from "@/constants/places";
 
 export type Property = DbProperty;
 export type PropertyType = Property["property_type"];
 export type PropertyKeyStatus = Property["key_status"];
+
+/** Single image entry stored in the `images` jsonb column. */
+export type PropertyImage = {
+  path: string;
+  sort_order: number;
+  is_hidden: boolean;
+};
+
+/** Signed-URL expiry — 1 hour matches the Supabase default. */
+const SIGNED_URL_TTL_SECONDS = 3600;
+
+/**
+ * Strips the leading bucket prefix from a stored path so it is safe to pass
+ * to `supabase.storage.from("properties")`.
+ * e.g. "properties/uuid/photo-1.jpg" → "uuid/photo-1.jpg"
+ */
+function stripBucketPrefix(path: string): string {
+  return path.replace(/^properties\//, "");
+}
+
+/**
+ * Returns a short-lived signed URL for a single property image.
+ * Works with private Supabase Storage buckets.
+ * Returns `null` if the path is empty or the request fails.
+ */
+export async function fetchSignedPropertyImageUrl(
+  path: string,
+  expiresIn = SIGNED_URL_TTL_SECONDS,
+): Promise<string | null> {
+  if (!path) return null;
+  const stripped = stripBucketPrefix(path);
+  const { data, error } = await supabase.storage
+    .from("properties")
+    .createSignedUrl(stripped, expiresIn);
+  if (error || !data?.signedUrl) {
+    if (__DEV__) {
+      console.warn(
+        `[properties.service] createSignedUrl failed for "${stripped}":`,
+        error?.message ?? "no URL returned",
+      );
+    }
+    return null;
+  }
+  return data.signedUrl;
+}
+
+/**
+ * Returns signed URLs for multiple property image paths in one call.
+ * Preserves the input order; failed paths resolve to `null`.
+ */
+export async function fetchSignedPropertyImageUrls(
+  paths: string[],
+  expiresIn = SIGNED_URL_TTL_SECONDS,
+): Promise<(string | null)[]> {
+  if (paths.length === 0) return [];
+  const { data, error } = await supabase.storage
+    .from("properties")
+    .createSignedUrls(paths.map(stripBucketPrefix), expiresIn);
+  if (error || !data) {
+    if (__DEV__) {
+      console.warn(
+        `[properties.service] createSignedUrls failed for ${paths.length} path(s):`,
+        error?.message ?? "no data returned",
+      );
+    }
+    return paths.map(() => null);
+  }
+  // createSignedUrls returns results in the same order as the input array
+  return data.map((item) => item.signedUrl ?? null);
+}
+
+/**
+ * Returns the visible images for a property sorted by `sort_order`.
+ */
+export function getVisibleImages(images: PropertyImage[]): PropertyImage[] {
+  return [...images]
+    .filter((img) => !img.is_hidden)
+    .sort((a, b) => a.sort_order - b.sort_order);
+}
 
 /** Property with the resolved landlord key holder joined in. */
 export type PropertyWithLandlord = Property & {
@@ -216,6 +295,135 @@ export async function createProperty(input: DbPropertyInsert): Promise<DbPropert
 
   if (error) throw error;
   return data;
+}
+
+/** Updates editable fields on a property and returns the updated record. */
+export async function updateProperty(
+  propertyId: string,
+  patch: DbPropertyUpdate,
+): Promise<DbProperty> {
+  const { data, error } = await supabase
+    .from("properties")
+    .update(patch)
+    .eq("id", propertyId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/** Updates name/phone on an existing key_holder row. */
+export async function updateKeyHolder(
+  holderId: string,
+  patch: { full_name: string | null; phone: string | null },
+): Promise<void> {
+  const { error } = await supabase
+    .from("key_holders")
+    .update(patch)
+    .eq("id", holderId);
+
+  if (error) throw error;
+}
+
+/**
+ * Uploads new local photos during a property edit.
+ * Uses timestamp-based filenames to avoid collisions with existing files.
+ * `baseSortOrder`: the sort_order to start numbering from (1 = first image overall).
+ */
+export async function uploadPropertyImagesForEdit(
+  propertyId: string,
+  localUris: string[],
+  baseSortOrder: number,
+): Promise<PropertyImage[]> {
+  const results: PropertyImage[] = [];
+  const batchTs = Date.now();
+
+  for (let i = 0; i < localUris.length; i++) {
+    const uri = localUris[i];
+    const ext = uri.split("?")[0].split(".").pop()?.toLowerCase() ?? "jpg";
+    const contentType = ext === "png" ? "image/png" : "image/jpeg";
+    const fileName = `photo-${batchTs}-${i + 1}.${ext === "png" ? "png" : "jpg"}`;
+    const storagePath = `${propertyId}/${fileName}`;
+
+    const response = await fetch(uri);
+    const arrayBuffer = await response.arrayBuffer();
+
+    const { error } = await supabase.storage
+      .from("properties")
+      .upload(storagePath, arrayBuffer, { contentType, upsert: false });
+
+    if (error) throw new Error(`Failed to upload photo ${i + 1}: ${error.message}`);
+
+    results.push({
+      path: `properties/${storagePath}`,
+      sort_order: baseSortOrder + i,
+      is_hidden: false,
+    });
+  }
+
+  return results;
+}
+
+/**
+ * Uploads local photo URIs to Supabase Storage under `properties/{propertyId}/`
+ * and returns a `PropertyImage[]` array ready to be saved in the DB.
+ *
+ * Uses `fetch` → blob so it works with both `file://` and `ph://` URIs on iOS.
+ * Photos are uploaded sequentially to avoid overwhelming low-end devices.
+ */
+export async function uploadPropertyImages(
+  propertyId: string,
+  localUris: string[],
+): Promise<PropertyImage[]> {
+  const results: PropertyImage[] = [];
+
+  for (let i = 0; i < localUris.length; i++) {
+    const uri = localUris[i];
+    // Detect content type from extension; default to JPEG
+    const ext = uri.split("?")[0].split(".").pop()?.toLowerCase() ?? "jpg";
+    const contentType = ext === "png" ? "image/png" : "image/jpeg";
+    const fileName = `photo-${i + 1}.${ext === "png" ? "png" : "jpg"}`;
+    const storagePath = `${propertyId}/${fileName}`;
+
+    const response = await fetch(uri);
+    // React Native: use arrayBuffer() (not blob()) — RN's Blob is a metadata
+    // stub and uploads as 0 bytes when passed to supabase-js.
+    const arrayBuffer = await response.arrayBuffer();
+
+    const { error } = await supabase.storage
+      .from("properties")
+      .upload(storagePath, arrayBuffer, { contentType, upsert: true });
+
+    if (error) {
+      throw new Error(`Failed to upload photo ${i + 1}: ${error.message}`);
+    }
+
+    // Stored path includes the bucket prefix to match existing convention.
+    results.push({
+      path: `properties/${storagePath}`,
+      sort_order: i + 1,
+      is_hidden: false,
+    });
+  }
+
+  return results;
+}
+
+/**
+ * Patches the `images` column on a property row.
+ * Call this after `uploadPropertyImages` to persist the storage paths.
+ */
+export async function updatePropertyImages(
+  propertyId: string,
+  images: PropertyImage[],
+): Promise<void> {
+  const { error } = await supabase
+    .from("properties")
+    .update({ images })
+    .eq("id", propertyId);
+
+  if (error) throw error;
 }
 
 

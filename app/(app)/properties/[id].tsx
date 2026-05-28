@@ -9,8 +9,6 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { theme } from "@/constants/theme";
 import { useKeys } from "@/hooks/useKeySets";
 import { useProperty } from "@/hooks/useProperties";
-import { useRole } from "@/hooks/useRole";
-import { useSession } from "@/hooks/useSession";
 
 export default function PropertyDetailScreen() {
   const { id, selectDueAt, selectHolderId } = useLocalSearchParams<{
@@ -19,9 +17,6 @@ export default function PropertyDetailScreen() {
     selectHolderId?: string;
   }>();
   const insets = useSafeAreaInsets();
-  const { isAdmin } = useRole();
-  const { session } = useSession();
-  const currentUserId = session?.user.id;
 
   const {
     data: property,
@@ -61,10 +56,7 @@ export default function PropertyDetailScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.headerGroup}>
-        <PropertyHeader
-          property={property}
-          onEdit={isAdmin ? () => {} : undefined}
-        />
+        <PropertyHeader property={property} />
       </View>
 
       <KeysSection
@@ -74,8 +66,6 @@ export default function PropertyDetailScreen() {
         isLoading={keysLoading}
         isError={keysError}
         onRetry={refetchKeys}
-        currentUserId={currentUserId}
-        isAdmin={isAdmin}
         selectDueAt={selectDueAt ?? null}
         selectHolderId={selectHolderId ?? null}
       />

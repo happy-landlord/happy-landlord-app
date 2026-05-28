@@ -1,4 +1,8 @@
-import { createKeyHolder } from "@/services/properties.service";
+import {
+  createKeyHolder,
+  uploadPropertyImages,
+  updatePropertyImages,
+} from "@/services/properties.service";
 import { createKeys } from "@/services/keys.service";
 import type { DbKeyInsert, DbProperty, DbPropertyInsert } from "@/types/database";
 import { KEY_TYPE_LABEL, KEY_TYPE_SHORT } from "@/components/key/keyLabels";
@@ -15,7 +19,8 @@ export type CreatePropertyArgs = {
  * Orchestrates the full "create property" submission:
  *   1. (Optional) create a landlord key_holder
  *   2. Create the property row
- *   3. Insert each key as a row in `keys`
+ *   3. Upload property photos → patch images column
+ *   4. Insert each key as a row in `keys`
  */
 export async function submitNewProperty({
   property,
@@ -46,9 +51,16 @@ export async function submitNewProperty({
     landlord_holder_id: landlordHolderId,
     key_status: "available",
     status: "active",
+    images: [],
   });
 
-  // 3. Keys
+  // 3. Upload photos and save paths (skipped when none were selected)
+  if (property.photoUris.length > 0) {
+    const images = await uploadPropertyImages(created.id, property.photoUris);
+    await updatePropertyImages(created.id, images);
+  }
+
+  // 4. Keys
   if (keys.length > 0) {
     await createKeys(buildKeyInserts(created, keys));
   }

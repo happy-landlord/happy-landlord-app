@@ -19,7 +19,7 @@ import {
   type AddressSearchRef,
   type PlaceResult,
 } from "@/components/ui/AddressSearch";
-import { useSession } from "@/hooks/useSession";
+import { useCurrentUserId } from "@/hooks/useSession";
 import { useRole } from "@/hooks/useRole";
 import { useInfiniteActivity } from "@/hooks/useTransactions";
 import { theme } from "@/constants/theme";
@@ -47,13 +47,8 @@ function groupByDate(transactions: ActivityTransaction[]): Section[] {
 }
 
 // --- Activity item ---
-function ActivityItem({
-  item,
-  currentUserId,
-}: {
-  item: ActivityTransaction;
-  currentUserId?: string;
-}) {
+function ActivityItem({ item }: { item: ActivityTransaction }) {
+  const currentUserId = useCurrentUserId();
   const { Icon, color, bg } = MOVEMENT_CONFIG[item.transaction_type];
   const propertyLine = formatShortAddress(item.property);
   const label = getMovementLabel(item, currentUserId);
@@ -96,9 +91,7 @@ function ActivityItem({
 // --- Screen ---
 export default function ActivityScreen() {
   const insets = useSafeAreaInsets();
-  const { session } = useSession();
   const { isAdmin } = useRole();
-  const currentUserId = session?.user.id;
   const searchRef = useRef<AddressSearchRef>(null);
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
   const { propertyId } = useLocalSearchParams<{ propertyId?: string }>();
@@ -128,9 +121,9 @@ export default function ActivityScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: ActivityTransaction }) => (
-      <ActivityItem item={item} currentUserId={currentUserId} />
+      <ActivityItem item={item} />
     ),
-    [currentUserId],
+    [],
   );
 
   const renderFooter = useCallback(() => {

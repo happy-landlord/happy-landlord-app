@@ -1,7 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { QUERY_KEYS } from "@/constants/queryKeys";
-import { fetchProfile, updateProfile, type ProfileEdits } from "@/services/profile.service";
+import {
+  fetchProfile,
+  fetchSignedProfileImageUrl,
+  updateProfile,
+  type ProfileEdits,
+} from "@/services/profile.service";
 import { useSession } from "@/hooks/useSession";
 
 export function useProfile() {
@@ -30,3 +35,15 @@ export function useUpdateProfile() {
     },
   });
 }
+
+/** Returns a signed URL for the given profile image path, cached for 55 min. */
+export function useProfileImageUrl(path: string | null | undefined) {
+  return useQuery({
+    queryKey: QUERY_KEYS.storage.signedUrl(path ?? ""),
+    queryFn: () => fetchSignedProfileImageUrl(path!),
+    enabled: Boolean(path),
+    staleTime: 1000 * 60 * 55,
+    gcTime: 1000 * 60 * 65,
+  });
+}
+

@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
-import { KeyRound, UserRound } from "lucide-react-native";
+import { KeyRound, Pencil, UserRound } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
 import { CheckoutConfirmModal } from "@/components/key/CheckoutConfirmModal";
@@ -9,6 +9,7 @@ import { TransferConfirmModal } from "@/components/key/TransferConfirmModal";
 import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
 import { AgentKeyList } from "@/components/property/AgentKeyList";
 import { KeyActionsBar } from "@/components/property/KeyActionsBar";
+import { KeyEditSheet } from "@/components/property/KeyEditSheet";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingState } from "@/components/ui/LoadingState";
@@ -17,6 +18,8 @@ import {
   useReturnKeys,
   useTransferKeys,
 } from "@/hooks/useCheckout";
+import { useCurrentUserId } from "@/hooks/useSession";
+import { useRole } from "@/hooks/useRole";
 import { theme } from "@/constants/theme";
 import { formatTime } from "@/lib/format";
 import type { KeyWithHolder } from "@/services/keys.service";
@@ -43,8 +46,6 @@ export type KeysSectionProps = {
   isLoading: boolean;
   isError: boolean;
   onRetry: () => void;
-  currentUserId?: string;
-  isAdmin?: boolean;
   /** Pre-select the With-me checkout group that matches this due_back_at ISO string. */
   selectDueAt?: string | null;
   /** The holder profile_id from the tapped dashboard card — used to pick the right section. */
@@ -60,17 +61,20 @@ export const KeysSection = memo(function KeysSection({
   isLoading,
   isError,
   onRetry,
-  currentUserId,
   selectDueAt,
   selectHolderId,
 }: KeysSectionProps) {
   const router = useRouter();
+  // Read current user directly — no prop drilling needed.
+  const currentUserId = useCurrentUserId();
+  const { isAdmin } = useRole();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const defaultBorrowedSelectionRef = useRef<string | null>(null);
   const [pendingDueBackAt, setPendingDueBackAt] = useState<string | null>(null);
   const [checkoutDurationDays, setCheckoutDurationDays] = useState(1);
   const [returnModalOpen, setReturnModalOpen] = useState(false);
   const [transferModalOpen, setTransferModalOpen] = useState(false);
+  const [editSheetOpen, setEditSheetOpen] = useState(false);
 
   const checkout = useCheckoutKeys(propertyId);
   const returnKey = useReturnKeys(propertyId);
@@ -195,7 +199,13 @@ export const KeysSection = memo(function KeysSection({
       defaultBorrowedSelectionRef.current = groupKey;
       return new Set(ids);
     });
-  }, [borrowedByMe, borrowedByOthers, selectDueAt, selectHolderId, currentUserId]);
+  }, [
+    borrowedByMe,
+    borrowedByOthers,
+    selectDueAt,
+    selectHolderId,
+    currentUserId,
+  ]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
@@ -277,7 +287,25 @@ export const KeysSection = memo(function KeysSection({
     <View style={styles.root}>
       {/* Keys list */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Keys</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
+            {keys?.length ?? 0} {(keys?.length ?? 0) === 1 ? "Key" : "Keys"}
+          </Text>
+          {isAdmin && (
+            <Pressable
+              onPress={() => setEditSheetOpen(true)}
+              style={({ pressed }) => [
+                styles.sectionEditBtn,
+                pressed && styles.sectionEditBtnPressed,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Edit keys"
+              hitSlop={8}
+            >
+              <Pencil size={14} color={theme.colors.primary} strokeWidth={2} />
+            </Pressable>
+          )}
+        </View>
         {isError ? (
           <ErrorState
             title="Couldn't load keys"
@@ -317,7 +345,7 @@ export const KeysSection = memo(function KeysSection({
       {/* Borrowed by others */}
       {borrowedByOthers.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Checked out</Text>
+          <Text style={styles.sectionTitle}>With Others</Text>
           <BorrowedByOthersList
             keys={borrowedByOthers}
             selectedIds={selectedIds}
@@ -389,6 +417,17 @@ export const KeysSection = memo(function KeysSection({
         onCancel={() => setTransferModalOpen(false)}
         onConfirm={confirmTransfer}
       />
+
+      {/* Keys edit sheet — admin only */}
+      {isAdmin && (
+        <KeyEditSheet
+          visible={editSheetOpen}
+          onClose={() => setEditSheetOpen(false)}
+          propertyId={propertyId}
+          propertyCode={propertyCode}
+          keys={keys ?? []}
+        />
+      )}
     </View>
   );
 });
@@ -441,18 +480,27 @@ function BorrowedByMeList({
                       styles.borrowedMeActivityAvatar,
                       isOverdue && styles.borrowedMeActivityAvatarOverdue,
                       isSelected && styles.borrowedMeActivityAvatarSelected,
-                      isSelected && isOverdue && styles.borrowedMeActivityAvatarSelectedOverdue,
+                      isSelected &&
+                        isOverdue &&
+                        styles.borrowedMeActivityAvatarSelectedOverdue,
                     ]}
                   >
                     <KeyRound
                       size={15}
-                      color={isOverdue ? theme.colors.danger : theme.colors.warning}
+                      color={
+                        isOverdue ? theme.colors.danger : theme.colors.warning
+                      }
                       strokeWidth={2}
                     />
                   </View>
                   <View style={styles.borrowedActivityHolderText}>
-                    <Text style={styles.borrowedActivityEyebrow}>Checked out</Text>
-                    <Text style={styles.borrowedActivityHolderName} numberOfLines={1}>
+                    <Text style={styles.borrowedActivityEyebrow}>
+                      Checked out
+                    </Text>
+                    <Text
+                      style={styles.borrowedActivityHolderName}
+                      numberOfLines={1}
+                    >
                       {g.keyIds.length} {g.keyIds.length === 1 ? "key" : "keys"}
                     </Text>
                   </View>
@@ -468,7 +516,8 @@ function BorrowedByMeList({
                     <Text
                       style={[
                         styles.borrowedMeActivityDuePillText,
-                        isOverdue && styles.borrowedMeActivityDuePillTextOverdue,
+                        isOverdue &&
+                          styles.borrowedMeActivityDuePillTextOverdue,
                       ]}
                       numberOfLines={1}
                     >
@@ -497,12 +546,18 @@ function BorrowedByMeList({
                           ? k.label
                           : (KEY_TYPE_LABEL[k.key_type] ?? k.key_type);
                       return (
-                        <View key={k.id} style={styles.borrowedMeActivityKeyCell}>
+                        <View
+                          key={k.id}
+                          style={styles.borrowedMeActivityKeyCell}
+                        >
                           <View
                             style={[
                               styles.borrowedMeActivityKeyIconCircle,
-                              isSelected && styles.borrowedMeActivityKeyIconCircleSelected,
-                              isSelected && isOverdue && styles.borrowedMeActivityKeyIconCircleSelectedOverdue,
+                              isSelected &&
+                                styles.borrowedMeActivityKeyIconCircleSelected,
+                              isSelected &&
+                                isOverdue &&
+                                styles.borrowedMeActivityKeyIconCircleSelectedOverdue,
                             ]}
                           >
                             <Icon
@@ -641,7 +696,9 @@ function BorrowedByOthersList({
                       styles.borrowedActivityAvatar,
                       isOverdue && styles.borrowedActivityAvatarOverdue,
                       isSelected && styles.borrowedActivityAvatarSelected,
-                      isSelected && isOverdue && styles.borrowedActivityAvatarSelectedOverdue,
+                      isSelected &&
+                        isOverdue &&
+                        styles.borrowedActivityAvatarSelectedOverdue,
                     ]}
                   >
                     <UserRound
@@ -708,8 +765,11 @@ function BorrowedByOthersList({
                           <View
                             style={[
                               styles.borrowedActivityKeyIconCircle,
-                              isSelected && styles.borrowedActivityKeyIconCircleSelected,
-                              isSelected && isOverdue && styles.borrowedActivityKeyIconCircleSelectedOverdue,
+                              isSelected &&
+                                styles.borrowedActivityKeyIconCircleSelected,
+                              isSelected &&
+                                isOverdue &&
+                                styles.borrowedActivityKeyIconCircleSelectedOverdue,
                             ]}
                           >
                             <Icon
@@ -750,13 +810,29 @@ function BorrowedByOthersList({
 const styles = StyleSheet.create({
   root: { gap: theme.spacing.md },
   section: { gap: theme.spacing.sm },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingLeft: 2,
+  },
   sectionTitle: {
     fontSize: 13,
     fontWeight: "600",
     color: theme.colors.textLight,
     textTransform: "uppercase",
     letterSpacing: 0.6,
-    paddingLeft: 2,
+  },
+  sectionEditBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.primarySoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionEditBtnPressed: {
+    opacity: 0.6,
   },
   list: { gap: 6 },
   chip: {

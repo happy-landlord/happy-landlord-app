@@ -6,6 +6,32 @@ export type KeyType = Key["key_type"];
 export type KeyStatus = Key["status"];
 export type { DbKeyInsert, DbKeyUpdate };
 
+/** Status that can appear on a key-set (superset of KeyStatus, adds "tenant"). */
+export type KeySetStatus = KeyStatus | "tenant";
+
+/** An inventory item within a key-set (e.g. 2× main_door keys). */
+export type KeySetInventoryItem = {
+  type: string;
+  count: number;
+};
+
+/** Inventory object stored on a key-set row. */
+export type KeySetInventory = {
+  items: KeySetInventoryItem[];
+};
+
+/** A logical grouping of keys for a property. */
+export type KeySet = {
+  id: string;
+  set_code: string;
+  set_type: string;
+  status: KeySetStatus;
+  inventory?: KeySetInventory | null;
+  property_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
 /** Resolved holder data joined from the key_holders table. */
 export type ResolvedKeyHolder = {
   profile_id: string | null;
@@ -86,11 +112,9 @@ export async function fetchKeyById(
 
 export async function fetchCheckedOutKeys({
   userId,
-  isAdmin,
   limit = 5,
 }: {
   userId: string;
-  isAdmin: boolean;
   limit?: number;
 }): Promise<CheckedOutKey[]> {
   const { data, error } = await supabase
@@ -103,14 +127,14 @@ export async function fetchCheckedOutKeys({
     )
     .in("status", ["borrowed", "overdue"])
     .order("updated_at", { ascending: false })
-    .limit(isAdmin ? Math.max(limit * 5, 100) : 50);
+    .limit(50);
 
   if (error) throw error;
 
   const rows = (data ?? []) as CheckedOutKey[];
-  const visibleRows = isAdmin
-    ? rows
-    : rows.filter((key) => key.current_holder?.profile_id === userId);
+  const visibleRows = rows.filter(
+    (key) => key.current_holder?.profile_id === userId,
+  );
 
   const limitedRows = visibleRows.slice(0, limit);
   const keyIds = limitedRows.map((k) => k.id);
@@ -234,4 +258,93 @@ export async function updateKey(
   return data;
 }
 
+/**
+ * Soft-deletes a key by setting its status to "inactive".
+ * The row is preserved for audit history.
+ */
+export async function deleteKey(keyId: string): Promise<void> {
+  const { error } = await supabase
+    .from("keys")
+    .update({ status: "inactive" })
+    .eq("id", keyId);
+  if (error) throw error;
+}
+
 // Checkout / return / transfer RPCs live in @/services/transactions.service
+
+// ── Attention keys (lost + overdue-by-others) ─────────────────────────────────
+
+/**
+ * Fetches all lost keys, plus overdue keys NOT held by the current user.
+ * Used to populate the admin "Properties Needing Attention" section.
+ */
+export async function fetchKeysNeedingAttention(
+  currentUserId: string,
+): Promise<CheckedOutKey[]> {
+  const { data, error } = await supabase
+    .from("keys")
+    .select(
+      `*,
+      current_holder:current_holder_id(profile_id, full_name, holder_type),
+      property:property_id(id, address, suburb, city, postcode, formatted_address)`,
+    )
+    .in("status", ["lost", "overdue"])
+    .order("updated_at", { ascending: false })
+    .limit(100);
+
+  if (error) throw error;
+
+  const rows = (data ?? []) as CheckedOutKey[];
+  return rows.filter(
+    (k) =>
+      k.status === "lost" || k.current_holder?.profile_id !== currentUserId,
+  );
+}
+
+// ── Dashboard counts view ─────────────────────────────────────────────────────
+
+export type DashboardStatusCount = {
+  dashboard_status: string;
+  count: number;
+};
+
+const DASHBOARD_STATUS_ORDER: Record<string, number> = {
+  available: 1,
+  checked_out: 2,
+  with_tenant: 3,
+  overdue: 4,
+  missing_damaged: 5,
+  with_landlord: 6,
+};
+
+export async function fetchKeyDashboardCounts(): Promise<
+  DashboardStatusCount[]
+> {
+  const { data, error } = await (supabase as any)
+    .from("key_dashboard_counts")
+    .select("*");
+  if (error) {
+    console.error("[fetchKeyDashboardCounts]", error);
+    throw error;
+  }
+  const rows = (data ?? []) as Record<string, unknown>[];
+  if (rows.length === 0) return [];
+
+  // Auto-detect the count column: first numeric column that isn't dashboard_status
+  const sample = rows[0];
+  const countCol =
+    Object.keys(sample).find(
+      (k) => k !== "dashboard_status" && typeof sample[k] === "number",
+    ) ?? "count";
+
+  const mapped: DashboardStatusCount[] = rows.map((r) => ({
+    dashboard_status: String(r.dashboard_status ?? ""),
+    count: Number(r[countCol] ?? 0),
+  }));
+
+  return mapped.sort(
+    (a, b) =>
+      (DASHBOARD_STATUS_ORDER[a.dashboard_status] ?? 99) -
+      (DASHBOARD_STATUS_ORDER[b.dashboard_status] ?? 99),
+  );
+}

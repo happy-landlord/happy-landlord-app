@@ -3,10 +3,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChevronRight, Clock3, KeyRound } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
-import { useRole } from "@/hooks/useRole";
-import { useSession } from "@/hooks/useSession";
-import { useMyActivity, type ActivityTransaction } from "@/hooks/useTransactions";
+import {
+  useMyActivity,
+  type ActivityTransaction,
+} from "@/hooks/useTransactions";
 import { useCheckedOutKeys } from "@/hooks/useKeySets";
+import { useCurrentUserId } from "@/hooks/useSession";
+import { useRole } from "@/hooks/useRole";
 import { theme } from "@/constants/theme";
 import { MOVEMENT_CONFIG, getMovementLabel } from "@/constants/movements";
 import {
@@ -16,6 +19,8 @@ import {
   isPastDue,
 } from "@/lib/format";
 import type { CheckedOutKey } from "@/services/keys.service";
+import { KeyDashboardSummary } from "@/components/KeyDashboardSummary";
+import { PropertiesNeedingAttention } from "@/components/PropertiesNeedingAttention";
 
 // ── Group checked-out keys by property + holder ───────────────────────────────
 
@@ -57,15 +62,13 @@ function groupCheckedOutKeys(keys: CheckedOutKey[]): CheckedOutGroup[] {
   });
 }
 
-
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { session } = useSession();
   const { isAdmin } = useRole();
-  const { data: checkedOut = [], isLoading: checkedOutLoading } = useCheckedOutKeys(isAdmin ? 20 : 6);
+  const { data: checkedOut = [], isLoading: checkedOutLoading } =
+    useCheckedOutKeys(6);
   const { data: activity = [], isLoading: activityLoading } = useMyActivity();
-  const currentUserId = session?.user.id;
 
   const recentActivity = activity.slice(0, 4);
   const checkedOutGroups = groupCheckedOutKeys(checkedOut);
@@ -73,14 +76,20 @@ export default function HomeScreen() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 96 }]}
+      contentContainerStyle={[
+        styles.content,
+        { paddingBottom: insets.bottom + 96 },
+      ]}
       showsVerticalScrollIndicator={false}
     >
-
+      {/* Key status summary — admin only */}
+      {isAdmin && (
+        <DashboardSection title="Key Status">
+          <KeyDashboardSummary />
+        </DashboardSection>
+      )}
       {/* Current checked out */}
-      <DashboardSection
-        title="Current activity"
-      >
+      <DashboardSection title="Current activity">
         <View style={styles.compactCard}>
           {checkedOutLoading ? (
             <Text style={styles.emptyText}>Loading checked out keys…</Text>
@@ -92,21 +101,32 @@ export default function HomeScreen() {
                 key={group.groupKey}
                 group={group}
                 showDivider={index < checkedOutGroups.length - 1}
-                showHolder={isAdmin}
-                currentUserId={currentUserId}
                 onPress={() => {
                   const params = new URLSearchParams();
-                  if (group.due_back_at) params.set("selectDueAt", group.due_back_at);
+                  if (group.due_back_at)
+                    params.set("selectDueAt", group.due_back_at);
                   if (group.current_holder?.profile_id)
-                    params.set("selectHolderId", group.current_holder.profile_id);
+                    params.set(
+                      "selectHolderId",
+                      group.current_holder.profile_id,
+                    );
                   const qs = params.toString() ? `?${params.toString()}` : "";
-                  router.push(`/(app)/properties/${group.property_id}${qs}` as never);
+                  router.push(
+                    `/(app)/properties/${group.property_id}${qs}` as never,
+                  );
                 }}
               />
             ))
           )}
         </View>
       </DashboardSection>
+
+      {/* Properties needing attention — admin only */}
+      {isAdmin && (
+        <DashboardSection title="Needs Attention">
+          <PropertiesNeedingAttention />
+        </DashboardSection>
+      )}
 
       {/* Recent activity */}
       <DashboardSection
@@ -124,7 +144,6 @@ export default function HomeScreen() {
               <ActivityRow
                 key={item.id}
                 item={item}
-                currentUserId={currentUserId}
                 showDivider={index < recentActivity.length - 1}
               />
             ))
@@ -153,10 +172,17 @@ function DashboardSection({
         {actionLabel && onPressAction ? (
           <Pressable
             onPress={onPressAction}
-            style={({ pressed }) => [styles.sectionAction, pressed && styles.cardPressed]}
+            style={({ pressed }) => [
+              styles.sectionAction,
+              pressed && styles.cardPressed,
+            ]}
           >
             <Text style={styles.sectionActionText}>{actionLabel}</Text>
-            <ChevronRight size={14} color={theme.colors.primary} strokeWidth={2} />
+            <ChevronRight
+              size={14}
+              color={theme.colors.primary}
+              strokeWidth={2}
+            />
           </Pressable>
         ) : null}
       </View>
@@ -168,23 +194,15 @@ function DashboardSection({
 function CheckedOutRow({
   group,
   showDivider,
-  showHolder,
-  currentUserId,
   onPress,
 }: {
   group: CheckedOutGroup;
   showDivider: boolean;
-  showHolder: boolean;
-  currentUserId?: string;
   onPress: () => void;
 }) {
-  const address = group.property?.address ?? group.property?.formatted_address ?? "Property";
+  const address =
+    group.property?.address ?? group.property?.formatted_address ?? "Property";
   const location = formatPropertyLocation(group.property);
-  const isOtherHolder =
-    showHolder && group.current_holder?.profile_id !== currentUserId;
-  const holderName = isOtherHolder
-    ? group.current_holder?.full_name
-    : null;
   const isReturnOverdue = isPastDue(group.due_back_at);
   const keysLine = group.keyLabels.join(" · ");
 
@@ -201,14 +219,17 @@ function CheckedOutRow({
         <KeyRound size={18} color={theme.colors.warning} strokeWidth={2} />
       </View>
       <View style={styles.rowContent}>
-        <Text style={styles.rowTitle} numberOfLines={1}>{address}</Text>
+        <Text style={styles.rowTitle} numberOfLines={1}>
+          {address}
+        </Text>
         {location ? (
-          <Text style={styles.locationText} numberOfLines={1}>{location}</Text>
+          <Text style={styles.locationText} numberOfLines={1}>
+            {location}
+          </Text>
         ) : null}
-        <Text style={styles.keyLabel} numberOfLines={1}>{keysLine}</Text>
-        {holderName ? (
-          <Text style={styles.rowSubtitle} numberOfLines={1}>With {holderName}</Text>
-        ) : null}
+        <Text style={styles.keyLabel} numberOfLines={1}>
+          {keysLine}
+        </Text>
         <View style={styles.returnByRow}>
           <Clock3
             size={13}
@@ -216,7 +237,10 @@ function CheckedOutRow({
             strokeWidth={2}
           />
           <Text
-            style={[styles.returnLabel, isReturnOverdue && styles.returnLabelOverdue]}
+            style={[
+              styles.returnLabel,
+              isReturnOverdue && styles.returnLabelOverdue,
+            ]}
             numberOfLines={1}
           >
             {formatReturnDueLabel(group.due_back_at)}
@@ -233,20 +257,22 @@ function formatPropertyLocation(property: CheckedOutKey["property"]): string {
   return [property.suburb, property.city, property.postcode]
     .filter((part, index, parts) => {
       if (!part) return false;
-      return parts.findIndex((v) => v?.toLowerCase() === part.toLowerCase()) === index;
+      return (
+        parts.findIndex((v) => v?.toLowerCase() === part.toLowerCase()) ===
+        index
+      );
     })
     .join(" · ");
 }
 
 function ActivityRow({
   item,
-  currentUserId,
   showDivider,
 }: {
   item: ActivityTransaction;
-  currentUserId?: string;
   showDivider: boolean;
 }) {
+  const currentUserId = useCurrentUserId();
   const movement = MOVEMENT_CONFIG[item.transaction_type];
   const address = formatShortAddress(item.property);
   const ActivityIcon = movement.Icon;
@@ -258,10 +284,15 @@ function ActivityRow({
         <ActivityIcon size={16} color={movement.color} strokeWidth={2} />
       </View>
       <View style={styles.rowContent}>
-        <Text style={[styles.recentActivityTitle, { color: movement.color }]} numberOfLines={1}>
+        <Text
+          style={[styles.recentActivityTitle, { color: movement.color }]}
+          numberOfLines={1}
+        >
           {label}
         </Text>
-        <Text style={styles.rowSubtitle} numberOfLines={1}>{address}</Text>
+        <Text style={styles.rowSubtitle} numberOfLines={1}>
+          {address}
+        </Text>
         <View style={styles.activityMetaRow}>
           <Clock3 size={12} color={theme.colors.textLight} strokeWidth={2} />
           <Text style={styles.rowMeta} numberOfLines={1}>
@@ -273,13 +304,15 @@ function ActivityRow({
   );
 }
 
-
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.background },
   content: { padding: theme.spacing.screen, gap: theme.spacing.lg },
   sectionLabel: {
-    fontSize: 13, fontWeight: "600", color: theme.colors.textMuted,
-    textTransform: "uppercase", letterSpacing: 0.6,
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
   },
   section: { gap: theme.spacing.sm },
   sectionHeaderRow: {

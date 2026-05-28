@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Pressable,
   ScrollView,
@@ -8,23 +9,42 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Check, Pencil, Phone, User, X } from "lucide-react-native";
+import { Camera, Check, Pencil, Phone, User, X } from "lucide-react-native";
+import * as ImagePicker from "expo-image-picker";
 
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { theme } from "@/constants/theme";
-import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
+import {
+  useProfile,
+  useUpdateProfile,
+  useProfileImageUrl,
+} from "@/hooks/useProfile";
+import { useCurrentUserId } from "@/hooks/useSession";
+import { useQueryClient } from "@tanstack/react-query";
+import { QUERY_KEYS } from "@/constants/queryKeys";
+import {
+  uploadProfileImage,
+  updateProfileImagePath,
+} from "@/services/profile.service";
 import type { ProfileEdits } from "@/services/profile.service";
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
+  const userId = useCurrentUserId();
   const { data: profile, isLoading, isError, refetch } = useProfile();
   const updateMutation = useUpdateProfile();
 
   const [editing, setEditing] = useState(false);
   const [draftName, setDraftName] = useState("");
   const [draftPhone, setDraftPhone] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  // Signed URL for the stored profile image path
+  const { data: avatarUrl } = useProfileImageUrl(profile?.profile_image);
 
   const startEdit = () => {
     setDraftName(profile?.full_name ?? "");
@@ -43,12 +63,85 @@ export default function ProfileScreen() {
       full_name: draftName.trim() || null,
       phone: draftPhone.trim() || null,
     };
-
     updateMutation.mutate(edits, {
       onSuccess: () => setEditing(false),
       onError: () =>
         Alert.alert("Error", "Could not save changes. Please try again."),
     });
+  };
+
+  const handleAvatarPress = () => {
+    Alert.alert("Profile Photo", "Choose a photo source", [
+      {
+        text: "Take Photo",
+        onPress: () => pickImage("camera"),
+      },
+      {
+        text: "Choose from Library",
+        onPress: () => pickImage("library"),
+      },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  };
+
+  const pickImage = async (source: "camera" | "library") => {
+    let result: ImagePicker.ImagePickerResult;
+
+    if (source === "camera") {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (perm.status !== "granted") {
+        Alert.alert("Permission required", "Allow camera access in Settings.");
+        return;
+      }
+      result = await ImagePicker.launchCameraAsync({
+        mediaTypes: "images",
+        quality: 0.85,
+        allowsEditing: true,
+        aspect: [1, 1],
+      });
+    } else {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (perm.status !== "granted") {
+        Alert.alert("Permission required", "Allow photo library access in Settings.");
+        return;
+      }
+      result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: "images",
+        quality: 0.85,
+        allowsEditing: true,
+        aspect: [1, 1],
+      });
+    }
+
+    if (result.canceled || !result.assets[0]?.uri || !userId) return;
+
+    setUploadingImage(true);
+    try {
+      const path = await uploadProfileImage(userId, result.assets[0].uri);
+      await updateProfileImagePath(userId, path);
+
+      // Immediately write the new path into the profile cache so
+      // useProfileImageUrl(path) becomes enabled in the same render cycle
+      // and fires the signed URL fetch right away — no background-refetch lag.
+      if (profile) {
+        queryClient.setQueryData(QUERY_KEYS.auth.profile(userId), {
+          ...profile,
+          profile_image: path,
+        });
+      }
+      // If this is a re-upload (same path, file overwritten), bust the cached
+      // signed URL so a fresh one is fetched for the new content.
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.storage.signedUrl(path),
+      });
+    } catch (err) {
+      Alert.alert(
+        "Upload failed",
+        err instanceof Error ? err.message : "Could not upload photo. Please try again.",
+      );
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   if (isLoading) return <LoadingState message="Loading profile…" />;
@@ -70,11 +163,36 @@ export default function ProfileScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.hero}>
-        <View style={styles.avatarShell}>
+        {/* Tappable avatar */}
+        <Pressable
+          onPress={handleAvatarPress}
+          disabled={uploadingImage}
+          style={({ pressed }) => [styles.avatarShell, pressed && styles.avatarShellPressed]}
+          accessibilityRole="button"
+          accessibilityLabel="Change profile photo"
+        >
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
+            {avatarUrl ? (
+              <Image
+                source={{ uri: avatarUrl }}
+                style={styles.avatarImage}
+                contentFit="cover"
+                transition={200}
+              />
+            ) : (
+              <Text style={styles.avatarText}>{initials}</Text>
+            )}
           </View>
-        </View>
+
+          {/* Camera badge overlay */}
+          <View style={styles.cameraBadge}>
+            {uploadingImage ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Camera size={14} color="#fff" strokeWidth={2} />
+            )}
+          </View>
+        </Pressable>
 
         <Text style={styles.email} numberOfLines={1}>
           {profile.email ?? "No email available"}
@@ -196,7 +314,6 @@ export default function ProfileScreen() {
 
 function getInitials(name?: string | null, email?: string | null) {
   const cleanName = name?.trim();
-
   if (cleanName) {
     return cleanName
       .split(/\s+/)
@@ -206,19 +323,12 @@ function getInitials(name?: string | null, email?: string | null) {
       .join("")
       .toUpperCase();
   }
-
   return (email?.trim()[0] ?? "?").toUpperCase();
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  content: {
-    padding: theme.spacing.screen,
-    gap: theme.spacing.lg,
-  },
+  screen: { flex: 1, backgroundColor: theme.colors.background },
+  content: { padding: theme.spacing.screen, gap: theme.spacing.lg },
   hero: {
     alignItems: "center",
     paddingTop: theme.spacing.lg,
@@ -229,7 +339,9 @@ const styles = StyleSheet.create({
     padding: theme.spacing.xs,
     borderRadius: theme.radius.pill,
     backgroundColor: theme.colors.primarySoft,
+    position: "relative",
   },
+  avatarShellPressed: { opacity: 0.8 },
   avatar: {
     width: 84,
     height: 84,
@@ -237,11 +349,22 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
-  avatarText: {
-    fontSize: 30,
-    fontWeight: "800",
-    color: theme.colors.textInverse,
+  avatarImage: { width: 84, height: 84 },
+  avatarText: { fontSize: 30, fontWeight: "800", color: theme.colors.textInverse },
+  cameraBadge: {
+    position: "absolute",
+    bottom: 2,
+    right: 2,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.colors.primary,
+    borderWidth: 2,
+    borderColor: theme.colors.background,
+    alignItems: "center",
+    justifyContent: "center",
   },
   email: {
     maxWidth: "100%",
@@ -250,9 +373,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     textAlign: "center",
   },
-  section: {
-    gap: theme.spacing.sm,
-  },
+  section: { gap: theme.spacing.sm },
   sectionLabel: {
     paddingHorizontal: theme.spacing.xs,
     fontSize: 11,
@@ -284,11 +405,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexShrink: 0,
   },
-  rowContent: {
-    flex: 1,
-    minWidth: 0,
-    gap: 3,
-  },
+  rowContent: { flex: 1, minWidth: 0, gap: 3 },
   rowLabel: {
     fontSize: 11,
     color: theme.colors.textLight,
@@ -296,16 +413,8 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.7,
   },
-  rowValue: {
-    fontSize: 15,
-    color: theme.colors.text,
-    fontWeight: "600",
-    lineHeight: 21,
-  },
-  emptyValue: {
-    color: theme.colors.textMuted,
-    fontWeight: "500",
-  },
+  rowValue: { fontSize: 15, color: theme.colors.text, fontWeight: "600", lineHeight: 21 },
+  emptyValue: { color: theme.colors.textMuted, fontWeight: "500" },
   rowInput: {
     fontSize: 15,
     color: theme.colors.text,
@@ -318,15 +427,7 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     marginTop: theme.spacing.xs,
   },
-  divider: {
-    height: 1,
-    backgroundColor: theme.colors.border,
-    marginLeft: theme.spacing.md + 36 + 12,
-  },
-  btnRow: {
-    flexDirection: "row",
-    gap: theme.spacing.sm,
-  },
+  btnRow: { flexDirection: "row", gap: theme.spacing.sm },
   btn: {
     flex: 1,
     flexDirection: "row",
@@ -337,32 +438,15 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.pill,
     minHeight: 48,
   },
-  btnPressed: {
-    opacity: 0.75,
-  },
-  btnFull: {
-    flex: 0,
-    width: "100%",
-  },
-  btnPrimary: {
-    backgroundColor: theme.colors.primary,
-  },
-  btnDisabled: {
-    opacity: 0.6,
-  },
-  btnPrimaryLabel: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: theme.colors.textInverse,
-  },
+  btnPressed: { opacity: 0.75 },
+  btnFull: { flex: 0, width: "100%" },
+  btnPrimary: { backgroundColor: theme.colors.primary },
+  btnDisabled: { opacity: 0.6 },
+  btnPrimaryLabel: { fontSize: 15, fontWeight: "700", color: theme.colors.textInverse },
   btnOutline: {
     borderWidth: 1,
     borderColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
   },
-  btnOutlineLabel: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: theme.colors.text,
-  },
+  btnOutlineLabel: { fontSize: 15, fontWeight: "600", color: theme.colors.text },
 });
