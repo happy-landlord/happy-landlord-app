@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ChevronRight, Clock3, KeyRound } from "lucide-react-native";
+import { ChevronRight, Clock3, KeyRound, UserRound } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
 import {
@@ -15,8 +15,6 @@ import { MOVEMENT_CONFIG, getMovementLabel } from "@/constants/movements";
 import {
   formatShortAddress,
   formatActivityTimestamp,
-  formatReturnDueLabel,
-  isPastDue,
 } from "@/lib/format";
 import type { CheckedOutKey } from "@/services/keys.service";
 import { KeyDashboardSummary } from "@/components/KeyDashboardSummary";
@@ -203,8 +201,9 @@ function CheckedOutRow({
   const address =
     group.property?.address ?? group.property?.formatted_address ?? "Property";
   const location = formatPropertyLocation(group.property);
-  const isReturnOverdue = isPastDue(group.due_back_at);
   const keysLine = group.keyLabels.join(" · ");
+  const holderName = group.current_holder?.full_name ?? "Unknown holder";
+  const holderType = group.current_holder?.holder_type;
 
   return (
     <Pressable
@@ -230,20 +229,15 @@ function CheckedOutRow({
         <Text style={styles.keyLabel} numberOfLines={1}>
           {keysLine}
         </Text>
-        <View style={styles.returnByRow}>
-          <Clock3
+        <View style={styles.holderContactRow}>
+          <UserRound
             size={13}
-            color={isReturnOverdue ? theme.colors.danger : theme.colors.primary}
+            color={theme.colors.primary}
             strokeWidth={2}
           />
-          <Text
-            style={[
-              styles.returnLabel,
-              isReturnOverdue && styles.returnLabelOverdue,
-            ]}
-            numberOfLines={1}
-          >
-            {formatReturnDueLabel(group.due_back_at)}
+          <Text style={styles.holderContactLabel} numberOfLines={1}>
+            {holderName}
+            {holderType ? ` · ${holderType}` : ""}
           </Text>
         </View>
       </View>
@@ -403,20 +397,17 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.textLight,
   },
-  returnByRow: {
+  holderContactRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
     marginTop: theme.spacing.xs,
   },
-  returnLabel: {
+  holderContactLabel: {
     flex: 1,
     fontSize: 12,
-    fontWeight: "800",
+    fontWeight: "700",
     color: theme.colors.primaryDark,
-  },
-  returnLabelOverdue: {
-    color: theme.colors.danger,
   },
   activityMetaRow: {
     flexDirection: "row",

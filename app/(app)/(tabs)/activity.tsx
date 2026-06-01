@@ -53,8 +53,8 @@ function ActivityItem({ item }: { item: ActivityTransaction }) {
   const propertyLine = formatShortAddress(item.property);
   const label = getMovementLabel(item, currentUserId);
   const keysLine =
-    item.items.length > 0
-      ? item.items
+    (item.items?.length ?? 0) > 0
+      ? item.items!
           .map((i) => i.key?.label ?? i.key?.key_code ?? "Key")
           .join(" · ")
       : null;

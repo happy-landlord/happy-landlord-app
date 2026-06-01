@@ -14,9 +14,10 @@ import {
   Warehouse,
 } from "lucide-react-native";
 
-import { KeyStatusChip, KEY_TYPE_LABEL } from "@/components/KeyStatusChip";
+import { KEY_TYPE_LABEL } from "@/components/KeyStatusChip";
 import { theme } from "@/constants/theme";
-import type { KeyWithHolder, KeyType } from "@/services/keys.service";
+import type { KeyType } from "@/types/database";
+import type { KeyInSet } from "@/services/keySets.service";
 
 // ── Icon map per key type ──────────────────────────────────────────────────────
 
@@ -40,7 +41,7 @@ const KEY_TYPE_ICON: Record<
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export type KeyCardProps = {
-  keyItem: KeyWithHolder;
+  keyItem: KeyInSet;
   onPress?: () => void;
 };
 
@@ -63,14 +64,13 @@ export const KeyCard = memo(function KeyCard({ keyItem, onPress }: KeyCardProps)
         <Text style={styles.label} numberOfLines={1}>
           {keyItem.label}
         </Text>
-        <Text style={styles.code}>{keyItem.key_code}</Text>
+        <Text style={styles.code}>{keyItem.code}</Text>
         <Text style={styles.typeText}>{typeLabel}</Text>
       </View>
 
-      <View style={styles.right}>
-        <KeyStatusChip status={keyItem.status} />
-        <ChevronRight size={16} color={theme.colors.textLight} strokeWidth={1.8} />
-      </View>
+        <View style={styles.right}>
+          <ChevronRight size={16} color={theme.colors.textLight} strokeWidth={1.8} />
+        </View>
     </Pressable>
   );
 });

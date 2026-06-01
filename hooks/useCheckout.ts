@@ -1,72 +1,49 @@
 /**
  * useCheckout.ts
- * TanStack Query mutations for key checkout, return, and transfer flows.
+ * @deprecated Use useCheckoutKeySet / useReturnKeySet / useTransferKeySet
+ * from hooks/useKeySets instead.
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { QUERY_KEYS } from "@/constants/queryKeys";
-import {
-  checkoutKeys,
-  returnKeys,
-  transferKeysToMe,
-  type CheckoutParams,
-  type ReturnParams,
-  type TransferParams,
-} from "@/services/transactions.service";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Checkout mutation
-// ─────────────────────────────────────────────────────────────────────────────
+type CheckoutParams = { keyIds: string[]; dueBackAt?: string | null; notes?: string | null };
+type ReturnParams = { keyIds: string[]; notes?: string | null };
+type TransferParams = { keyIds: string[]; notes?: string | null };
+
+async function _notImplemented(): Promise<string> {
+  throw new Error("Individual-key checkout has been replaced with key-set checkout.");
+}
 
 export function useCheckoutKeys(propertyId: string) {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: (params: CheckoutParams) => checkoutKeys(params),
-    onSuccess: (_transactionId, variables) => {
+    mutationFn: (_params: CheckoutParams) => _notImplemented(),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.keys.byProperty(propertyId) });
-      for (const keyId of variables.keyIds) {
-        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.keys.detail(keyId) });
-      }
       queryClient.invalidateQueries({ queryKey: ["activity"] });
     },
   });
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Return mutation
-// ─────────────────────────────────────────────────────────────────────────────
 
 export function useReturnKeys(propertyId: string) {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: (params: ReturnParams) => returnKeys(params),
-    onSuccess: (_transactionId, variables) => {
+    mutationFn: (_params: ReturnParams) => _notImplemented(),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.keys.byProperty(propertyId) });
-      for (const keyId of variables.keyIds) {
-        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.keys.detail(keyId) });
-      }
       queryClient.invalidateQueries({ queryKey: ["activity"] });
     },
   });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Transfer mutation
-// ─────────────────────────────────────────────────────────────────────────────
-
 export function useTransferKeys(propertyId: string) {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: (params: TransferParams) => transferKeysToMe(params),
-    onSuccess: (_transactionId, variables) => {
+    mutationFn: (_params: TransferParams) => _notImplemented(),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.keys.byProperty(propertyId) });
-      for (const keyId of variables.keyIds) {
-        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.keys.detail(keyId) });
-      }
       queryClient.invalidateQueries({ queryKey: ["activity"] });
     },
   });

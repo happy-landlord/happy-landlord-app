@@ -1,10 +1,15 @@
 import { supabase } from "@/lib/supabase";
-import type { DbKeyHolder, DbKeyHolderInsert, DbProperty, DbPropertyInsert, DbPropertyUpdate } from "@/types/database";
+import type {
+  DbKeyHolder,
+  DbKeyHolderInsert,
+  DbProperty,
+  DbPropertyInsert,
+  DbPropertyUpdate,
+  PropertyType,
+  PropertyKeyStatus,
+} from "@/types/database";
 import { COUNCIL_CODES } from "@/constants/places";
 
-export type Property = DbProperty;
-export type PropertyType = Property["property_type"];
-export type PropertyKeyStatus = Property["key_status"];
 
 /** Single image entry stored in the `images` jsonb column. */
 export type PropertyImage = {
@@ -86,7 +91,7 @@ export function getVisibleImages(images: PropertyImage[]): PropertyImage[] {
 }
 
 /** Property with the resolved landlord key holder joined in. */
-export type PropertyWithLandlord = Property & {
+export type PropertyWithLandlord = DbProperty & {
   landlord: {
     id: string;
     full_name: string | null;
@@ -116,7 +121,7 @@ export async function fetchProperties({
   keyStatus,
   page = 0,
   pageSize = DEFAULT_PAGE_SIZE,
-}: FetchPropertiesOptions = {}): Promise<Property[]> {
+}: FetchPropertiesOptions = {}): Promise<DbProperty[]> {
   let query = supabase
     .from("properties")
     .select("*")
@@ -140,7 +145,7 @@ export async function fetchProperties({
   return data;
 }
 
-export async function fetchPropertyByCode(code: string): Promise<Property | null> {
+export async function fetchPropertyByCode(code: string): Promise<DbProperty | null> {
   const { data, error } = await supabase
     .from("properties")
     .select("*")

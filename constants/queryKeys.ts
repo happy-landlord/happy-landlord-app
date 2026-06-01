@@ -15,6 +15,12 @@ export const QUERY_KEYS = {
 	byProperty: (propertyId: string) => ["keys", "property", propertyId] as const,
     checkedOut: (scope: string) => ["keys", "checkedOut", scope] as const,
   },
+  keySets: {
+    all: ["keySets"] as const,
+    detail: (id: string) => ["keySets", id] as const,
+    byProperty: (propertyId: string) => ["keySets", "property", propertyId] as const,
+    unassigned: (propertyId: string) => ["keySets", "unassigned", propertyId] as const,
+  },
   activity: {
     all: ["activity", "all"] as const,
     mine: (userId: string) => ["activity", "mine", userId] as const,

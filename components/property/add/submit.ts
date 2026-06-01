@@ -4,8 +4,9 @@ import {
   updatePropertyImages,
 } from "@/services/properties.service";
 import { createKeys } from "@/services/keys.service";
+import { createKeySet } from "@/services/keySets.service";
 import type { DbKeyInsert, DbProperty, DbPropertyInsert } from "@/types/database";
-import { KEY_TYPE_LABEL, KEY_TYPE_SHORT } from "@/components/key/keyLabels";
+import { KEY_TYPE_LABEL } from "@/components/key/keyLabels";
 import { formatDate, type KeyEntry, type PropertyStep } from "./types";
 
 export type CreatePropertyArgs = {
@@ -20,7 +21,8 @@ export type CreatePropertyArgs = {
  *   1. (Optional) create a landlord key_holder
  *   2. Create the property row
  *   3. Upload property photos → patch images column
- *   4. Insert each key as a row in `keys`
+ *   4. Create a master keyset for the property
+ *   5. Insert each key type as a row in `keys` linked to the keyset
  */
 export async function submitNewProperty({
   property,
@@ -60,9 +62,17 @@ export async function submitNewProperty({
     await updatePropertyImages(created.id, images);
   }
 
-  // 4. Keys
+  // 4. Master keyset
   if (keys.length > 0) {
-    await createKeys(buildKeyInserts(created, keys));
+    const keySet = await createKeySet({
+      property_id: created.id,
+      code: propertyCode.toUpperCase(),
+      name: "Master Keyset",
+      status: "available",
+    });
+
+    // 5. Keys linked to the keyset
+    await createKeys(buildKeyInserts(created.id, keySet.id, keys));
   }
 
   return created;
@@ -94,19 +104,16 @@ async function maybeCreateLandlordHolder(
 }
 
 function buildKeyInserts(
-  property: DbProperty,
+  propertyId: string,
+  keySetId: string,
   keys: KeyEntry[],
 ): DbKeyInsert[] {
   return keys.map((entry) => ({
-    property_id: property.id,
-    key_code: `${property.property_code}-${KEY_TYPE_SHORT[entry.type] ?? "OT"}`,
+    property_id: propertyId,
+    key_set_id: keySetId,
     key_type: entry.type,
     label: KEY_TYPE_LABEL[entry.type] ?? entry.type,
-    total_quantity: entry.count,
-    available_quantity: entry.count,
-    status: "available",
-    current_holder_id: null,
+    quantity: entry.count,
     notes: null,
   }));
 }
-

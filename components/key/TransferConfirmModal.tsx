@@ -6,14 +6,16 @@ import * as Haptics from "expo-haptics";
 import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
 import { theme } from "@/constants/theme";
 import { formatDateTime } from "@/lib/format";
-import type { KeyWithHolder } from "@/services/keys.service";
+import type { KeyInSet } from "@/services/keySets.service";
 
 export type TransferConfirmModalProps = {
   visible: boolean;
   /** Name of the agent currently holding the keyset. */
   currentHolderName?: string | null;
   /** Keys being transferred — shown as a summary in the modal. */
-  transferringKeys?: KeyWithHolder[];
+  transferringKeys?: KeyInSet[];
+  /** Explicit due-back date — used when transferringKeys is not available (e.g. keyset flow). */
+  dueBackAt?: string | null;
   isPending: boolean;
   onCancel: () => void;
   onConfirm: () => void;
@@ -23,15 +25,13 @@ export const TransferConfirmModal = memo(function TransferConfirmModal({
   visible,
   currentHolderName,
   transferringKeys = [],
+  dueBackAt,
   isPending,
   onCancel,
   onConfirm,
 }: TransferConfirmModalProps) {
   const handleDismiss = isPending ? undefined : onCancel;
-  const returnBy = transferringKeys
-    .map((k) => k.due_back_at)
-    .filter(Boolean)
-    .sort()[0] ?? null;
+  const returnBy = dueBackAt ?? null;
 
   return (
     <Modal
@@ -120,15 +120,12 @@ export const TransferConfirmModal = memo(function TransferConfirmModal({
 function SelectedKeysSummary({
   selectedKeys,
 }: {
-  selectedKeys: KeyWithHolder[];
+  selectedKeys: KeyInSet[];
 }) {
   return (
     <View style={styles.keysSection}>
-      <View style={styles.keysHeaderRow}>
-        <Text style={styles.summaryLabel}>Keys selected</Text>
-        <Text style={styles.keysCount}>{selectedKeys.length}</Text>
-      </View>
-      <View>
+      <Text style={styles.keysLabel}>Keys</Text>
+      <View style={styles.keysList}>
         {selectedKeys.map((k) => {
           const Icon = KEY_TYPE_ICON[k.key_type] ?? KeyRound;
           const label =
@@ -138,11 +135,19 @@ function SelectedKeysSummary({
           return (
             <View key={k.id} style={styles.keyRow}>
               <View style={styles.keyIconCircle}>
-                <Icon size={13} color={theme.colors.primary} strokeWidth={1.8} />
+                <Icon size={12} color={theme.colors.primaryDark} strokeWidth={1.8} />
               </View>
               <Text style={styles.keyRowLabel} numberOfLines={1}>
                 {label}
               </Text>
+              {k.code ? (
+                <View style={styles.keyCodeBadge}>
+                  <Text style={styles.keyCodeText} numberOfLines={1}>
+                    {k.code}
+                  </Text>
+                </View>
+              ) : null}
+              <Text style={styles.keyQtyText}>x{k.quantity}</Text>
             </View>
           );
         })}
@@ -300,48 +305,64 @@ const styles = StyleSheet.create({
   keysSection: {
     paddingHorizontal: theme.spacing.md,
     paddingVertical: 12,
-    gap: theme.spacing.sm,
+    gap: 7,
   },
-  keysHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: theme.spacing.sm,
-    marginLeft: 32 + theme.spacing.sm,
+  keysLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: theme.colors.textLight,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
   },
-  keysCount: {
-    minWidth: 24,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: theme.radius.pill,
-    overflow: "hidden",
-    backgroundColor: theme.colors.primarySoft,
-    color: theme.colors.primaryDark,
-    fontSize: 12,
-    fontWeight: "800",
-    textAlign: "center",
+  keysList: {
+    gap: 7,
   },
   keyRow: {
+    minHeight: 38,
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing.sm,
+    gap: 8,
+    paddingHorizontal: 8,
     paddingVertical: 6,
-  },
-  keyIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: theme.radius.md,
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
     borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+  },
+  keyIconCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: theme.colors.primarySoft,
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
   },
   keyRowLabel: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: "600",
+    flexShrink: 1,
+    maxWidth: 110,
+    fontSize: 13,
+    fontWeight: "800",
     color: theme.colors.text,
+  },
+  keyCodeBadge: {
+    maxWidth: 110,
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    backgroundColor: theme.colors.surfaceWarm,
+  },
+  keyCodeText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: theme.colors.text,
+    letterSpacing: 0.2,
+  },
+  keyQtyText: {
+    marginLeft: "auto",
+    fontSize: 11,
+    fontWeight: "800",
+    color: theme.colors.primaryDark,
   },
   actions: {
     flexDirection: "row",

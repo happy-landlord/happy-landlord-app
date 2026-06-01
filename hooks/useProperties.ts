@@ -13,10 +13,8 @@ import {
   fetchPropertyById,
   fetchPropertyByIdForAgent,
   updateProperty,
-  type Property,
-  type PropertyKeyStatus,
 } from "@/services/properties.service";
-import type { DbPropertyInsert, DbPropertyUpdate } from "@/types/database";
+import type { DbProperty, DbPropertyInsert, DbPropertyUpdate, PropertyKeyStatus } from "@/types/database";
 
 const PAGE_SIZE = 20;
 
@@ -34,7 +32,7 @@ export function useInfiniteProperties({
         pageSize: PAGE_SIZE,
       }),
     initialPageParam: 0,
-    getNextPageParam: (lastPage: Property[], allPages: Property[][]) =>
+    getNextPageParam: (lastPage: DbProperty[], allPages: DbProperty[][]) =>
       lastPage.length === PAGE_SIZE ? allPages.length : undefined,
   });
 }

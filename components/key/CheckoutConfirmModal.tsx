@@ -21,7 +21,7 @@ import {
 import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
 import { theme } from "@/constants/theme";
 import { formatDateTime } from "@/lib/format";
-import type { KeyWithHolder } from "@/services/keys.service";
+import type { KeyInSet } from "@/services/keySets.service";
 
 const PICKER_SHEET_HIDDEN_Y = 360;
 const PICKER_ANIMATION_MS = 220;
@@ -36,7 +36,7 @@ export type CheckoutConfirmModalProps = {
   /** Called when the duration picker changes. */
   onDurationDaysChange?: (days: number) => void;
   /** Keys selected for checkout — rendered as a summary list. */
-  selectedKeys?: KeyWithHolder[];
+  selectedKeys?: KeyInSet[];
   isPending: boolean;
   onCancel: () => void;
   onConfirm: () => void;
@@ -258,7 +258,7 @@ export const CheckoutConfirmModal = memo(function CheckoutConfirmModal({
 function SelectedKeysSummary({
   selectedKeys,
 }: {
-  selectedKeys: KeyWithHolder[];
+  selectedKeys: KeyInSet[];
 }) {
   return (
     <View style={styles.keysSection}>

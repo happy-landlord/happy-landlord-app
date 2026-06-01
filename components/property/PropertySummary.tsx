@@ -2,27 +2,23 @@ import { memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { theme } from "@/constants/theme";
-import type { Property } from "@/services/properties.service";
-import type { KeyWithHolder } from "@/services/keys.service";
+import type { DbProperty } from "@/types/database";
+import type { KeyInSet } from "@/services/keySets.service";
 
 export type PropertySummaryProps = {
-  property: Property;
-  keys: KeyWithHolder[] | undefined;
+  property: DbProperty;
+  keys: KeyInSet[] | undefined;
 };
 
 export const PropertySummary = memo(function PropertySummary({
   property: _property,
   keys,
 }: PropertySummaryProps) {
-  const total     = keys?.reduce((s, k) => s + (k.total_quantity ?? 1), 0) ?? 0;
-  const available = keys?.reduce((s, k) => s + (k.available_quantity ?? 0), 0) ?? 0;
-  const inUse     = total - available;
+  const total = keys?.reduce((s, k) => s + k.quantity, 0) ?? 0;
 
   return (
     <View style={styles.row}>
       <StatCell value={total} label="Keys" />
-      <StatCell value={available} label="Available" />
-      <StatCell value={inUse} label="In Use" />
     </View>
   );
 });

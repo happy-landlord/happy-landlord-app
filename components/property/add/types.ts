@@ -1,10 +1,7 @@
 import type { PlaceResult } from "@/components/ui/AddressSearch";
-import type { DbProperty } from "@/types/database";
-import type { KeyType } from "@/services/keys.service";
+import type { KeyType, PropertyType } from "@/types/database";
 
-// ── Aliases derived from the DB schema (single source of truth) ──────────────
-
-export type PropertyType = DbProperty["property_type"];
+export type { PropertyType };
 /** Key item type in the wizard draft — mirrors the DB `key_type` column. */
 export type KeyItemType = KeyType;
 

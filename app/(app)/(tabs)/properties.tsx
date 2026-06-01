@@ -17,9 +17,9 @@ import { useInfiniteProperties } from "@/hooks/useProperties";
 import { useRole } from "@/hooks/useRole";
 import { RoleGate } from "@/components/RoleGate";
 import type {
-  Property,
+  DbProperty,
   PropertyKeyStatus,
-} from "@/services/properties.service";
+} from "@/types/database";
 import { theme } from "@/constants/theme";
 
 type AdminTab = "available" | "leased" | "landlord";
@@ -61,7 +61,7 @@ export default function KeysScreen() {
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: Property }) => <PropertyCard property={item} />,
+    ({ item }: { item: DbProperty }) => <PropertyCard property={item} />,
     [],
   );
 

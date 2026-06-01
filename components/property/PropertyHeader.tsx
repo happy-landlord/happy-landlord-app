@@ -1,13 +1,10 @@
 import { memo, useState } from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
-import { Building2, Camera, MapPin, Pencil } from "lucide-react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Building2, MapPin, Pencil } from "lucide-react-native";
 
 import { useRole } from "@/hooks/useRole";
-import { usePropertyImageUrls } from "@/hooks/usePropertyImages";
 import { theme } from "@/constants/theme";
 import type { PropertyWithLandlord } from "@/services/properties.service";
-import { getVisibleImages } from "@/services/properties.service";
-import { PropertyImageGallery } from "@/components/property/PropertyImageGallery";
 import { PropertyEditModal } from "@/components/property/PropertyEditModal";
 
 import { PROPERTY_TYPE_LABEL } from "./propertyLabels";
@@ -20,7 +17,6 @@ export const PropertyHeader = memo(function PropertyHeader({
   property,
 }: PropertyHeaderProps) {
   const { isAdmin } = useRole();
-  const [galleryOpen, setGalleryOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
 
   const title = property.unit_number
@@ -33,69 +29,25 @@ export const PropertyHeader = memo(function PropertyHeader({
 
   const landlord = property.landlord;
 
-  const images = property.images ?? [];
-  const visibleImages = getVisibleImages(images);
-  const hasImages = visibleImages.length > 0;
-
-  // Fetch signed URLs for all visible images (cached for 55 min).
-  const { data: signedUrls = [] } = usePropertyImageUrls(images);
-  const firstSignedUrl = signedUrls[0] ?? null;
-
   return (
     <View style={styles.header}>
-      {/* ── Image banner ──────────────────────────────────────────────────── */}
-      {hasImages && firstSignedUrl ? (
-        <Pressable
-          onPress={() => setGalleryOpen(true)}
-          style={({ pressed }) => [
-            styles.banner,
-            pressed && styles.bannerPressed,
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel={`View ${visibleImages.length} photo${visibleImages.length === 1 ? "" : "s"}`}
-        >
-          <Image
-            source={{ uri: firstSignedUrl }}
-            style={styles.bannerImage}
-            resizeMode="cover"
-          />
-          {/* Photo count badge */}
-          <View style={styles.photoBadge}>
-            <Camera size={12} color="#fff" strokeWidth={2} />
-            <Text style={styles.photoBadgeText}>{visibleImages.length}</Text>
-          </View>
-        </Pressable>
-      ) : null}
-
       {/* ── Info row ──────────────────────────────────────────────────────── */}
       <View style={styles.top}>
-        {/* Icon — only show when no images */}
-        {!hasImages && (
-          <View style={styles.iconWrap}>
-            <Building2
-              size={24}
-              color={theme.colors.primary}
-              strokeWidth={1.8}
-            />
-          </View>
-        )}
+        <View style={styles.iconWrap}>
+          <Building2 size={24} color={theme.colors.primary} strokeWidth={1.8} />
+        </View>
 
         <View style={styles.info}>
           <View style={styles.typeBadge}>
             <Text style={styles.typeBadgeText}>
-              {PROPERTY_TYPE_LABEL[property.property_type] ??
-                property.property_type}
+              {PROPERTY_TYPE_LABEL[property.property_type] ?? property.property_type}
             </Text>
           </View>
 
           <Text style={styles.title}>{title}</Text>
 
           <View style={styles.locationRow}>
-            <MapPin
-              size={12}
-              color={theme.colors.textLight}
-              strokeWidth={1.8}
-            />
+            <MapPin size={12} color={theme.colors.textLight} strokeWidth={1.8} />
             <Text style={styles.locationText}>{location}</Text>
           </View>
         </View>
@@ -103,10 +55,7 @@ export const PropertyHeader = memo(function PropertyHeader({
         {isAdmin ? (
           <Pressable
             onPress={() => setEditOpen(true)}
-            style={({ pressed }) => [
-              styles.editBtn,
-              pressed && styles.editBtnPressed,
-            ]}
+            style={({ pressed }) => [styles.editBtn, pressed && styles.editBtnPressed]}
             accessibilityRole="button"
             accessibilityLabel="Edit property"
             hitSlop={8}
@@ -117,7 +66,7 @@ export const PropertyHeader = memo(function PropertyHeader({
       </View>
 
       {/* ── Landlord meta ─────────────────────────────────────────────────── */}
-      {landlord ? (
+      {isAdmin && landlord ? (
         <View style={styles.metaRow}>
           <View style={styles.metaDivider} />
           <View style={styles.metaContent}>
@@ -139,13 +88,6 @@ export const PropertyHeader = memo(function PropertyHeader({
         </View>
       ) : null}
 
-      {/* ── Gallery modal ─────────────────────────────────────────────────── */}
-      <PropertyImageGallery
-        urls={signedUrls.filter(Boolean) as string[]}
-        visible={galleryOpen}
-        onClose={() => setGalleryOpen(false)}
-      />
-
       {/* ── Edit modal ────────────────────────────────────────────────────── */}
       {isAdmin && (
         <PropertyEditModal
@@ -165,36 +107,6 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
     borderRadius: theme.radius.lg,
     overflow: "hidden",
-  },
-
-  // ── Banner ───────────────────────────────────────────────────────────────
-  banner: {
-    width: "100%",
-    height: 180,
-  },
-  bannerPressed: {
-    opacity: 0.9,
-  },
-  bannerImage: {
-    width: "100%",
-    height: "100%",
-  },
-  photoBadge: {
-    position: "absolute",
-    bottom: 10,
-    right: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    borderRadius: theme.radius.pill,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-  },
-  photoBadgeText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "700",
   },
 
   // ── Info row ─────────────────────────────────────────────────────────────

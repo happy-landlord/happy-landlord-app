@@ -7,20 +7,24 @@ import {
   Text,
   View,
 } from "react-native";
-import { Archive, Calendar, CheckCircle2, KeyRound } from "lucide-react-native";
+import { Archive, Calendar, KeyRound, UserRound } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
 import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
 import { theme } from "@/constants/theme";
 import { formatDateTime } from "@/lib/format";
-import type { KeyWithHolder } from "@/services/keys.service";
+import type { KeyInSet } from "@/services/keySets.service";
 
 export type ReturnConfirmModalProps = {
   visible: boolean;
   /** Property code to direct the agent to the correct cabinet slot. */
   propertyCode?: string | null;
+  /** Name of the person returning the keys. */
+  holderName?: string | null;
   /** Keys being returned — shown as a summary in the modal. */
-  returningKeys?: KeyWithHolder[];
+  returningKeys?: KeyInSet[];
+  /** Explicit due-back date. */
+  dueBackAt?: string | null;
   isPending: boolean;
   onCancel: () => void;
   onConfirm: () => void;
@@ -29,17 +33,16 @@ export type ReturnConfirmModalProps = {
 export const ReturnConfirmModal = memo(function ReturnConfirmModal({
   visible,
   propertyCode,
+  holderName,
   returningKeys = [],
+  dueBackAt,
   isPending,
   onCancel,
   onConfirm,
 }: ReturnConfirmModalProps) {
   const handleDismiss = isPending ? undefined : onCancel;
-  const returnBy = returningKeys
-    .map((k) => k.due_back_at)
-    .filter(Boolean)
-    .sort()[0] ?? null;
-  const hasOverdue = returningKeys.some((k) => k.status === "overdue");
+  const returnBy = dueBackAt ?? null;
+  const hasOverdue = false;
 
   return (
     <Modal
@@ -72,6 +75,17 @@ export const ReturnConfirmModal = memo(function ReturnConfirmModal({
               </>
             )}
 
+            {holderName ? (
+              <>
+                <SummaryRow
+                  icon={<UserRound size={15} color={theme.colors.primary} strokeWidth={1.8} />}
+                  label="Return by"
+                  value={holderName}
+                />
+                <View style={styles.divider} />
+              </>
+            ) : null}
+
             <SummaryRow
               icon={
                 <Calendar
@@ -80,7 +94,7 @@ export const ReturnConfirmModal = memo(function ReturnConfirmModal({
                   strokeWidth={1.8}
                 />
               }
-              label={hasOverdue ? "Was due" : "Return by"}
+              label="Due date"
               value={returnBy ? formatDateTime(returnBy) : "Return time not set"}
               danger={hasOverdue}
             />
@@ -101,45 +115,6 @@ export const ReturnConfirmModal = memo(function ReturnConfirmModal({
             />
           </View>
 
-          <View style={styles.guideBox}>
-            <View style={styles.guideHeader}>
-              <Archive size={15} color={theme.colors.primary} strokeWidth={1.8} />
-              <Text style={styles.guideHeaderText}>Return checklist</Text>
-            </View>
-
-            <View style={styles.guideDivider} />
-
-            <View style={styles.guideStepRow}>
-              <StepBadge number={1} />
-              <Text style={styles.guideStepText}>
-                Locate the office key cabinet.
-              </Text>
-            </View>
-
-            <View style={styles.guideStepRow}>
-              <StepBadge number={2} />
-              <Text style={styles.guideStepText}>
-                Hang the keys on the hook labelled{" "}
-                {propertyCode ? (
-                  <Text style={styles.codeHighlight}>{propertyCode}</Text>
-                ) : (
-                  "with this property code"
-                )}
-                .
-              </Text>
-            </View>
-
-            <View style={styles.guideStepRow}>
-              <StepBadge number={3} />
-              <View style={styles.confirmRowInner}>
-                <CheckCircle2 size={13} color={theme.colors.success} strokeWidth={2} />
-                <Text style={styles.guideStepText}>
-                  Tap <Text style={styles.confirmWord}>Confirm return</Text> once the
-                  keys are back in place.
-                </Text>
-              </View>
-            </View>
-          </View>
 
           <View style={styles.actions}>
             <ActionButton
@@ -170,15 +145,12 @@ export const ReturnConfirmModal = memo(function ReturnConfirmModal({
 function SelectedKeysSummary({
   selectedKeys,
 }: {
-  selectedKeys: KeyWithHolder[];
+  selectedKeys: KeyInSet[];
 }) {
   return (
     <View style={styles.keysSection}>
-      <View style={styles.keysHeaderRow}>
-        <Text style={styles.summaryLabel}>Keys selected</Text>
-        <Text style={styles.keysCount}>{selectedKeys.length}</Text>
-      </View>
-      <View>
+      <Text style={styles.keysLabel}>Keys</Text>
+      <View style={styles.keysList}>
         {selectedKeys.map((k) => {
           const Icon = KEY_TYPE_ICON[k.key_type] ?? KeyRound;
           const label =
@@ -188,11 +160,19 @@ function SelectedKeysSummary({
           return (
             <View key={k.id} style={styles.keyRow}>
               <View style={styles.keyIconCircle}>
-                <Icon size={13} color={theme.colors.primary} strokeWidth={1.8} />
+                <Icon size={12} color={theme.colors.primaryDark} strokeWidth={1.8} />
               </View>
               <Text style={styles.keyRowLabel} numberOfLines={1}>
                 {label}
               </Text>
+              {k.code ? (
+                <View style={styles.keyCodeBadge}>
+                  <Text style={styles.keyCodeText} numberOfLines={1}>
+                    {k.code}
+                  </Text>
+                </View>
+              ) : null}
+              <Text style={styles.keyQtyText}>x{k.quantity}</Text>
             </View>
           );
         })}
@@ -234,13 +214,6 @@ function SummaryRow({
   );
 }
 
-function StepBadge({ number }: { number: number }) {
-  return (
-    <View style={styles.stepBadge}>
-      <Text style={styles.stepBadgeText}>{number}</Text>
-    </View>
-  );
-}
 
 type ActionButtonProps = {
   label: string;
@@ -387,124 +360,66 @@ const styles = StyleSheet.create({
   keysSection: {
     paddingHorizontal: theme.spacing.md,
     paddingVertical: 12,
-    gap: theme.spacing.sm,
+    gap: 7,
   },
-  keysHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: theme.spacing.sm,
-    marginLeft: 32 + theme.spacing.sm,
+  keysLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: theme.colors.textLight,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
   },
-  keysCount: {
-    minWidth: 24,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: theme.radius.pill,
-    overflow: "hidden",
-    backgroundColor: theme.colors.primarySoft,
-    color: theme.colors.primaryDark,
-    fontSize: 12,
-    fontWeight: "800",
-    textAlign: "center",
+  keysList: {
+    gap: 7,
   },
   keyRow: {
+    minHeight: 38,
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing.sm,
+    gap: 8,
+    paddingHorizontal: 8,
     paddingVertical: 6,
-  },
-  keyIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: theme.radius.md,
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    alignItems: "center",
-    justifyContent: "center",
+    borderRadius: theme.radius.md,
   },
-  keyRowLabel: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: "600",
-    color: theme.colors.text,
-  },
-
-  // ── Guide box ──────────────────────────────────────────────────
-  guideBox: {
-    width: "100%",
-    backgroundColor: theme.colors.surfaceWarm,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    marginTop: theme.spacing.md,
-    overflow: "hidden",
-    paddingBottom: theme.spacing.sm,
-  },
-  guideHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: 10,
-  },
-  guideHeaderText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: theme.colors.primary,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  guideDivider: {
-    height: 1,
-    backgroundColor: theme.colors.border,
-    marginBottom: theme.spacing.sm,
-  },
-  guideStepRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: 5,
-  },
-  guideStepText: {
-    flex: 1,
-    fontSize: 13,
-    color: theme.colors.text,
-    lineHeight: 19,
-  },
-  confirmRowInner: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-  },
-  confirmWord: {
-    fontWeight: "700",
-    color: theme.colors.text,
-  },
-  codeHighlight: {
-    fontWeight: "800",
-    color: theme.colors.primary,
-  },
-
-  // ── Step badge ─────────────────────────────────────────────────
-  stepBadge: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+  keyIconCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: theme.colors.primarySoft,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
-    marginTop: 1,
   },
-  stepBadgeText: {
+  keyRowLabel: {
+    flexShrink: 1,
+    maxWidth: 110,
+    fontSize: 13,
+    fontWeight: "800",
+    color: theme.colors.text,
+  },
+  keyCodeBadge: {
+    maxWidth: 110,
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    backgroundColor: theme.colors.surfaceWarm,
+  },
+  keyCodeText: {
     fontSize: 11,
     fontWeight: "800",
-    color: theme.colors.primary,
+    color: theme.colors.text,
+    letterSpacing: 0.2,
   },
+  keyQtyText: {
+    marginLeft: "auto",
+    fontSize: 11,
+    fontWeight: "800",
+    color: theme.colors.primaryDark,
+  },
+
 
   // ── Buttons ────────────────────────────────────────────────────
   actions: {

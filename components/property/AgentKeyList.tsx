@@ -4,7 +4,8 @@ import { KeyRound } from "lucide-react-native";
 import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { theme } from "@/constants/theme";
-import type { KeyWithHolder, KeyType } from "@/services/keys.service";
+import type { KeyType } from "@/types/database";
+import type { KeyInSet } from "@/services/keySets.service";
 
 type AgentKeyGroup = {
   key_type: KeyType;
@@ -15,7 +16,7 @@ type AgentKeyGroup = {
 };
 
 type Props = {
-  keys: KeyWithHolder[];
+  keys: KeyInSet[];
   selectedIds: Set<string>;
   isBusy: boolean;
   onToggle: (id: string) => void;
@@ -25,7 +26,7 @@ export function AgentKeyList({ keys, selectedIds, isBusy, onToggle }: Props) {
   const groups: AgentKeyGroup[] = [];
 
   for (const k of keys) {
-    if (k.status !== "available" || (k.available_quantity ?? 0) <= 0) continue;
+    if ((k.quantity ?? 0) <= 0) continue;
     // "other" keys have unique labels — never group them together.
     if (k.key_type === "other") {
       groups.push({ key_type: k.key_type, typeLabel: k.label, keyIds: [k.id] });

@@ -5,8 +5,6 @@
  */
 import {
   AlertTriangle,
-  ArrowLeftRight,
-  Clock,
   FileText,
   Home,
   LogIn,
@@ -36,8 +34,9 @@ export const MOVEMENT_CONFIG: Record<KeyTransactionType, MovementConfig> = {
     color: theme.colors.success,
     bg: theme.colors.successSoft,
   },
-  borrowed: {
-    label: "Borrowed",
+  checked_out: {
+    label: "Checked Out",
+    youLabel: "You checked out",
     Icon: LogOut,
     color: theme.colors.warning,
     bg: theme.colors.warningSoft,
@@ -48,25 +47,6 @@ export const MOVEMENT_CONFIG: Record<KeyTransactionType, MovementConfig> = {
     color: theme.colors.success,
     bg: theme.colors.successSoft,
   },
-  reserved: {
-    label: "Reserved",
-    Icon: Clock,
-    color: theme.colors.info,
-    bg: theme.colors.infoSoft,
-  },
-  reservation_cancelled: {
-    label: "Reservation Cancelled",
-    youLabel: "You cancelled reservation",
-    Icon: XCircle,
-    color: theme.colors.neutral,
-    bg: theme.colors.neutralSoft,
-  },
-  transferred: {
-    label: "Transferred",
-    Icon: ArrowLeftRight,
-    color: theme.colors.primary,
-    bg: theme.colors.primarySoft ?? theme.colors.neutralSoft,
-  },
   marked_overdue: {
     label: "Overdue",
     youLabel: "You marked overdue",
@@ -74,19 +54,19 @@ export const MOVEMENT_CONFIG: Record<KeyTransactionType, MovementConfig> = {
     color: theme.colors.danger,
     bg: theme.colors.dangerSoft,
   },
-  marked_lost: {
-    label: "Marked Lost",
+  marked_missing_damaged: {
+    label: "Missing / Damaged",
     Icon: XCircle,
     color: theme.colors.danger,
     bg: theme.colors.dangerSoft,
   },
-  handed_to_tenant: {
+  handover_tenant: {
     label: "Handed to Tenant",
     Icon: User,
     color: theme.colors.info,
     bg: theme.colors.infoSoft,
   },
-  handed_to_landlord: {
+  handover_landlord: {
     label: "Handed to Landlord",
     Icon: Home,
     color: theme.colors.primary,
@@ -116,18 +96,6 @@ export function getMovementLabel(
 ): string {
   const isMe = Boolean(currentUserId && item.updated_by === currentUserId);
   const cfg = MOVEMENT_CONFIG[item.transaction_type];
-  if (item.transaction_type === "transferred") {
-    const fromIsMe = item.from_holder?.profile_id === currentUserId;
-    if (fromIsMe && item.to_holder?.full_name) {
-      return `You transferred to ${item.to_holder.full_name}`;
-    }
-    if (!fromIsMe && item.from_holder?.full_name) {
-      return isMe
-        ? `You received from ${item.from_holder.full_name}`
-        : `Transferred from ${item.from_holder.full_name}`;
-    }
-    return isMe ? "You transferred" : cfg.label;
-  }
   if (isMe) {
     return cfg.youLabel ?? `You ${cfg.label.toLowerCase()}`;
   }

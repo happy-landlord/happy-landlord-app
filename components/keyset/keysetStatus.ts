@@ -1,4 +1,4 @@
-import type { KeySetStatus as DbKeySetStatus } from "@/services/keys.service";
+import type { KeySetStatus } from "@/types/database";
 
 /**
  * UI-facing keyset status. Decouples action buttons from raw DB statuses
@@ -8,37 +8,36 @@ export type KeysetViewStatus =
   | "available"
   | "checked_out_by_me"
   | "checked_out_by_other"
-  | "overdue"
-  | "missing"
-  | "damaged";
+  | "overdue_by_me"
+  | "overdue_by_other"
+  | "handover_tenant"
+  | "handover_landlord"
+  | "missing_damaged"
+  | "inactive";
 
 /**
  * Maps the raw key_sets.status column + holder context onto a view-model
  * status that drives action-button availability.
  */
 export function resolveKeysetStatus(
-  dbStatus: DbKeySetStatus,
+  dbStatus: KeySetStatus,
   isHeldByMe: boolean,
 ): KeysetViewStatus {
   switch (dbStatus) {
     case "available":
-    case "reserved":
-      // Reserved is treated as available so the holder can still check it out;
-      // a future iteration may display a "reserved" banner here.
       return "available";
-    case "borrowed":
+    case "checked_out":
       return isHeldByMe ? "checked_out_by_me" : "checked_out_by_other";
     case "overdue":
-      // Overdue is the most urgent state; returning is always the primary action.
-      return "overdue";
-    case "lost":
-      return "missing";
-    case "tenant":
-      // Tenant-held — agents can request access but not check out.
-      return "checked_out_by_other";
+      return isHeldByMe ? "overdue_by_me" : "overdue_by_other";
+    case "handover_tenant":
+      return "handover_tenant";
+    case "handover_landlord":
+      return "handover_landlord";
+    case "missing_damaged":
+      return "missing_damaged";
     case "inactive":
     default:
-      return "available";
+      return "inactive";
   }
 }
-

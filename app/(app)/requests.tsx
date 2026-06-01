@@ -110,7 +110,7 @@ function RequestCard({
     rejected: { color: theme.colors.danger,  bg: theme.colors.dangerSoft,   label: "Rejected" },
   }[request.status];
 
-  const initial = (request.full_name ?? request.email ?? "?")[0].toUpperCase();
+  const initial = (request.full_name || request.email || "?")[0].toUpperCase();
 
   return (
     <View style={styles.card}>

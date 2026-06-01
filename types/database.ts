@@ -296,7 +296,6 @@ export type Database = {
         Row: {
           id: string;
           property_id: string;
-          key_code: string;
           key_type:
             | "main_door"
             | "swipe_fob"
@@ -310,21 +309,17 @@ export type Database = {
             | "balcony"
             | "other";
           label: string;
-          private_code: string | null;
-          status: "available" | "reserved" | "borrowed" | "overdue" | "lost" | "inactive";
-          current_holder_id: string | null;
-          total_quantity: number;
-          available_quantity: number;
           notes: string | null;
-          source_key_set_id: string | null;
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          key_set_id: string | null;
+          code: string | null;
+          quantity: number;
         };
         Insert: {
           id?: string;
           property_id: string;
-          key_code: string;
           key_type:
             | "main_door"
             | "swipe_fob"
@@ -338,21 +333,17 @@ export type Database = {
             | "balcony"
             | "other";
           label: string;
-          private_code?: string | null;
-          status?: "available" | "reserved" | "borrowed" | "overdue" | "lost" | "inactive";
-          current_holder_id?: string | null;
-          total_quantity?: number;
-          available_quantity?: number;
           notes?: string | null;
-          source_key_set_id?: string | null;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          key_set_id?: string | null;
+          code?: string | null;
+          quantity?: number;
         };
         Update: {
           id?: string;
           property_id?: string;
-          key_code?: string;
           key_type?:
             | "main_door"
             | "swipe_fob"
@@ -366,35 +357,97 @@ export type Database = {
             | "balcony"
             | "other";
           label?: string;
-          private_code?: string | null;
-          status?: "available" | "reserved" | "borrowed" | "overdue" | "lost" | "inactive";
-          current_holder_id?: string | null;
-          total_quantity?: number;
-          available_quantity?: number;
           notes?: string | null;
-          source_key_set_id?: string | null;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          key_set_id?: string | null;
+          code?: string | null;
+          quantity?: number;
         };
         Relationships: [];
       };
 
-      key_transactions: {
+      key_sets: {
         Row: {
           id: string;
           property_id: string;
+          code: string;
+          name: string;
+          status:
+            | "available"
+            | "checked_out"
+            | "overdue"
+            | "handover_tenant"
+            | "handover_landlord"
+            | "missing_damaged"
+            | "inactive";
+          current_holder_id: string | null;
+          due_back_at: string | null;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+          images: { path: string; sort_order: number; is_hidden: boolean }[];
+        };
+        Insert: {
+          id?: string;
+          property_id: string;
+          code: string;
+          name: string;
+          status?:
+            | "available"
+            | "checked_out"
+            | "overdue"
+            | "handover_tenant"
+            | "handover_landlord"
+            | "missing_damaged"
+            | "inactive";
+          current_holder_id?: string | null;
+          due_back_at?: string | null;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          images?: { path: string; sort_order: number; is_hidden: boolean }[];
+        };
+        Update: {
+          id?: string;
+          property_id?: string;
+          code?: string;
+          name?: string;
+          status?:
+            | "available"
+            | "checked_out"
+            | "overdue"
+            | "handover_tenant"
+            | "handover_landlord"
+            | "missing_damaged"
+            | "inactive";
+          current_holder_id?: string | null;
+          due_back_at?: string | null;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          images?: { path: string; sort_order: number; is_hidden: boolean }[];
+        };
+        Relationships: [];
+      };
+
+      transactions: {
+        Row: {
+          id: string;
+          key_set_id: string;
+          property_id: string;
           transaction_type:
             | "created"
-            | "borrowed"
+            | "checked_out"
             | "returned"
-            | "transferred"
-            | "reserved"
-            | "reservation_cancelled"
             | "marked_overdue"
-            | "marked_lost"
-            | "handed_to_tenant"
-            | "handed_to_landlord"
+            | "marked_missing_damaged"
+            | "handover_tenant"
+            | "handover_landlord"
             | "notes_updated";
           from_holder_id: string | null;
           to_holder_id: string | null;
@@ -405,18 +458,16 @@ export type Database = {
         };
         Insert: {
           id?: string;
+          key_set_id: string;
           property_id: string;
           transaction_type:
             | "created"
-            | "borrowed"
+            | "checked_out"
             | "returned"
-            | "transferred"
-            | "reserved"
-            | "reservation_cancelled"
             | "marked_overdue"
-            | "marked_lost"
-            | "handed_to_tenant"
-            | "handed_to_landlord"
+            | "marked_missing_damaged"
+            | "handover_tenant"
+            | "handover_landlord"
             | "notes_updated";
           from_holder_id?: string | null;
           to_holder_id?: string | null;
@@ -427,49 +478,22 @@ export type Database = {
         };
         Update: {
           id?: string;
+          key_set_id?: string;
           property_id?: string;
           transaction_type?:
             | "created"
-            | "borrowed"
+            | "checked_out"
             | "returned"
-            | "transferred"
-            | "reserved"
-            | "reservation_cancelled"
             | "marked_overdue"
-            | "marked_lost"
-            | "handed_to_tenant"
-            | "handed_to_landlord"
+            | "marked_missing_damaged"
+            | "handover_tenant"
+            | "handover_landlord"
             | "notes_updated";
           from_holder_id?: string | null;
           to_holder_id?: string | null;
           due_back_at?: string | null;
           notes?: string | null;
           updated_by?: string;
-          created_at?: string;
-        };
-        Relationships: [];
-      };
-
-      key_transaction_items: {
-        Row: {
-          id: string;
-          transaction_id: string;
-          key_id: string;
-          quantity: number;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          transaction_id: string;
-          key_id: string;
-          quantity?: number;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          transaction_id?: string;
-          key_id?: string;
-          quantity?: number;
           created_at?: string;
         };
         Relationships: [];
@@ -477,27 +501,27 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
-      checkout_keys: {
+      checkout_key_set: {
         Args: {
-          p_key_ids: string[];
+          p_key_set_id: string;
           p_due_back_at?: string | null;
           p_notes?: string | null;
         };
-        Returns: string; // key_transactions.id of the created transaction
+        Returns: string;
       };
-      return_keys: {
+      return_key_set: {
         Args: {
-          p_key_ids: string[];
+          p_key_set_id: string;
           p_notes?: string | null;
         };
-        Returns: string; // key_transactions.id
+        Returns: string;
       };
-      transfer_keys_to_me: {
+      transfer_key_set_to_me: {
         Args: {
-          p_key_ids: string[];
+          p_key_set_id: string;
           p_notes?: string | null;
         };
-        Returns: string; // key_transactions.id
+        Returns: string;
       };
       approve_registration_request: {
         Args: {
@@ -545,8 +569,10 @@ export type Database = {
 };
 
 // ── Transaction type ─────────────────────────────────────────────────────────
-/** Derived from the DB enum — single source of truth via key_transactions.transaction_type */
-export type KeyTransactionType = DbKeyTransaction["transaction_type"];
+/** Derived from the DB enum — single source of truth via transactions.transaction_type */
+export type KeyTransactionType = DbTransaction["transaction_type"];
+
+export type KeySetStatus = DbKeySet["status"];
 
 export type NotificationNavigationData = {
   route?: string;
@@ -592,22 +618,26 @@ export type DbProfileUpdate = TablesUpdate<"profiles">;
 export type DbProperty = Tables<"properties">;
 export type DbPropertyInsert = TablesInsert<"properties">;
 export type DbPropertyUpdate = TablesUpdate<"properties">;
+export type PropertyType = DbProperty["property_type"];
+export type PropertyKeyStatus = DbProperty["key_status"];
 export type DbKey = Tables<"keys">;
 export type DbKeyInsert = TablesInsert<"keys">;
 export type DbKeyUpdate = TablesUpdate<"keys">;
+export type KeyType = DbKey["key_type"];
 export type DbKeyHolder = Tables<"key_holders">;
 export type DbKeyHolderInsert = TablesInsert<"key_holders">;
-export type DbKeyTransaction = Tables<"key_transactions">;
-export type DbKeyTransactionInsert = TablesInsert<"key_transactions">;
-export type DbKeyTransactionItem = Tables<"key_transaction_items">;
-export type DbKeyTransactionItemInsert = TablesInsert<"key_transaction_items">;
+export type DbKeySet = Tables<"key_sets">;
+export type DbKeySetInsert = TablesInsert<"key_sets">;
+export type DbKeySetUpdate = TablesUpdate<"key_sets">;
+export type DbTransaction = Tables<"transactions">;
+export type DbTransactionInsert = TablesInsert<"transactions">;
 export type KeyHolderType = DbKeyHolder["holder_type"];
 export type DbRegistrationRequest = Tables<"registration_requests">;
 export type DbNotification = Tables<"notifications">;
 export type DbUserPushToken = Tables<"user_push_tokens">;
 
-// ── Activity transaction — transaction row joined with property + holders + items ─
-export type ActivityTransaction = DbKeyTransaction & {
+// ── Activity transaction — transaction row joined with property + holders ─────
+export type ActivityTransaction = DbTransaction & {
   property: {
     address: string;
     unit_number: string | null;
@@ -616,7 +646,9 @@ export type ActivityTransaction = DbKeyTransaction & {
   } | null;
   from_holder: Pick<DbKeyHolder, "full_name" | "holder_type" | "profile_id"> | null;
   to_holder: Pick<DbKeyHolder, "full_name" | "holder_type" | "profile_id"> | null;
-  items: (DbKeyTransactionItem & {
-      key: Pick<DbKey, "key_code" | "key_type" | "label"> | null;
-    })[];
+  key_set: Pick<DbKeySet, "code" | "name"> | null;
+  items?: {
+    id: string;
+    key: { key_code: string; key_type: string; label: string } | null;
+  }[];
 };

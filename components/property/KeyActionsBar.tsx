@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { ClipboardList } from "lucide-react-native";
+import { ArrowLeftRight, Clock, ClipboardList } from "lucide-react-native";
 
 import { MOVEMENT_CONFIG } from "@/constants/movements";
 import { theme } from "@/constants/theme";
@@ -33,10 +33,10 @@ export function KeyActionsBar({
   onTransfer,
   onViewActivity,
 }: KeyActionsBarProps) {
-  const CheckoutIcon = MOVEMENT_CONFIG.borrowed.Icon;
+  const CheckoutIcon = MOVEMENT_CONFIG.checked_out.Icon;
   const ReturnIcon = MOVEMENT_CONFIG.returned.Icon;
-  const ReserveIcon = MOVEMENT_CONFIG.reserved.Icon;
-  const TransferIcon = MOVEMENT_CONFIG.transferred.Icon;
+  const ReserveIcon = Clock;
+  const TransferIcon = ArrowLeftRight;
 
   return (
     <View style={styles.card}>

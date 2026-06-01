@@ -13,7 +13,7 @@ import {
   Warehouse,
 } from "lucide-react-native";
 
-import type { KeyType } from "@/services/keys.service";
+import type { KeyType } from "@/types/database";
 
 export type LucideIcon = ComponentType<{
   size?: number;

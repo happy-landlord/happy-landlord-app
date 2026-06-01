@@ -1,12 +1,12 @@
 import { StyleSheet, Text, View } from "react-native";
-import type { KeyStatus, KeyType } from "@/services/keys.service";
+import type { KeyType, KeySetStatus } from "@/types/database";
 import { theme } from "@/constants/theme";
 
 // ── Status display config ─────────────────────────────────────────────────────
 
 type ChipConfig = { label: string; bg: string; color: string };
 
-export type KeyChipStatus = KeyStatus | "tenant";
+export type KeyChipStatus = KeySetStatus;
 
 const STATUS_CONFIG: Record<KeyChipStatus, ChipConfig> = {
   available: {
@@ -14,13 +14,8 @@ const STATUS_CONFIG: Record<KeyChipStatus, ChipConfig> = {
     bg: theme.colors.successSoft,
     color: theme.colors.success,
   },
-  reserved: {
-    label: "Reserved",
-    bg: theme.colors.infoSoft,
-    color: theme.colors.info,
-  },
-  borrowed: {
-    label: "Borrowed",
+  checked_out: {
+    label: "Checked Out",
     bg: theme.colors.warningSoft,
     color: theme.colors.warning,
   },
@@ -29,20 +24,25 @@ const STATUS_CONFIG: Record<KeyChipStatus, ChipConfig> = {
     bg: theme.colors.dangerSoft,
     color: theme.colors.danger,
   },
-  lost: {
-    label: "Lost",
+  handover_tenant: {
+    label: "With Tenant",
+    bg: theme.colors.infoSoft,
+    color: theme.colors.info,
+  },
+  handover_landlord: {
+    label: "With Landlord",
     bg: theme.colors.neutralSoft,
-    color: theme.colors.charcoal,
+    color: theme.colors.neutral,
+  },
+  missing_damaged: {
+    label: "Missing / Damaged",
+    bg: theme.colors.dangerSoft,
+    color: theme.colors.danger,
   },
   inactive: {
     label: "Inactive",
     bg: theme.colors.neutralSoft,
     color: theme.colors.textLight,
-  },
-  tenant: {
-    label: "With Tenant",
-    bg: theme.colors.infoSoft,
-    color: theme.colors.info,
   },
 };
 

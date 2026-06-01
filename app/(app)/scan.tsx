@@ -13,29 +13,27 @@ import type { BarcodeScanningResult } from "expo-camera";
 import * as Haptics from "expo-haptics";
 import { ScanLine, X, RefreshCw } from "lucide-react-native";
 
-import { fetchPropertyByCode } from "@/services/properties.service";
+import { fetchKeySetByCode } from "@/services/keySets.service";
 import { theme } from "@/constants/theme";
 
 // ---------------------------------------------------------------------------
-// QR payload parser
+// QR payload parser — keysets only
 // ---------------------------------------------------------------------------
-function parseQrPayload(
-  raw: string,
-): { type: "property"; code: string } | null {
+function parseQrPayload(raw: string): { code: string } | null {
   const trimmed = raw.trim();
 
   try {
     const parsed = JSON.parse(trimmed) as { type?: string; code?: string };
-    if (parsed.type === "property" && typeof parsed.code === "string") {
-      return { type: "property", code: parsed.code };
+    if (typeof parsed.code === "string" && parsed.type === "keyset") {
+      return { code: parsed.code };
     }
     return null;
   } catch {
-    // Fall through — treat raw string as a property_code
+    // Fall through — treat raw string as a keyset code
   }
 
   if (trimmed.length > 0) {
-    return { type: "property", code: trimmed };
+    return { code: trimmed };
   }
 
   return null;
@@ -81,7 +79,7 @@ export default function ScanScreen() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
         setScanState({
           status: "error",
-          message: "This QR code isn't recognised. Please scan a Happy Landlord QR code.",
+          message: "This QR code isn't recognised. Please scan a Happy Landlord keyset QR code.",
         });
         return;
       }
@@ -89,14 +87,15 @@ export default function ScanScreen() {
       setScanState({ status: "loading" });
 
       try {
-        const property = await fetchPropertyByCode(payload.code);
-        if (!property) {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-          setScanState({ status: "notFound" });
+        const keySet = await fetchKeySetByCode(payload.code);
+        if (keySet) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+          router.replace(`/(app)/properties/keyset/${keySet.id}` as never);
           return;
         }
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-        router.replace(`/(app)/properties/${property.id}` as never);
+
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+        setScanState({ status: "notFound" });
       } catch {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
         setScanState({
