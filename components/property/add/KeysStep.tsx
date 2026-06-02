@@ -8,11 +8,11 @@ import {
 } from "react-native";
 import { KeyRound, Plus, Trash2 } from "lucide-react-native";
 
-import { theme } from "@/constants/theme";
-import { PhotoPicker } from "@/components/ui/PhotoPicker";
-import { PrintButton } from "@/components/ui/PrintButton";
-import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
-import { buildQrPrintPage } from "@/lib/utils/print";
+import { theme } from "@/constants";
+import { PhotoPicker , PrintButton } from "@/components/ui";
+
+import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key";
+import { buildQrPrintPage } from "@/lib/utils";
 import { buildKeySetCode, type KeyEntry, type KeySetDraft } from "./types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

@@ -1,9 +1,9 @@
 import { StyleSheet, Text, View } from "react-native";
 import Svg, { Path, Text as SvgText } from "react-native-svg";
 
-import { theme } from "@/constants/theme";
-import { useAdminDashboardSummary } from "@/lib/hooks/useKeySets";
-import type { AdminDashboardSummary } from "@/lib/services/keys.service";
+import { theme } from "@/constants";
+import { useAdminDashboardSummary } from "@/lib/hooks";
+import type { AdminDashboardSummary } from "@/lib/services";
 
 // ── Donut chart ───────────────────────────────────────────────────────────────
 

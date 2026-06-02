@@ -1,11 +1,11 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { KeyRound } from "lucide-react-native";
 
-import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { theme } from "@/constants/theme";
-import type { KeyType } from "@/types/database";
-import type { KeyInSet } from "@/lib/services/keySets.service";
+import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key";
+import { EmptyState } from "@/components/ui";
+import { theme } from "@/constants";
+import type { KeyType } from "@/types";
+import type { KeyInSet } from "@/lib/services";
 
 type AgentKeyGroup = {
   key_type: KeyType;

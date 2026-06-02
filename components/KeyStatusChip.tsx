@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
-import type { KeySetStatus } from "@/types/database";
-import { theme } from "@/constants/theme";
+import type { KeySetStatus } from "@/types";
+import { theme } from "@/constants";
 
 // ── Status display config ─────────────────────────────────────────────────────
 

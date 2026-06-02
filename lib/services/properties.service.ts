@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase";
 import type {
   DbKeyHolder,
   DbKeyHolderInsert,
@@ -8,8 +8,8 @@ import type {
   PropertyType,
   PropertyKeyStatus,
   StoredImage,
-} from "@/types/database";
-import { COUNCIL_CODES } from "@/constants/places";
+} from "@/types";
+import { COUNCIL_CODES } from "@/constants";
 
 /** Signed-URL expiry — 1 hour matches the Supabase default. */
 const SIGNED_URL_TTL_SECONDS = 3600;

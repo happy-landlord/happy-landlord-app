@@ -5,19 +5,10 @@ import { Redirect, Stack, useRouter, useSegments } from "expo-router";
 import { AppHeader } from "@/components/AppHeader";
 import { BiometricEnablePrompt } from "@/components/BiometricEnablePrompt";
 import { LockScreen } from "@/components/LockScreen";
-import { useSession } from "@/lib/hooks/useSession";
-import { useProfile } from "@/lib/hooks/useProfile";
-import { FEATURES } from "@/constants/features";
-import {
-  useNotificationRealtime,
-  useNotificationResponseNavigation,
-  useRegisterPushToken,
-  useForegroundNotificationListener,
-} from "@/lib/hooks/useNotifications";
-import { useBiometricEnrolmentPrompt } from "@/lib/hooks/useBiometric";
-import { theme } from "@/constants/theme";
-import { useLockStore } from "@/lib/state/lockStore";
-import { isBiometricEnabled } from "@/lib/services/biometric.service";
+import { useSession , useProfile , useNotificationsLifecycle , useBiometricEnrolmentPrompt } from "@/lib/hooks";
+import { FEATURES , theme } from "@/constants";
+import { useLockStore } from "@/lib/state";
+import { isBiometricEnabled } from "@/lib/services";
 
 export default function AppLayout() {
   const { isLoading: sessionLoading, isAuthenticated, session } = useSession();
@@ -54,10 +45,7 @@ export default function AppLayout() {
   }, [userId, lockStore.initialized, lockStore]);
 
   // ── Notification hooks (auto-read current user internally) ──────────────
-  useRegisterPushToken();
-  useNotificationRealtime();
-  useForegroundNotificationListener();
-  useNotificationResponseNavigation();
+  useNotificationsLifecycle();
 
   // ── Loading ─────────────────────────────────────────────────────────────
   // Only block on lock initialisation when biometrics is actually enabled.

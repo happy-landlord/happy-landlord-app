@@ -1,8 +1,8 @@
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 
-import { theme } from "@/constants/theme";
-import { buildStickerPage, type StickerEntry } from "@/lib/utils/print";
+import { theme } from "@/constants";
+import { buildStickerPage, type StickerEntry } from "@/lib/utils";
 import { PrintButton } from "./PrintButton";
 
 // ── Types ─────────────────────────────────────────────────────────────────────

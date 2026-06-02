@@ -8,7 +8,7 @@ import {
   type ViewStyle,
 } from "react-native";
 
-import { theme } from "@/constants/theme";
+import { theme } from "@/constants";
 
 type InputProps = TextInputProps & {
   /** Floating label that sits on the top border */

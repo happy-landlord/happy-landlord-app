@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Check } from "lucide-react-native";
 
-import { theme } from "@/constants/theme";
+import { theme } from "@/constants";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 
 type PickerOption<T extends string> = { value: T; label: string; icon?: ReactNode };

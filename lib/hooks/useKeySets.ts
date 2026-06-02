@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { QUERY_KEYS } from "@/lib/query/keys";
+import { QUERY_KEYS } from "@/lib/query";
 import {
   fetchKeySetsForProperty,
   fetchKeySetById,
@@ -17,15 +17,15 @@ import {
   type ReturnKeySetParams,
   type TransferKeySetParams,
   type ExtendKeySetParams,
-} from "@/lib/services/keySets.service";
+} from "@/lib/services";
 import {
   fetchAdminDashboardSummary,
   createKeys,
   updateKey,
   deleteKey,
-} from "@/lib/services/keys.service";
-import type { DbKeyInsert, DbKeyUpdate } from "@/types/database";
-import { useQueryScope } from "@/hooks/useRole";
+} from "@/lib/services";
+import type { DbKeyInsert, DbKeyUpdate } from "@/types";
+import { useQueryScope } from "@/hooks";
 
 // ── Key-set queries ───────────────────────────────────────────────────────────
 

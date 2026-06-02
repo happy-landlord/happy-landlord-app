@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import { ActivityIndicator, View } from "react-native";
 
-import { useRole } from "@/hooks/useRole";
-import type { UserRole } from "@/constants/roles";
-import { theme } from "@/constants/theme";
+import { useRole } from "@/hooks";
+import type { UserRole } from "@/types";
+import { theme } from "@/constants";
 
 type RoleGateProps = {
   /** Render children only when the user has one of these roles */

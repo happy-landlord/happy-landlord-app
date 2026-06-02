@@ -13,8 +13,8 @@ import type { BarcodeScanningResult } from "expo-camera";
 import * as Haptics from "expo-haptics";
 import { ScanLine, X, RefreshCw } from "lucide-react-native";
 
-import { fetchKeySetByCode } from "@/lib/services/keySets.service";
-import { theme } from "@/constants/theme";
+import { fetchKeySetByCode } from "@/lib/services";
+import { theme } from "@/constants";
 
 // ---------------------------------------------------------------------------
 // QR payload parser — keysets only

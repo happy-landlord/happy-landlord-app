@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -19,23 +18,24 @@ import {
   Trash2,
   X,
 } from "lucide-react-native";
-import { BottomSheet } from "@/components/ui/BottomSheet";
-import { PickerModal } from "@/components/ui/PickerModal";
-import { theme } from "@/constants/theme";
+import { BottomSheet, PickerModal } from "@/components/ui";
+import { theme, PROPERTY_TYPES } from "@/constants";
+import { alertError } from "@/lib/utils";
 import {
   useKeySets,
   useUnassignedKeys,
   useCreateKeys,
   useDeleteKey,
   useUpdateKey,
-} from "@/lib/hooks/useKeySets";
-import { type PropertyWithLandlord } from "@/lib/services/properties.service";
-import type { KeyInSet, UnassignedKey } from "@/lib/services/keySets.service";
-import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
-import type { DbKeyInsert, KeyType, PropertyType } from "@/types/database";
-import { PROPERTY_TYPES } from "@/components/property/add/types";
+} from "@/lib/hooks";
+import type {
+  PropertyWithLandlord,
+  KeyInSet,
+  UnassignedKey,
+} from "@/lib/services";
+import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key";
+import type { DbKeyInsert, KeyType, PropertyType } from "@/types";
 
-// -- Key type options -----------------------------------------------------------
 const ALL_KEY_TYPE_OPTIONS = (Object.keys(KEY_TYPE_LABEL) as KeyType[]).map(
   (type) => {
     const Icon = KEY_TYPE_ICON[type] ?? KeyRound;
@@ -113,10 +113,7 @@ function PropertyKeysSection({
         {
           onSuccess: resetPendingKey,
           onError: (err: unknown) =>
-            Alert.alert(
-              "Error",
-              err instanceof Error ? err.message : "Failed to update key.",
-            ),
+            alertError("Error", err, "Failed to update key."),
         },
       );
       return;
@@ -133,10 +130,7 @@ function PropertyKeysSection({
     createMut.mutate([insert], {
       onSuccess: resetPendingKey,
       onError: (err) =>
-        Alert.alert(
-          "Error",
-          err instanceof Error ? err.message : "Failed to add key.",
-        ),
+        alertError("Error", err, "Failed to add key."),
     });
   }
   function handleQtyChange(key: EnrichedKey, delta: number) {
@@ -146,20 +140,14 @@ function PropertyKeysSection({
       { keyId: key.id, patch: { quantity: next } },
       {
         onError: (err: unknown) =>
-          Alert.alert(
-            "Error",
-            err instanceof Error ? err.message : "Failed to update.",
-          ),
+          alertError("Error", err, "Failed to update."),
       },
     );
   }
   function handleDelete(key: EnrichedKey) {
     deleteMut.mutate(key.id, {
       onError: (err: unknown) =>
-        Alert.alert(
-          "Error",
-          err instanceof Error ? err.message : "Failed to delete.",
-        ),
+        alertError("Error", err, "Failed to delete."),
     });
   }
   return (

@@ -8,13 +8,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Eye, EyeOff, MailCheck } from "lucide-react-native";
 
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Logo } from "@/components/ui/Logo";
-import { theme } from "@/constants/theme";
-import { FEATURES } from "@/constants/features";
-import { supabase } from "@/lib/supabase/client";
-import { useLockStore } from "@/lib/state/lockStore";
+import { Button , Input , Logo } from "@/components/ui";
+import { theme , FEATURES } from "@/constants";
+import { supabase } from "@/lib/supabase";
+import { useLockStore } from "@/lib/state";
 
 // ── Validation schema ─────────────────────────────────────────────────────────
 

@@ -1,11 +1,10 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChevronRight, Clock3, KeyRound } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import {
   useMyActivity,
-  type ActivityTransaction,
 } from "@/lib/hooks/useTransactions";
+import type { ActivityTransaction } from "@/types/database";
 import {
   useCheckedOutKeySets,
   useKeySetsNeedingAttention,
@@ -13,10 +12,13 @@ import {
 import { useCurrentUserId } from "@/lib/hooks/useSession";
 import { useRole } from "@/hooks/useRole";
 import { theme } from "@/constants/theme";
+import { useBottomListPadding } from "@/constants/layout";
 import { MOVEMENT_CONFIG, getMovementLabel } from "@/constants/movements";
 import {
   formatShortAddress,
   formatActivityTimestamp,
+  formatShortDate,
+  isPastDue,
 } from "@/lib/utils/format";
 import type { CheckedOutKeySet } from "@/lib/services/keySets.service";
 import { KeyDashboardSummary } from "@/components/KeyDashboardSummary";
@@ -35,7 +37,7 @@ function sortCheckedOutKeySets(keys: CheckedOutKeySet[]): CheckedOutKeySet[] {
 }
 
 export default function HomeScreen() {
-  const insets = useSafeAreaInsets();
+  const listPaddingBottom = useBottomListPadding();
   const router = useRouter();
   const { isAdmin } = useRole();
   const currentUserId = useCurrentUserId();
@@ -62,7 +64,7 @@ export default function HomeScreen() {
       style={styles.screen}
       contentContainerStyle={[
         styles.content,
-        { paddingBottom: insets.bottom + 96 },
+        { paddingBottom: listPaddingBottom },
       ]}
       showsVerticalScrollIndicator={false}
     >
@@ -191,9 +193,7 @@ function CheckedOutRow({
   const holderType = keySet.current_holder?.holder_type;
   const holderPhone = keySet.current_holder?.phone ?? null;
   const keyLabels = keySet.keys.map((key) => key.label);
-  const isOverdue = keySet.due_back_at
-    ? new Date(keySet.due_back_at) < new Date()
-    : false;
+  const isOverdue = isPastDue(keySet.due_back_at);
 
   const iconBg = isOverdue ? theme.colors.dangerSoft : theme.colors.warningSoft;
   const iconColor = isOverdue ? theme.colors.danger : theme.colors.warning;
@@ -292,11 +292,7 @@ function CheckedOutRow({
                   ]}
                   numberOfLines={1}
                 >
-                  {new Date(keySet.due_back_at).toLocaleDateString("en-AU", {
-                    weekday: "short",
-                    day: "numeric",
-                    month: "short",
-                  })}
+                  {formatShortDate(keySet.due_back_at)}
                 </Text>
               </View>
             ) : null}
@@ -307,23 +303,6 @@ function CheckedOutRow({
   );
 }
 
-function formatPropertyLocation(
-  property: CheckedOutKeySet["property"],
-): string {
-  if (!property) return "";
-  return [property.suburb, property.city, property.postcode]
-    .filter((part, index, parts) => {
-      if (!part) return false;
-      return (
-        parts.findIndex((v) => v?.toLowerCase() === part.toLowerCase()) ===
-        index
-      );
-    })
-    .join(" · ");
-}
-
-// kept for potential future use
-void formatPropertyLocation;
 
 function ActivityRow({
   item,

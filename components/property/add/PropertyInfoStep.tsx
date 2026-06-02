@@ -10,26 +10,21 @@ import {
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { ChevronDown, KeyRound, X } from "lucide-react-native";
 
-import { theme } from "@/constants/theme";
-import { AddressSearch, type PlaceResult } from "@/components/ui/AddressSearch";
-import { Input } from "@/components/ui/Input";
+import { theme, PROPERTY_TYPES } from "@/constants";
 import {
+  AddressSearch,
+  Input,
   OutlinedField,
   OutlinedSelect,
   OutlinedDateField,
-} from "@/components/ui/OutlinedField";
-import { PickerModal } from "@/components/ui/PickerModal";
-import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
+  PickerModal,
+  type PlaceResult,
+} from "@/components/ui";
+import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key";
+import { formatLongDate } from "@/lib/utils";
+import type { KeyType } from "@/types";
 
-import {
-  PROPERTY_TYPES,
-  formatDate,
-  type KeyEntry,
-  type PropertyStep,
-} from "./types";
-import type { KeyType } from "@/types/database";
-
-// ── Key type options ──────────────────────────────────────────────────────────
+import type { KeyEntry, PropertyStep } from "./types";
 
 const KEY_TYPE_OPTIONS = (Object.keys(KEY_TYPE_LABEL) as KeyType[]).map(
   (type) => {
@@ -166,7 +161,7 @@ export function PropertyInfoStep({
         />
         <OutlinedDateField
           label="Date Received"
-          value={formatDate(data.dateReceived)}
+          value={formatLongDate(data.dateReceived)}
           onPress={() => setShowDatePicker(true)}
           style={styles.dateField}
         />

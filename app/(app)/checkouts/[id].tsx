@@ -2,8 +2,8 @@ import { StyleSheet, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { ClipboardList } from "lucide-react-native";
 
-import { EmptyState } from "@/components/ui/EmptyState";
-import { theme } from "@/constants/theme";
+import { EmptyState } from "@/components/ui";
+import { theme } from "@/constants";
 
 export default function CheckoutDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

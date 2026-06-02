@@ -43,6 +43,31 @@ export function formatDate(iso: string | null | undefined): string {
   });
 }
 
+/**
+ * Formats an ISO timestamp as a short calendar date with weekday:
+ * "Mon, 3 Jun". Used for compact "due" / "Was due" inline labels.
+ */
+export function formatShortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(LOCALE, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+}
+
+/**
+ * Formats a Date (or ISO string) as a long calendar date with full month:
+ * "5 June 2025". Used in the add-property wizard and review screens.
+ */
+export function formatLongDate(value: Date | string): string {
+  const date = value instanceof Date ? value : new Date(value);
+  return date.toLocaleDateString(LOCALE, {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 export function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString(LOCALE, {
     weekday: "short",
@@ -60,12 +85,7 @@ export function formatDateTime(iso: string): string {
  * (cleaner than the comma-heavy `formatDateTime` for inline labels).
  */
 export function formatDueAt(iso: string): string {
-  const date = new Date(iso).toLocaleDateString(LOCALE, {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  });
-  return `${date} ${formatTime(iso)}`;
+  return `${formatShortDate(iso)} ${formatTime(iso)}`;
 }
 
 export type Remaining = {

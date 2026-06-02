@@ -7,8 +7,8 @@ import {
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
-import { theme } from "@/constants/theme";
-import type { KeySetNeedingAttention } from "@/lib/services/keySets.service";
+import { theme } from "@/constants";
+import type { KeySetNeedingAttention } from "@/lib/services";
 
 // ── Sort helpers ──────────────────────────────────────────────────────────────
 

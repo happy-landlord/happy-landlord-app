@@ -15,9 +15,9 @@ import {
 } from "lucide-react-native";
 
 import { KEY_TYPE_LABEL } from "@/components/key/keyLabels";
-import { theme } from "@/constants/theme";
-import type { KeyType } from "@/types/database";
-import type { KeyInSet } from "@/lib/services/keySets.service";
+import { theme } from "@/constants";
+import type { KeyType } from "@/types";
+import type { KeyInSet } from "@/lib/services";
 
 // ── Icon map per key type ──────────────────────────────────────────────────────
 

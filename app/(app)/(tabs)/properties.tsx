@@ -1,21 +1,21 @@
 import { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PropertyCard } from "@/components/PropertyCard";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { ErrorState } from "@/components/ui/ErrorState";
-import { LoadingState } from "@/components/ui/LoadingState";
-import { type PlaceResult } from "@/components/ui/AddressSearch";
+import { EmptyState , ErrorState , LoadingState } from "@/components/ui";
+
+
+import { type PlaceResult } from "@/components/ui";
 import {
   PropertiesFilterBar,
   type AdminPropertyTab,
-} from "@/components/property/PropertiesFilterBar";
-import { useInfiniteProperties } from "@/lib/hooks/useProperties";
-import { useRole } from "@/hooks/useRole";
-import { placeSearchLabel } from "@/lib/utils/places";
-import type { DbProperty, PropertyKeyStatus } from "@/types/database";
-import { theme } from "@/constants/theme";
+} from "@/components/property";
+import { useInfiniteProperties } from "@/lib/hooks";
+import { useRole } from "@/hooks";
+import { placeSearchLabel } from "@/lib/utils";
+import type { DbProperty, PropertyKeyStatus } from "@/types";
+import { theme , useBottomListPadding } from "@/constants";
+
 
 const AGENT_KEY_STATUS: PropertyKeyStatus = "available";
 
@@ -26,7 +26,7 @@ const EMPTY_MESSAGE_BY_TAB: Record<AdminPropertyTab, string> = {
 };
 
 export default function PropertiesScreen() {
-  const insets = useSafeAreaInsets();
+  const listPaddingBottom = useBottomListPadding();
   const { isAdmin } = useRole();
 
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
@@ -105,7 +105,7 @@ export default function PropertiesScreen() {
           onEndReachedThreshold={0.3}
           contentContainerStyle={[
             styles.list,
-            { paddingBottom: insets.bottom + 96 },
+            { paddingBottom: listPaddingBottom },
             properties.length === 0 && styles.listEmpty,
           ]}
           showsVerticalScrollIndicator={false}

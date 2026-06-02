@@ -628,6 +628,7 @@ export type TablesUpdate<T extends keyof Database["public"]["Tables"]> =
 // Profiles ───────────────────────────────────────────────────────────────────
 export type DbProfile = Tables<"profiles">;
 export type DbProfileUpdate = TablesUpdate<"profiles">;
+export type UserRole = DbProfile["role"];
 
 // Properties ─────────────────────────────────────────────────────────────────
 export type DbProperty = Tables<"properties">;

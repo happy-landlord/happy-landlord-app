@@ -9,7 +9,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import * as SystemUI from "expo-system-ui";
 import "react-native-reanimated";
 
-import { queryClient } from "@/lib/query/queryClient";
+import { queryClient } from "@/lib/query";
 
 // GooglePlacesAutocomplete renders a FlatList inside the add-property ScrollView.
 // The warning is cosmetic — scroll-stealing is prevented by

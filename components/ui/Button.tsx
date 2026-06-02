@@ -9,7 +9,7 @@ import {
   type ViewStyle,
 } from "react-native";
 
-import { theme } from "@/constants/theme";
+import { theme } from "@/constants";
 
 type ButtonVariant = "primary" | "accent" | "outline" | "ghost" | "danger";
 

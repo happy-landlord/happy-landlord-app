@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View, Pressable, type ViewStyle } from "react-native";
 import { ChevronDown, CalendarDays } from "lucide-react-native";
 
-import { theme } from "@/constants/theme";
+import { theme } from "@/constants";
 
 // ── OutlinedField ─────────────────────────────────────────────────────────────
 

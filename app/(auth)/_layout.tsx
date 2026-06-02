@@ -1,6 +1,6 @@
 import { Redirect, Stack } from "expo-router";
 
-import { useSession } from "@/lib/hooks/useSession";
+import { useSession } from "@/lib/hooks";
 
 export default function AuthLayout() {
   const { isLoading, isAuthenticated } = useSession();

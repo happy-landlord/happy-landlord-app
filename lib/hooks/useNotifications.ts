@@ -3,11 +3,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
 
-import type { DbNotification } from "@/types/database";
-import { QUERY_KEYS } from "@/lib/query/keys";
-import { invalidateNotifications } from "@/lib/query/query";
-import { supabase } from "@/lib/supabase/client";
-import { useLockStore } from "@/lib/state/lockStore";
+import type { DbNotification } from "@/types";
+import { QUERY_KEYS } from "@/lib/query";
+import { invalidateNotifications } from "@/lib/query";
+import { supabase } from "@/lib/supabase";
+import { useLockStore } from "@/lib/state";
 import { useCurrentUserId } from "@/lib/hooks/useSession";
 import {
   createNotification,
@@ -22,7 +22,7 @@ import {
   saveUserPushToken,
   sendPushNotification,
   type PushStatus,
-} from "@/lib/services/notifications.service";
+} from "@/lib/services";
 
 // ── Notifications list / unread count ────────────────────────────────────────
 
@@ -220,6 +220,18 @@ export function useForegroundNotificationListener() {
 
     return () => subscription.remove();
   }, [queryClient, userId]);
+}
+
+/**
+ * Single entry-point for the four notification lifecycle hooks that should run
+ * once per authenticated app session. Mount this in the top-level authenticated
+ * layout instead of wiring each hook individually.
+ */
+export function useNotificationsLifecycle() {
+  useRegisterPushToken();
+  useNotificationRealtime();
+  useForegroundNotificationListener();
+  useNotificationResponseNavigation();
 }
 
 // ── Admin test ───────────────────────────────────────────────────────────────

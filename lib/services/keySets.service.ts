@@ -1,11 +1,11 @@
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase";
 import type {
   DbKeySet,
   DbKeySetInsert,
   DbKeySetUpdate,
   KeyType,
   StoredImage,
-} from "@/types/database";
+} from "@/types";
 
 // ── Shared types ──────────────────────────────────────────────────────────────
 

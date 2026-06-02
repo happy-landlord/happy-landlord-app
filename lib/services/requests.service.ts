@@ -1,5 +1,5 @@
-import { supabase } from "@/lib/supabase/client";
-import type { DbRegistrationRequest } from "@/types/database";
+import { supabase } from "@/lib/supabase";
+import type { DbRegistrationRequest } from "@/types";
 
 export type RegistrationRequest = DbRegistrationRequest;
 

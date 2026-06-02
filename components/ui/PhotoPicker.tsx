@@ -27,7 +27,7 @@ import { Image } from "expo-image";
 import { Camera, Plus, X } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 
-import { theme } from "@/constants/theme";
+import { theme } from "@/constants";
 
 const SCREEN_W = Dimensions.get("window").width;
 const PHOTO_GAP = 6;

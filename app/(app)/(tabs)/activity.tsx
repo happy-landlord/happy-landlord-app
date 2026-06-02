@@ -11,25 +11,21 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FileText, KeyRound, X } from "lucide-react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { LoadingState } from "@/components/ui/LoadingState";
-import { ErrorState } from "@/components/ui/ErrorState";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { LoadingState , ErrorState , EmptyState } from "@/components/ui";
 import {
   AddressSearch,
   type AddressSearchRef,
   type PlaceResult,
-} from "@/components/ui/AddressSearch";
-import { useCurrentUserId } from "@/lib/hooks/useSession";
-import { useRole } from "@/hooks/useRole";
-import { useInfiniteActivity } from "@/lib/hooks/useTransactions";
-import { theme } from "@/constants/theme";
-import { MOVEMENT_CONFIG, getMovementLabel } from "@/constants/movements";
+} from "@/components/ui";
+import { useCurrentUserId , useInfiniteActivity } from "@/lib/hooks";
+import { useRole } from "@/hooks";
+import { theme , BOTTOM_NAV_HEIGHT , MOVEMENT_CONFIG, getMovementLabel } from "@/constants";
 import {
   formatShortAddress,
   toDateLabel,
   formatTime,
-} from "@/lib/utils/format";
-import type { ActivityTransaction } from "@/types/database";
+} from "@/lib/utils";
+import type { ActivityTransaction } from "@/types";
 
 // --- Section grouping ---
 type Section = {
@@ -201,7 +197,7 @@ export default function ActivityScreen() {
         style={styles.sectionList}
         contentContainerStyle={[
           styles.list,
-          { paddingBottom: insets.bottom + 96 },
+          { paddingBottom: insets.bottom + BOTTOM_NAV_HEIGHT },
           sections.length === 0 && styles.listEmpty,
         ]}
         stickySectionHeadersEnabled={false}

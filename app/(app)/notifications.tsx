@@ -22,24 +22,21 @@ import {
   UserPlus,
 } from "lucide-react-native";
 
-import { EmptyState } from "@/components/ui/EmptyState";
-import { ErrorState } from "@/components/ui/ErrorState";
-import { LoadingState } from "@/components/ui/LoadingState";
-import { theme } from "@/constants/theme";
-import { formatNotificationTimestamp } from "@/lib/utils/format";
-import { useCurrentUserId } from "@/lib/hooks/useSession";
-import {
+import { EmptyState , ErrorState , LoadingState } from "@/components/ui";
+import { theme } from "@/constants";
+import { formatNotificationTimestamp , alertError } from "@/lib/utils";
+import { useCurrentUserId ,
   useAdminSendTestNotification,
   useMarkNotificationRead,
   useNotifications,
-} from "@/lib/hooks/useNotifications";
-import { useRole } from "@/hooks/useRole";
+} from "@/lib/hooks";
+import { useRole } from "@/hooks";
 import {
   getNotificationRowTargetPath,
   NOTIFICATION_TYPES,
-  type DbNotification,
   type NotificationType,
-} from "@/lib/services/notifications.service";
+} from "@/lib/services";
+import type { DbNotification } from "@/types";
 
 type NotificationVisual = {
   label: string;
@@ -226,8 +223,7 @@ function AdminTestPanel({ userId }: { userId: string }) {
         "Notification created and push dispatched to your device.",
       );
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      Alert.alert("Error", message);
+      alertError("Error", err);
     }
   }
 

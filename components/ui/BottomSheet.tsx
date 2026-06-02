@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { theme } from "@/constants/theme";
+import { theme } from "@/constants";
 
 const SHEET_TRANSLATE_OUT = 500;
 

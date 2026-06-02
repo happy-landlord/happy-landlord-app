@@ -12,8 +12,8 @@ import { useEffect, useState } from "react";
 import { Alert } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { FEATURES } from "@/constants/features";
-import { useLockStore } from "@/lib/state/lockStore";
+import { FEATURES } from "@/constants";
+import { useLockStore } from "@/lib/state";
 import { useCurrentUserId } from "@/lib/hooks/useSession";
 import {
   authenticateWithBiometrics,
@@ -23,7 +23,7 @@ import {
   isBiometricEnabled,
   setBiometricEnabled,
   type BiometricCapability,
-} from "@/lib/services/biometric.service";
+} from "@/lib/services";
 
 // ── Query keys ───────────────────────────────────────────────────────────────
 

@@ -1,14 +1,13 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { QUERY_KEYS } from "@/lib/query/keys";
-import { ACTIVITY_PAGE_SIZE, STALE_TIME } from "@/lib/query/query";
-import { useQueryScope } from "@/hooks/useRole";
+import { QUERY_KEYS } from "@/lib/query";
+import { ACTIVITY_PAGE_SIZE, STALE_TIME } from "@/lib/query";
+import { useQueryScope } from "@/hooks";
 import {
   fetchMyActivity,
   fetchAllActivity,
   fetchActivity,
-} from "@/lib/services/transactions.service";
-import type { ActivityTransaction } from "@/types/database";
-export type { ActivityTransaction };
+} from "@/lib/services";
+import type { ActivityTransaction } from "@/types";
 
 export function useMyActivity() {
   const { userId, isAdmin, ready } = useQueryScope();

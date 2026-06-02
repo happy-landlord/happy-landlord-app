@@ -2,7 +2,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Fingerprint, X } from "lucide-react-native";
 
-import { theme } from "@/constants/theme";
+import { theme } from "@/constants";
 
 type BiometricEnablePromptProps = {
   visible: boolean;

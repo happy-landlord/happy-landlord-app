@@ -9,8 +9,8 @@ import {
 } from "react-native";
 import { ArrowLeftRight, Clock, ClipboardList } from "lucide-react-native";
 
-import { MOVEMENT_CONFIG } from "@/constants/movements";
-import { theme } from "@/constants/theme";
+import { MOVEMENT_CONFIG , theme } from "@/constants";
+
 
 export type KeyActionsBarProps = {
   isBusy: boolean;

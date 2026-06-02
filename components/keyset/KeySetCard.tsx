@@ -3,12 +3,12 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { ChevronRight, KeyRound } from "lucide-react-native";
 
 import { KeyStatusChip } from "@/components/KeyStatusChip";
-import { theme } from "@/constants/theme";
-import { useFirstKeySetImageUrl } from "@/lib/hooks/useKeySetImages";
+import { theme } from "@/constants";
+import { useFirstKeySetImageUrl } from "@/lib/hooks";
 import {
   type KeySetWithDetails,
   getVisibleKeySetImages,
-} from "@/lib/services/keySets.service";
+} from "@/lib/services";
 
 export type KeySetCardProps = {
   keySet: KeySetWithDetails;

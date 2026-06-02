@@ -6,10 +6,8 @@ import {
 } from "react-native-google-places-autocomplete";
 import { useDebouncedCallback } from "use-debounce";
 
-import { FEATURES } from "@/constants/features";
-import { SYDNEY_BIAS } from "@/constants/places";
-import { theme } from "@/constants/theme";
-import { normaliseSuburb } from "@/lib/utils/places";
+import { FEATURES , SYDNEY_BIAS , theme } from "@/constants";
+import { normaliseSuburb } from "@/lib/utils";
 
 export type PlaceResult = {
   placeId: string;

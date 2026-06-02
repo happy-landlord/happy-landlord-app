@@ -3,15 +3,12 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MessageSquare, XCircle } from "lucide-react-native";
 
-import { theme } from "@/constants/theme";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Logo } from "@/components/ui/Logo";
+import { theme } from "@/constants";
+import { Button , Input , Logo } from "@/components/ui";
 import {
   useMyLatestRequest,
   useResubmitRequest,
-} from "@/lib/hooks/useAgentRequests";
-import { useSignOut } from "@/lib/hooks/useSession";
+ useSignOut } from "@/lib/hooks";
 
 export default function RejectedScreen() {
   const insets = useSafeAreaInsets();

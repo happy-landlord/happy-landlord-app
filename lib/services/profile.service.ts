@@ -1,5 +1,5 @@
-import { supabase } from "@/lib/supabase/client";
-import type { DbProfile, DbProfileUpdate } from "@/types/database";
+import { supabase } from "@/lib/supabase";
+import type { DbProfile, DbProfileUpdate } from "@/types";
 
 /** Profile fields the user can edit themselves. */
 export type ProfileEdits = Pick<DbProfileUpdate, "full_name" | "phone">;

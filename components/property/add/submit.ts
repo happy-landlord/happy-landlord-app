@@ -1,19 +1,15 @@
-import { createKeyHolder } from "@/lib/services/properties.service";
-import { createKeys } from "@/lib/services/keys.service";
 import {
+  createKeyHolder,
+  createKeys,
   createKeySet,
   uploadKeySetImages,
   updateKeySetImages,
-} from "@/lib/services/keySets.service";
-import type {
-  DbKeyInsert,
-  DbProperty,
-  DbPropertyInsert,
-} from "@/types/database";
-import { KEY_TYPE_LABEL } from "@/components/key/keyLabels";
+} from "@/lib/services";
+import { formatLongDate } from "@/lib/utils";
+import type { DbKeyInsert, DbProperty, DbPropertyInsert } from "@/types";
+import { KEY_TYPE_LABEL } from "@/components/key";
 import {
   buildKeySetCode,
-  formatDate,
   type KeyEntry,
   type KeySetDraft,
   type PropertyStep,
@@ -145,7 +141,7 @@ async function maybeCreateLandlordHolder(
     holder_type: "landlord",
     full_name: landlordName || null,
     phone: landlordContact || null,
-    notes: `Keys received: ${formatDate(dateReceived)}`,
+    notes: `Keys received: ${formatLongDate(dateReceived)}`,
   });
   return holder.id;
 }

@@ -13,7 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import * as WebBrowser from "expo-web-browser";
 
-import { theme } from "@/constants/theme";
+import { theme } from "@/constants";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types

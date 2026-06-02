@@ -1,5 +1,5 @@
 import { memo, useState, useCallback, type ReactNode } from "react";
-import { Alert, LayoutAnimation, Platform, Pressable, StyleSheet, Text, UIManager, View } from "react-native";
+import { LayoutAnimation, Platform, Pressable, StyleSheet, Text, UIManager, View } from "react-native";
 import {
   ArrowRightCircle,
   ChevronDown,
@@ -7,24 +7,21 @@ import {
   KeyRound,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
-import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
+import { KEY_TYPE_ICON, KEY_TYPE_LABEL , TransferConfirmModal } from "@/components/key";
 import { KeyStatusChip } from "@/components/KeyStatusChip";
-import { TransferConfirmModal } from "@/components/key/TransferConfirmModal";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { ErrorState } from "@/components/ui/ErrorState";
-import { LoadingState } from "@/components/ui/LoadingState";
-import { useRole } from "@/hooks/useRole";
+import { EmptyState , ErrorState , LoadingState } from "@/components/ui";
+import { useRole } from "@/hooks";
 import {
   useKeySets,
   useTransferKeySet,
   useUnassignedKeys,
-} from "@/lib/hooks/useKeySets";
-import { theme } from "@/constants/theme";
-import { formatDate, formatDateTime } from "@/lib/utils/format";
+} from "@/lib/hooks";
+import { theme } from "@/constants";
+import { formatDate, formatDateTime , alertError } from "@/lib/utils";
 import type {
   KeySetWithDetails,
   UnassignedKey,
-} from "@/lib/services/keySets.service";
+} from "@/lib/services";
 // -- Helpers -------------------------------------------------------------------
 type KeySetCardTone = "available" | "warning" | "danger" | "info";
 const getTotalKeyQuantity = (keySet: KeySetWithDetails) =>
@@ -244,11 +241,7 @@ function AgentKeySetCard({ keySet }: { keySet: KeySetWithDetails }) {
       { keySetId: keySet.id },
       {
         onSuccess: () => setShowTransferModal(false),
-        onError: (err) =>
-          Alert.alert(
-            "Transfer failed",
-            err instanceof Error ? err.message : "Please try again.",
-          ),
+        onError: (err) => alertError("Transfer failed", err),
       },
     );
   }, [transferMut, keySet.id]);

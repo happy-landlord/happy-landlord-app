@@ -1,6 +1,6 @@
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
-import { theme } from "@/constants/theme";
+import { theme } from "@/constants";
 
 type LoadingStateProps = {
   message?: string;

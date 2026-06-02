@@ -11,17 +11,16 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Eye, EyeOff, Fingerprint, ShieldCheck } from "lucide-react-native";
 
-import { Input } from "@/components/ui/Input";
-import { Logo } from "@/components/ui/Logo";
-import { theme } from "@/constants/theme";
-import { supabase } from "@/lib/supabase/client";
-import { useLockStore } from "@/lib/state/lockStore";
+import { Input , Logo } from "@/components/ui";
+import { theme } from "@/constants";
+import { supabase } from "@/lib/supabase";
+import { useLockStore } from "@/lib/state";
 import {
   authenticateWithBiometrics,
   getBiometricCapability,
   getBiometricLabel,
   type BiometricCapability,
-} from "@/lib/services/biometric.service";
+} from "@/lib/services";
 
 type LockMode = "biometric" | "password";
 

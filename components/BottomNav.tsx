@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "expo-router";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Home, KeyRound, ScanLine, History, User } from "lucide-react-native";
 
-import { theme } from "@/constants/theme";
+import { theme } from "@/constants";
 
 const TAB_CONFIG: {
   name: string;

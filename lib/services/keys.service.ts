@@ -1,5 +1,5 @@
-import { supabase } from "@/lib/supabase/client";
-import type { DbKey, DbKeyInsert, DbKeyUpdate } from "@/types/database";
+import { supabase } from "@/lib/supabase";
+import type { DbKey, DbKeyInsert, DbKeyUpdate } from "@/types";
 
 // ── Return types specific to this service ─────────────────────────────────────
 

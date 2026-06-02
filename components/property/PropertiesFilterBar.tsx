@@ -8,8 +8,8 @@ import {
   AddressSearch,
   type AddressSearchRef,
   type PlaceResult,
-} from "@/components/ui/AddressSearch";
-import { theme } from "@/constants/theme";
+} from "@/components/ui";
+import { theme } from "@/constants";
 
 export type AdminPropertyTab = "available" | "leased" | "landlord";
 

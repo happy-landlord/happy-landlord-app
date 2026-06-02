@@ -10,13 +10,15 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChevronLeft, X } from "lucide-react-native";
 
-import { theme } from "@/constants/theme";
-import { StepIndicator } from "@/components/ui/StepIndicator";
-import { PropertyInfoStep } from "@/components/property/add/PropertyInfoStep";
-import { KeysStep } from "@/components/property/add/KeysStep";
-import { ReviewStep } from "@/components/property/add/ReviewStep";
-import { STEP_LABELS } from "@/components/property/add/types";
-import { useAddPropertyWizard } from "@/components/property/add/useAddPropertyWizard";
+import { theme } from "@/constants";
+import { StepIndicator } from "@/components/ui";
+import {
+  PropertyInfoStep,
+  KeysStep,
+  ReviewStep,
+  STEP_LABELS,
+  useAddPropertyWizard,
+} from "@/components/property/add";
 
 // ── Screen ───────────────────────────────────────────────────────────────────
 

@@ -1,14 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { QUERY_KEYS } from "@/lib/query/keys";
-import type { RegistrationRequest } from "@/lib/services/requests.service";
+import { QUERY_KEYS } from "@/lib/query";
+import type { RegistrationRequest } from "@/lib/services";
 import {
   approveRequest,
   fetchRegistrationRequests,
   fetchMyLatestRequest,
   rejectRequest,
   resubmitRequest,
-} from "@/lib/services/requests.service";
+} from "@/lib/services";
 
 /** Returns all registration requests for the admin view. */
 export function useRegistrationRequests() {

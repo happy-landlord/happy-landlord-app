@@ -2,8 +2,8 @@ import { useCallback, useState } from "react";
 import { Alert } from "react-native";
 import { useRouter } from "expo-router";
 
-import { useCreateProperty } from "@/lib/hooks/useProperties";
-import type { PlaceResult } from "@/components/ui/AddressSearch";
+import { useCreateProperty } from "@/lib/hooks";
+import type { PlaceResult } from "@/components/ui";
 
 import { submitNewProperty } from "./submit";
 import {

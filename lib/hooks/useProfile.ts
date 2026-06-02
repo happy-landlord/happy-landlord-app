@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { QUERY_KEYS } from "@/lib/query/keys";
+import { QUERY_KEYS } from "@/lib/query";
 import {
   fetchProfile,
   fetchSignedProfileImageUrl,
   updateProfile,
   type ProfileEdits,
-} from "@/lib/services/profile.service";
+} from "@/lib/services";
 import { useSession } from "@/lib/hooks/useSession";
 
 export function useProfile() {

@@ -10,8 +10,9 @@ import {
 } from "react-native";
 import { Printer } from "lucide-react-native";
 
-import { theme } from "@/constants/theme";
-import { printHtml } from "@/lib/utils/print";
+import { theme } from "@/constants";
+import { printHtml , alertError } from "@/lib/utils";
+
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -76,7 +77,7 @@ export function PrintButton({
       await printHtml(resolvedHtml);
     } catch (err) {
       // Surface the real error so issues can be diagnosed
-      Alert.alert("Print Error", err instanceof Error ? err.message : String(err));
+      alertError("Print Error", err);
     } finally {
       setPrinting(false);
     }

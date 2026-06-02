@@ -5,22 +5,22 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
-import { QUERY_KEYS } from "@/lib/query/keys";
-import { invalidateProperties, PAGE_SIZE } from "@/lib/query/query";
-import { useRole } from "@/hooks/useRole";
+import { QUERY_KEYS } from "@/lib/query";
+import { invalidateProperties, PAGE_SIZE } from "@/lib/query";
+import { useRole } from "@/hooks";
 import {
   createProperty,
   fetchProperties,
   fetchPropertyById,
   fetchPropertyByIdForAgent,
   updateProperty,
-} from "@/lib/services/properties.service";
+} from "@/lib/services";
 import type {
   DbProperty,
   DbPropertyInsert,
   DbPropertyUpdate,
   PropertyKeyStatus,
-} from "@/types/database";
+} from "@/types";
 
 export function useInfiniteProperties({
   search = "",

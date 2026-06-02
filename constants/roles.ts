@@ -1,7 +1,5 @@
-import type { DbProfile } from "@/types/database";
-
-// Derived directly from the DB schema — no duplication
-export type UserRole = DbProfile["role"];
+import type { UserRole } from "@/types";
+import { theme } from "./theme";
 
 export const ROLE_LABEL: Record<UserRole, string> = {
   admin: "Admin",
@@ -9,11 +7,11 @@ export const ROLE_LABEL: Record<UserRole, string> = {
 };
 
 export const ROLE_COLOR: Record<UserRole, string> = {
-  admin: "#A38449", // primary/bronze
-  agent: "#3E6F8F", // info
+  admin: theme.colors.primary, // bronze
+  agent: theme.colors.info,
 };
 
 export const ROLE_BG: Record<UserRole, string> = {
-  admin: "#F2E9D7", // primarySoft
-  agent: "#E8F1F6", // infoSoft
+  admin: theme.colors.primarySoft,
+  agent: theme.colors.infoSoft,
 };

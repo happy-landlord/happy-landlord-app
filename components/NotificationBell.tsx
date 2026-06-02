@@ -2,8 +2,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Bell } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
-import { theme } from "@/constants/theme";
-import { useUnreadNotificationCount } from "@/lib/hooks/useNotifications";
+import { theme } from "@/constants";
+import { useUnreadNotificationCount } from "@/lib/hooks";
 
 type NotificationBellProps = {
   size?: number;

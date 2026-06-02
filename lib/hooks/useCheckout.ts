@@ -6,7 +6,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { QUERY_KEYS } from "@/lib/query/keys";
+import { QUERY_KEYS } from "@/lib/query";
 
 type CheckoutParams = {
   keyIds: string[];

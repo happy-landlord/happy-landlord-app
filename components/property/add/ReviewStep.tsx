@@ -6,9 +6,9 @@ import {
   User,
 } from "lucide-react-native";
 
-import { theme } from "@/constants/theme";
-import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
-import { PROPERTY_TYPES, type KeyEntry, type KeySetDraft, type PropertyStep } from "./types";
+import { theme, PROPERTY_TYPES } from "@/constants";
+import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key";
+import type { KeyEntry, KeySetDraft, PropertyStep } from "./types";
 
 function keyLabel(entry: KeyEntry): string {
   if (entry.type === "other" && entry.otherLabel) return entry.otherLabel;

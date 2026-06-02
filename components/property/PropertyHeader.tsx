@@ -2,12 +2,11 @@ import { memo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Building2, MapPin, Pencil } from "lucide-react-native";
 
-import { useRole } from "@/hooks/useRole";
-import { theme } from "@/constants/theme";
-import type { PropertyWithLandlord } from "@/lib/services/properties.service";
+import { useRole } from "@/hooks";
+import { theme , PROPERTY_TYPE_LABEL } from "@/constants";
+import type { PropertyWithLandlord } from "@/lib/services";
 import { PropertyEditModal } from "@/components/property/PropertyEditModal";
 
-import { PROPERTY_TYPE_LABEL } from "./propertyLabels";
 
 export type PropertyHeaderProps = {
   property: PropertyWithLandlord;

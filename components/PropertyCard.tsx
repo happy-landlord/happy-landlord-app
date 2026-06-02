@@ -3,16 +3,15 @@ import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChevronRight, MapPin } from "lucide-react-native";
 
-import type { DbProperty } from "@/types/database";
-import { useRole } from "@/hooks/useRole";
-import { useCurrentUserId } from "@/lib/hooks/useSession";
-import { PROPERTY_TYPE_LABEL } from "@/components/property/add/types";
-import { QUERY_KEYS } from "@/lib/query/keys";
+import type { DbProperty } from "@/types";
+import { useRole } from "@/hooks";
+import { useCurrentUserId } from "@/lib/hooks";
+import { theme, PROPERTY_TYPE_LABEL } from "@/constants";
+import { QUERY_KEYS } from "@/lib/query";
 import {
   fetchKeySetsForProperty,
   type KeySetWithDetails,
-} from "@/lib/services/keySets.service";
-import { theme } from "@/constants/theme";
+} from "@/lib/services";
 
 type PropertyCardProps = {
   property: DbProperty;

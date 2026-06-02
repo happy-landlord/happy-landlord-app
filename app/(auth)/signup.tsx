@@ -9,11 +9,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Eye, EyeOff } from "lucide-react-native";
 
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Logo } from "@/components/ui/Logo";
-import { theme } from "@/constants/theme";
-import { supabase } from "@/lib/supabase/client";
+import { Button , Input , Logo } from "@/components/ui";
+
+
+import { theme } from "@/constants";
+import { supabase } from "@/lib/supabase";
 
 // ── Validation schema ─────────────────────────────────────────────────────────
 

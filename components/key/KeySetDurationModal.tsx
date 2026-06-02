@@ -1,8 +1,8 @@
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { CalendarClock } from "lucide-react-native";
 
-import { theme } from "@/constants/theme";
-import { formatDueAt } from "@/lib/utils/format";
+import { theme } from "@/constants";
+import { formatDueAt } from "@/lib/utils";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 export const DURATION_DAYS = [1, 2, 3, 5, 7] as const;

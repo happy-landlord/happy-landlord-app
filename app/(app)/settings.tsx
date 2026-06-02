@@ -23,19 +23,16 @@ import {
 } from "lucide-react-native";
 import * as Device from "expo-device";
 
-import { theme } from "@/constants/theme";
-import { FEATURES } from "@/constants/features";
+import { theme , FEATURES } from "@/constants";
 import {
   useMarkAllNotificationsRead,
   usePushStatus,
   useTogglePush,
   useUnreadNotificationCount,
-} from "@/lib/hooks/useNotifications";
-import {
+
   useBiometricSettings,
-  useToggleBiometric,
-} from "@/lib/hooks/useBiometric";
-import { getBiometricLabel } from "@/lib/services/biometric.service";
+  useToggleBiometric} from "@/lib/hooks";
+import { getBiometricLabel } from "@/lib/services";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 

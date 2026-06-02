@@ -3,7 +3,7 @@ import { Inbox } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 
 import { Button } from "./Button";
-import { theme } from "@/constants/theme";
+import { theme } from "@/constants";
 
 type EmptyStateProps = {
   title: string;

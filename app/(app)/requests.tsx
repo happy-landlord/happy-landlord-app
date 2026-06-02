@@ -8,12 +8,12 @@ import {
 } from "react-native";
 import { CheckCircle, Clock, Phone, UserX, XCircle } from "lucide-react-native";
 
-import { theme } from "@/constants/theme";
+import { theme } from "@/constants";
 import {
   useRegistrationRequests,
   useReviewRequest,
-} from "@/lib/hooks/useAgentRequests";
-import type { RegistrationRequest } from "@/lib/services/requests.service";
+} from "@/lib/hooks";
+import type { RegistrationRequest } from "@/lib/services";
 
 export default function RequestsScreen() {
   const {

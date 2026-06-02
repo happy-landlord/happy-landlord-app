@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 
-import type { StoredImage } from "@/types/database";
-import { QUERY_KEYS } from "@/lib/query/keys";
+import type { StoredImage } from "@/types";
+import { QUERY_KEYS } from "@/lib/query";
 import {
   fetchSignedPropertyImageUrl,
   fetchSignedPropertyImageUrls,
   getVisibleImages,
-} from "@/lib/services/properties.service";
+} from "@/lib/services";
 
 /**
  * How long to keep signed URLs fresh in the TanStack Query cache.

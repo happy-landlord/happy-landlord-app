@@ -10,29 +10,26 @@ import {
   View,
 } from "react-native";
 import { Image } from "expo-image";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Camera, Check, Pencil, Phone, User, X } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 
-import { ErrorState } from "@/components/ui/ErrorState";
-import { LoadingState } from "@/components/ui/LoadingState";
-import { theme } from "@/constants/theme";
+import { ErrorState , LoadingState } from "@/components/ui";
+import { theme , useBottomListPadding } from "@/constants";
 import {
   useProfile,
   useUpdateProfile,
   useProfileImageUrl,
-} from "@/lib/hooks/useProfile";
-import { useCurrentUserId } from "@/lib/hooks/useSession";
+ useCurrentUserId } from "@/lib/hooks";
 import { useQueryClient } from "@tanstack/react-query";
-import { QUERY_KEYS } from "@/lib/query/keys";
+import { QUERY_KEYS } from "@/lib/query";
 import {
   uploadProfileImage,
   updateProfileImagePath,
-} from "@/lib/services/profile.service";
-import type { ProfileEdits } from "@/lib/services/profile.service";
+} from "@/lib/services";
+import type { ProfileEdits } from "@/lib/services";
 
 export default function ProfileScreen() {
-  const insets = useSafeAreaInsets();
+  const listPaddingBottom = useBottomListPadding();
   const queryClient = useQueryClient();
   const userId = useCurrentUserId();
   const { data: profile, isLoading, isError, refetch } = useProfile();
@@ -165,7 +162,7 @@ export default function ProfileScreen() {
       style={styles.screen}
       contentContainerStyle={[
         styles.content,
-        { paddingBottom: insets.bottom + 96 },
+        { paddingBottom: listPaddingBottom },
       ]}
       showsVerticalScrollIndicator={false}
     >

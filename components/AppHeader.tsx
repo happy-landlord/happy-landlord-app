@@ -5,10 +5,10 @@ import { Menu, ChevronLeft } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useNavigationState } from "@react-navigation/native";
 
-import { Logo } from "@/components/ui/Logo";
+import { Logo } from "@/components/ui";
 import { MenuSheet } from "@/components/MenuSheet";
 import { NotificationBell } from "@/components/NotificationBell";
-import { theme } from "@/constants/theme";
+import { theme } from "@/constants";
 
 export function AppHeader() {
   const insets = useSafeAreaInsets();

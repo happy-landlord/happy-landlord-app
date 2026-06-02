@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import { Check } from "lucide-react-native";
 
-import { theme } from "@/constants/theme";
+import { theme } from "@/constants";
 
 type StepIndicatorProps = {
   steps: readonly string[];

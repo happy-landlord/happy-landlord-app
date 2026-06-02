@@ -1,5 +1,5 @@
-import type { PlaceResult } from "@/components/ui/AddressSearch";
-import type { KeyType, PropertyType } from "@/types/database";
+import type { PlaceResult } from "@/components/ui";
+import type { KeyType, PropertyType } from "@/types";
 
 // ── Wizard draft shapes ──────────────────────────────────────────────────────
 
@@ -31,23 +31,6 @@ export type KeySetDraft = {
   keyIds: string[];
 };
 
-// ── Property type options ────────────────────────────────────────────────────
-
-export const PROPERTY_TYPES: { value: PropertyType; label: string }[] = [
-  { value: "house", label: "House" },
-  { value: "townhouse", label: "Townhouse" },
-  { value: "apartment", label: "Apartment" },
-  { value: "unit", label: "Unit" },
-  { value: "duplex", label: "Duplex" },
-  { value: "villa", label: "Villa" },
-  { value: "other", label: "Other" },
-];
-
-/** Lookup map derived from PROPERTY_TYPES — use instead of local duplicates. */
-export const PROPERTY_TYPE_LABEL = Object.fromEntries(
-  PROPERTY_TYPES.map(({ value, label }) => [value, label]),
-) as Record<PropertyType, string>;
-
 // ── Defaults & wizard steps ──────────────────────────────────────────────────
 
 export const DEFAULT_PROPERTY: PropertyStep = {
@@ -61,15 +44,7 @@ export const DEFAULT_PROPERTY: PropertyStep = {
 export const STEP_LABELS = ["Property", "Keysets", "Review"] as const;
 export const TOTAL_STEPS = STEP_LABELS.length;
 
-// ── Formatting helpers ───────────────────────────────────────────────────────
-
-export function formatDate(date: Date): string {
-  return date.toLocaleDateString("en-AU", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
+// ── Wizard-only helpers ──────────────────────────────────────────────────────
 
 /**
  * Returns the per-keyset code derived from the property code.

@@ -1,9 +1,9 @@
 import { memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { theme } from "@/constants/theme";
-import type { DbProperty } from "@/types/database";
-import type { KeyInSet } from "@/lib/services/keySets.service";
+import { theme } from "@/constants";
+import type { DbProperty } from "@/types";
+import type { KeyInSet } from "@/lib/services";
 
 export type PropertySummaryProps = {
   property: DbProperty;

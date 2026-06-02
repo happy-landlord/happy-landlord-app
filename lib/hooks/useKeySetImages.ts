@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 
-import type { StoredImage } from "@/types/database";
+import type { StoredImage } from "@/types";
 import {
   fetchSignedKeySetImageUrl,
   getVisibleKeySetImages,
-} from "@/lib/services/keySets.service";
+} from "@/lib/services";
 
 const SIGNED_URL_STALE_MS = 1000 * 60 * 55;
 const SIGNED_URL_GC_MS = 1000 * 60 * 65;

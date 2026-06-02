@@ -1,6 +1,5 @@
-import { useProfile } from "@/lib/hooks/useProfile";
-import { useCurrentUserId } from "@/lib/hooks/useSession";
-import type { UserRole } from "@/constants/roles";
+import { useCurrentUserId, useProfile } from "@/lib/hooks";
+import type { UserRole } from "@/types";
 
 export type UseRoleResult = {
   role: UserRole | undefined;

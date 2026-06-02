@@ -2,8 +2,8 @@ import { memo, useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Clock } from "lucide-react-native";
 
-import { theme } from "@/constants/theme";
-import { formatCountdown, formatDateTime, getRemainingTime } from "@/lib/utils/format";
+import { theme } from "@/constants";
+import { formatCountdown, formatDateTime, getRemainingTime } from "@/lib/utils";
 
 export type CountdownTimerProps = {
   /** ISO timestamp the timer counts down to. */

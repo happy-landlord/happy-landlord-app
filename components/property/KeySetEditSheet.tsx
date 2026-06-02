@@ -12,15 +12,15 @@ import {
 import { KeyRound, Minus, Plus, X } from "lucide-react-native";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
-import { BottomSheet } from "@/components/ui/BottomSheet";
-import { theme } from "@/constants/theme";
-import { QUERY_KEYS } from "@/lib/query/keys";
-import { useUnassignedKeys } from "@/lib/hooks/useKeySets";
-import { updateKeySet } from "@/lib/services/keySets.service";
-import { createKeys, deleteKey, updateKey } from "@/lib/services/keys.service";
-import type { KeyType } from "@/types/database";
-import type { KeyInSet, UnassignedKey } from "@/lib/services/keySets.service";
+import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key";
+import { BottomSheet } from "@/components/ui";
+import { theme } from "@/constants";
+import { QUERY_KEYS } from "@/lib/query";
+import { useUnassignedKeys } from "@/lib/hooks";
+import { updateKeySet , createKeys, deleteKey, updateKey } from "@/lib/services";
+import { alertError } from "@/lib/utils";
+import type { KeyType } from "@/types";
+import type { KeyInSet, UnassignedKey } from "@/lib/services";
 
 type ComparableKey = Pick<
   KeyInSet | UnassignedKey,
@@ -97,10 +97,7 @@ export function KeySetEditSheet({
       });
     },
     onError: (err: unknown) =>
-      Alert.alert(
-        "Error",
-        err instanceof Error ? err.message : "Failed to save name.",
-      ),
+      alertError("Error", err, "Failed to save name."),
   });
 
   // -- Assign mutation -------------------------------------------------------
@@ -146,10 +143,7 @@ export function KeySetEditSheet({
     },
     onSuccess: invalidate,
     onError: (err: unknown) =>
-      Alert.alert(
-        "Error",
-        err instanceof Error ? err.message : "Failed to assign key.",
-      ),
+      alertError("Error", err, "Failed to assign key."),
   });
 
   // -- Unassign mutation -----------------------------------------------------
@@ -173,10 +167,7 @@ export function KeySetEditSheet({
     },
     onSuccess: invalidate,
     onError: (err: unknown) =>
-      Alert.alert(
-        "Error",
-        err instanceof Error ? err.message : "Failed to unassign key.",
-      ),
+      alertError("Error", err, "Failed to unassign key."),
   });
 
   // -- Stepper mutation ------------------------------------------------------
@@ -221,10 +212,7 @@ export function KeySetEditSheet({
     },
     onSuccess: invalidate,
     onError: (err: unknown) =>
-      Alert.alert(
-        "Error",
-        err instanceof Error ? err.message : "Failed to update quantity.",
-      ),
+      alertError("Error", err, "Failed to update quantity."),
   });
 
   const busy =

@@ -14,7 +14,7 @@ import {
   XCircle,
 } from "lucide-react-native";
 import { theme } from "@/constants/theme";
-import type { KeyTransactionType, ActivityTransaction } from "@/types/database";
+import type { KeyTransactionType, ActivityTransaction } from "@/types";
 export type MovementConfig = {
   label: string;
   /** Label shown when the viewing user is the one who performed the action. */

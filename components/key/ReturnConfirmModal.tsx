@@ -11,9 +11,9 @@ import { Archive, Calendar, KeyRound, UserRound } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
 import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
-import { theme } from "@/constants/theme";
-import { formatDateTime } from "@/lib/utils/format";
-import type { KeyInSet } from "@/lib/services/keySets.service";
+import { theme } from "@/constants";
+import { formatDateTime } from "@/lib/utils";
+import type { KeyInSet } from "@/lib/services";
 
 export type ReturnConfirmModalProps = {
   visible: boolean;

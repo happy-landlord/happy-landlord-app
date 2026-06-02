@@ -19,27 +19,15 @@ import {
   Pencil,
 } from "lucide-react-native";
 
-import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
-import { CountdownTimer } from "@/components/key/CountdownTimer";
-import { KeySetDurationModal } from "@/components/key/KeySetDurationModal";
+import { KEY_TYPE_ICON, KEY_TYPE_LABEL , CountdownTimer , KeySetDurationModal , ReturnConfirmModal , TransferConfirmModal } from "@/components/key";
 import { KeyStatusChip } from "@/components/KeyStatusChip";
-import { KeySetEditSheet } from "@/components/property/KeySetEditSheet";
-import { PropertyHeader } from "@/components/property/PropertyHeader";
-import { ReturnConfirmModal } from "@/components/key/ReturnConfirmModal";
-import { TransferConfirmModal } from "@/components/key/TransferConfirmModal";
-import { ErrorState } from "@/components/ui/ErrorState";
-import { LoadingState } from "@/components/ui/LoadingState";
-import { useKeySet } from "@/lib/hooks/useKeySets";
-import { useKeySetActions } from "@/hooks/useKeySetActions";
-import { useProperty } from "@/lib/hooks/useProperties";
-import { useCurrentUserId } from "@/lib/hooks/useSession";
-import { useRole } from "@/hooks/useRole";
-import { useFirstKeySetImageUrl } from "@/lib/hooks/useKeySetImages";
-import { useInfiniteActivity } from "@/lib/hooks/useTransactions";
-import type { ActivityTransaction } from "@/types/database";
-import { theme } from "@/constants/theme";
-import { formatActivityTimestamp, formatDueAt } from "@/lib/utils/format";
-import { MOVEMENT_CONFIG, getMovementLabel } from "@/constants/movements";
+import { KeySetEditSheet , PropertyHeader } from "@/components/property";
+import { ErrorState , LoadingState } from "@/components/ui";
+import { useKeySet , useProperty , useCurrentUserId , useFirstKeySetImageUrl , useInfiniteActivity } from "@/lib/hooks";
+import { useKeySetActions , useRole } from "@/hooks";
+import type { ActivityTransaction } from "@/types";
+import { theme , MOVEMENT_CONFIG, getMovementLabel } from "@/constants";
+import { formatActivityTimestamp, formatDueAt } from "@/lib/utils";
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 

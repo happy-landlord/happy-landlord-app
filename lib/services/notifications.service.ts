@@ -3,8 +3,8 @@ import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 
-import { supabase } from "@/lib/supabase/client";
-import type { DbNotification } from "@/types/database";
+import { supabase } from "@/lib/supabase";
+import type { DbNotification } from "@/types";
 
 // ── App-domain notification types ───────────────────────────────────────────
 // These live here (not in database.ts) because they describe app conventions

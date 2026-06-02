@@ -9,21 +9,12 @@ import {
   useReturnKeySet,
   useTransferKeySet,
   useUndoReportKeySetLost,
-} from "@/lib/hooks/useKeySets";
-import { isPastDue } from "@/lib/utils/format";
-import type { KeySetWithDetails } from "@/lib/services/keySets.service";
+} from "@/lib/hooks";
+import { isPastDue } from "@/lib/utils";
+import { alertError } from "@/lib/utils";
+import { DAY_MS, isoInDays } from "@/lib/utils";
+import type { KeySetWithDetails } from "@/lib/services";
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-const DAY_MS = 24 * 60 * 60 * 1000;
-const calcDueBackIso = (days = 1) =>
-  new Date(Date.now() + days * DAY_MS).toISOString();
-
-function errMsg(err: unknown, fallback: string) {
-  if (err instanceof Error) return err.message;
-  if (err && typeof err === "object" && "message" in err)
-    return String((err as { message: unknown }).message);
-  return fallback;
-}
 
 // ── Public types ─────────────────────────────────────────────────────────────
 export type KeySetActions = {
@@ -150,11 +141,10 @@ export function useKeySetActions({
     (days: number, onClose: () => void) => {
       if (!keySet) return;
       checkoutMut.mutate(
-        { keySetId: keySet.id, dueBackAt: calcDueBackIso(days) },
+        { keySetId: keySet.id, dueBackAt: isoInDays(days) },
         {
           onSuccess: onClose,
-          onError: (err) =>
-            Alert.alert("Checkout failed", errMsg(err, "Please try again.")),
+          onError: (err) => alertError("Checkout failed", err),
         },
       );
     },
@@ -168,8 +158,7 @@ export function useKeySetActions({
         { keySetId: keySet.id },
         {
           onSuccess: onClose,
-          onError: (err) =>
-            Alert.alert("Transfer failed", errMsg(err, "Please try again.")),
+          onError: (err) => alertError("Transfer failed", err),
         },
       );
     },
@@ -187,8 +176,7 @@ export function useKeySetActions({
         { keySetId: keySet.id, dueBackAt: newDueBack },
         {
           onSuccess: onClose,
-          onError: (err) =>
-            Alert.alert("Extend failed", errMsg(err, "Please try again.")),
+          onError: (err) => alertError("Extend failed", err),
         },
       );
     },
@@ -202,8 +190,7 @@ export function useKeySetActions({
         { keySetId: keySet.id },
         {
           onSuccess: onClose,
-          onError: (err) =>
-            Alert.alert("Failed", errMsg(err, "Please try again.")),
+          onError: (err) => alertError("Failed", err),
         },
       );
     },
@@ -222,8 +209,7 @@ export function useKeySetActions({
           style: "destructive",
           onPress: () =>
             reportLostMut.mutate(keySet.id, {
-              onError: (err) =>
-                Alert.alert("Failed", errMsg(err, "Please try again.")),
+              onError: (err) => alertError("Failed", err),
             }),
         },
       ],
@@ -233,7 +219,7 @@ export function useKeySetActions({
   const undoLost = useCallback(() => {
     if (!keySet) return;
     undoLostMut.mutate(keySet.id, {
-      onError: (err) => Alert.alert("Failed", errMsg(err, "Please try again.")),
+      onError: (err) => alertError("Failed", err),
     });
   }, [keySet, undoLostMut]);
 

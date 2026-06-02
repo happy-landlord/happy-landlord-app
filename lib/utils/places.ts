@@ -2,7 +2,7 @@
  * Utility helpers for Australian place / address data.
  */
 
-import { AU_CBD_LOCALITIES } from "@/constants/places";
+import { AU_CBD_LOCALITIES } from "@/constants";
 
 /**
  * Normalises a raw suburb string returned by Google Places.

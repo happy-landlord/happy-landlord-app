@@ -2,10 +2,10 @@ import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Session } from "@supabase/supabase-js";
 
-import { QUERY_KEYS } from "@/lib/query/keys";
-import { FEATURES } from "@/constants/features";
-import { useLockStore } from "@/lib/state/lockStore";
-import { supabase } from "@/lib/supabase/client";
+import { QUERY_KEYS } from "@/lib/query";
+import { FEATURES } from "@/constants";
+import { useLockStore } from "@/lib/state";
+import { supabase } from "@/lib/supabase";
 
 // ── Session query ────────────────────────────────────────────────────────────
 
