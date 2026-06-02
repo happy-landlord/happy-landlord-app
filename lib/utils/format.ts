@@ -297,3 +297,52 @@ export function formatNotificationTimestamp(value: string | null): string {
   });
 }
 
+// ─── People / contact helpers ────────────────────────────────────────────────
+
+/**
+ * Normalises an Australian phone number for storage.
+ * • Trims whitespace.
+ * • Strips a leading `+` then converts a leading `61` (AU country code) to `0`
+ *     "+61 412 345 678" → "0412 345 678"
+ *     "61412345678"     → "0412345678"
+ * • Prepends `0` when the number starts with a bare non-zero digit
+ *     "412 345 678"     → "0412 345 678"
+ * • Returns `null` for blank input.
+ */
+export function formatAuPhone(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  const withoutPlus = trimmed.startsWith("+") ? trimmed.slice(1) : trimmed;
+
+  if (/^61\s?/.test(withoutPlus)) {
+    return `0${withoutPlus.replace(/^61\s?/, "")}`;
+  }
+  if (withoutPlus.startsWith("0")) return withoutPlus;
+  if (/^\d/.test(withoutPlus)) return `0${withoutPlus}`;
+  return withoutPlus;
+}
+
+/**
+ * Returns up to two uppercase initials derived from a person's name,
+ * falling back to the first character of their email, or "?".
+ *   "Jane Smith"   → "JS"
+ *   "alice"        → "A"
+ *   (none, email)  → "B" (from "bob@…")
+ */
+export function getInitials(
+  name?: string | null,
+  email?: string | null,
+): string {
+  const cleanName = name?.trim();
+  if (cleanName) {
+    return cleanName
+      .split(/\s+/)
+      .map((word) => word[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+  }
+  return (email?.trim()[0] ?? "?").toUpperCase();
+}

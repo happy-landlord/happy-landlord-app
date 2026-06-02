@@ -1,3 +1,4 @@
+import { memo, useMemo } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -9,13 +10,15 @@ import {
 import { CheckCircle, Clock, Phone, UserX, XCircle } from "lucide-react-native";
 
 import { theme } from "@/constants";
-import {
-  useRegistrationRequests,
-  useReviewRequest,
-} from "@/lib/hooks";
+import { useRegistrationRequests, useReviewRequest } from "@/lib/hooks";
 import type { RegistrationRequest } from "@/lib/services";
 
-export default function RequestsScreen() {
+import { sharedStyles } from "./styles";
+
+type ProcessingState = "approve" | "reject" | null;
+
+/** Requests list — pending first, then reviewed. */
+export function RequestsList() {
   const {
     data: requests,
     isLoading,
@@ -24,9 +27,32 @@ export default function RequestsScreen() {
   } = useRegistrationRequests();
   const { approve, reject } = useReviewRequest();
 
+  const { sorted, pendingCount } = useMemo(() => {
+    const rows = requests ?? [];
+    const pending: RegistrationRequest[] = [];
+    const reviewed: RegistrationRequest[] = [];
+    for (const r of rows) {
+      (r.status === "pending" ? pending : reviewed).push(r);
+    }
+    return { sorted: [...pending, ...reviewed], pendingCount: pending.length };
+  }, [requests]);
+
+  // Derive a single "which row is currently being processed" descriptor so
+  // each card only needs one boolean-ish prop (instead of 4).
+  const activeId = approve.isPending
+    ? approve.variables?.requestId
+    : reject.isPending
+      ? reject.variables?.requestId
+      : null;
+  const activeKind: ProcessingState = approve.isPending
+    ? "approve"
+    : reject.isPending
+      ? "reject"
+      : null;
+
   if (isLoading) {
     return (
-      <View style={styles.centered}>
+      <View style={sharedStyles.centered}>
         <ActivityIndicator color={theme.colors.primary} size="large" />
       </View>
     );
@@ -34,45 +60,42 @@ export default function RequestsScreen() {
 
   if (error) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.errorText}>Failed to load requests.</Text>
-        <Pressable onPress={() => refetch()} style={styles.retryBtn}>
-          <Text style={styles.retryLabel}>Retry</Text>
+      <View style={sharedStyles.centered}>
+        <Text style={sharedStyles.errorText}>Failed to load requests.</Text>
+        <Pressable onPress={() => refetch()} style={sharedStyles.retryBtn}>
+          <Text style={sharedStyles.retryLabel}>Retry</Text>
         </Pressable>
       </View>
     );
   }
 
-  if (!requests || requests.length === 0) {
+  if (sorted.length === 0) {
     return (
-      <View style={styles.centered}>
-        <View style={styles.emptyIcon}>
+      <View style={sharedStyles.centered}>
+        <View style={sharedStyles.emptyIcon}>
           <Clock size={32} color={theme.colors.textLight} strokeWidth={1.5} />
         </View>
-        <Text style={styles.emptyTitle}>No requests yet</Text>
-        <Text style={styles.emptyMessage}>
+        <Text style={sharedStyles.emptyTitle}>No requests yet</Text>
+        <Text style={sharedStyles.emptyMessage}>
           Agent registration requests will appear here for your review.
         </Text>
       </View>
     );
   }
 
-  const pending = requests.filter((r) => r.status === "pending");
-  const reviewed = requests.filter((r) => r.status !== "pending");
-
   return (
     <FlatList
-      data={[...pending, ...reviewed]}
-      keyExtractor={(item) => item.id}
-      contentContainerStyle={styles.list}
-      ItemSeparatorComponent={() => <View style={styles.separator} />}
+      data={sorted}
+      keyExtractor={keyExtractor}
+      contentContainerStyle={sharedStyles.list}
+      ItemSeparatorComponent={Separator}
       ListHeaderComponent={
-        pending.length > 0 ? (
+        pendingCount > 0 ? (
           <View style={styles.sectionHeader}>
             <View style={styles.pendingDot} />
             <Text style={styles.sectionTitle}>
-              {pending.length} pending{" "}
-              {pending.length === 1 ? "request" : "requests"}
+              {pendingCount} pending{" "}
+              {pendingCount === 1 ? "request" : "requests"}
             </Text>
           </View>
         ) : null
@@ -80,64 +103,73 @@ export default function RequestsScreen() {
       renderItem={({ item }) => (
         <RequestCard
           request={item}
-          onApprove={(role) => approve.mutate({ requestId: item.id, role })}
+          processing={activeId === item.id ? activeKind : null}
+          onApprove={() =>
+            approve.mutate({ requestId: item.id, role: "agent" })
+          }
           onReject={() => reject.mutate({ requestId: item.id })}
-          isApprovingThis={
-            approve.isPending &&
-            (approve.variables as { requestId: string } | undefined)
-              ?.requestId === item.id
-          }
-          isRejectingThis={
-            reject.isPending &&
-            (reject.variables as { requestId: string } | undefined)
-              ?.requestId === item.id
-          }
         />
       )}
     />
   );
 }
 
-type RequestCardProps = {
-  request: RegistrationRequest;
-  onApprove: (role: "agent" | "admin") => void;
-  onReject: () => void;
-  isApprovingThis: boolean;
-  isRejectingThis: boolean;
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const keyExtractor = (item: RegistrationRequest) => item.id;
+const Separator = () => <View style={sharedStyles.separator} />;
+
+const STATUS_CONFIG: Record<
+  RegistrationRequest["status"],
+  { color: string; bg: string; label: string }
+> = {
+  pending: {
+    color: theme.colors.warning,
+    bg: theme.colors.warningSoft,
+    label: "Pending",
+  },
+  approved: {
+    color: theme.colors.success,
+    bg: theme.colors.successSoft,
+    label: "Approved",
+  },
+  rejected: {
+    color: theme.colors.danger,
+    bg: theme.colors.dangerSoft,
+    label: "Rejected",
+  },
 };
 
-function RequestCard({
+const DATE_OPTS: Intl.DateTimeFormatOptions = {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+};
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-AU", DATE_OPTS);
+
+// ── Card ──────────────────────────────────────────────────────────────────────
+
+type RequestCardProps = {
+  request: RegistrationRequest;
+  processing: ProcessingState;
+  onApprove: () => void;
+  onReject: () => void;
+};
+
+const RequestCard = memo(function RequestCard({
   request,
+  processing,
   onApprove,
   onReject,
-  isApprovingThis,
-  isRejectingThis,
 }: RequestCardProps) {
   const isPending = request.status === "pending";
-
-  const statusConfig = {
-    pending: {
-      color: theme.colors.warning,
-      bg: theme.colors.warningSoft,
-      label: "Pending",
-    },
-    approved: {
-      color: theme.colors.success,
-      bg: theme.colors.successSoft,
-      label: "Approved",
-    },
-    rejected: {
-      color: theme.colors.danger,
-      bg: theme.colors.dangerSoft,
-      label: "Rejected",
-    },
-  }[request.status];
-
+  const statusConfig = STATUS_CONFIG[request.status];
   const initial = (request.full_name || request.email || "?")[0].toUpperCase();
+  const isBusy = processing !== null;
 
   return (
     <View style={styles.card}>
-      {/* Header */}
       <View style={styles.cardHeader}>
         <View style={styles.avatarCircle}>
           <Text style={styles.avatarLetter}>{initial}</Text>
@@ -167,28 +199,19 @@ function RequestCard({
         </View>
       </View>
 
-      {/* Role requested + date */}
       <View style={styles.metaRow}>
         <View style={styles.rolePill}>
           <Text style={styles.roleText}>{request.requested_role}</Text>
         </View>
-        <Text style={styles.dateText}>
-          {new Date(request.created_at).toLocaleDateString("en-AU", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-          })}
-        </Text>
+        <Text style={styles.dateText}>{formatDate(request.created_at)}</Text>
       </View>
 
-      {/* Admin note (if any) */}
       {request.admin_note ? (
         <View style={styles.noteBox}>
           <Text style={styles.noteText}>{request.admin_note}</Text>
         </View>
       ) : null}
 
-      {/* Action buttons — pending only */}
       {isPending && (
         <View style={styles.actions}>
           <Pressable
@@ -197,10 +220,10 @@ function RequestCard({
               styles.approveBtn,
               pressed && styles.btnPressed,
             ]}
-            onPress={() => onApprove("agent")}
-            disabled={isApprovingThis || isRejectingThis}
+            onPress={onApprove}
+            disabled={isBusy}
           >
-            {isApprovingThis ? (
+            {processing === "approve" ? (
               <ActivityIndicator size="small" color={theme.colors.surface} />
             ) : (
               <>
@@ -221,9 +244,9 @@ function RequestCard({
               pressed && styles.btnPressed,
             ]}
             onPress={onReject}
-            disabled={isApprovingThis || isRejectingThis}
+            disabled={isBusy}
           >
-            {isRejectingThis ? (
+            {processing === "reject" ? (
               <ActivityIndicator size="small" color={theme.colors.danger} />
             ) : (
               <>
@@ -239,7 +262,6 @@ function RequestCard({
         </View>
       )}
 
-      {/* Reviewed note */}
       {!isPending && request.reviewed_at && (
         <View style={styles.reviewedRow}>
           {request.status === "approved" ? (
@@ -253,70 +275,21 @@ function RequestCard({
           )}
           <Text style={styles.reviewedText}>
             {request.status === "approved" ? "Approved" : "Rejected"} on{" "}
-            {new Date(request.reviewed_at).toLocaleDateString("en-AU", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            })}
+            {formatDate(request.reviewed_at)}
           </Text>
         </View>
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: theme.spacing.screen,
-    backgroundColor: theme.colors.background,
-  },
-  errorText: {
-    color: theme.colors.danger,
-    fontSize: 16,
-    marginBottom: theme.spacing.md,
-  },
-  retryBtn: {
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.lg,
-    backgroundColor: theme.colors.primarySoft,
-    borderRadius: theme.radius.pill,
-  },
-  retryLabel: { color: theme.colors.primary, fontWeight: "600" },
-  emptyIcon: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: theme.colors.neutralSoft,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: theme.spacing.md,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
-  },
-  emptyMessage: {
-    fontSize: 14,
-    color: theme.colors.textMuted,
-    textAlign: "center",
-    lineHeight: 20,
-    maxWidth: 280,
-  },
-  list: {
-    padding: theme.spacing.screen,
-    backgroundColor: theme.colors.background,
-  },
-  separator: { height: theme.spacing.md },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing.sm,
     marginBottom: theme.spacing.md,
+    marginTop: theme.spacing.sm,
   },
   pendingDot: {
     width: 8,
@@ -451,3 +424,4 @@ const styles = StyleSheet.create({
   },
   reviewedText: { fontSize: 12, color: theme.colors.textLight },
 });
+

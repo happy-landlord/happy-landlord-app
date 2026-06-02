@@ -2,6 +2,7 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { AlertTriangle, Camera, KeyRound, Pencil } from "lucide-react-native";
 
 import { KeyStatusChip } from "@/components/KeyStatusChip";
+import { PhoneLink } from "@/components/ui";
 import { ReservationStatusChip } from "./ReservationStatusChip";
 import { useKeySetScreen } from "./KeySetScreenContext";
 import { theme } from "@/constants";
@@ -149,15 +150,13 @@ export function KeySetIdentityCard() {
               {holderPhone && (
                 <View style={styles.metaItem}>
                   <Text style={styles.metaLabel}>Contact</Text>
-                  <Text
-                    style={[
+                  <PhoneLink
+                    phone={holderPhone}
+                    textStyle={[
                       styles.metaValue,
                       overdue && styles.metaValueDanger,
                     ]}
-                    numberOfLines={1}
-                  >
-                    {holderPhone}
-                  </Text>
+                  />
                 </View>
               )}
             </View>

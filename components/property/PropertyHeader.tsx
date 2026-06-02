@@ -34,7 +34,7 @@ export const PropertyHeader = memo(function PropertyHeader({
     ? [
         { label: "Landlord", value: landlord.full_name || "—" },
         ...(landlord.phone || landlord.email
-          ? [{ label: "Contact", value: landlord.phone ?? landlord.email ?? "—" }]
+          ? [{ label: "Contact", value: landlord.phone ?? landlord.email ?? "—", phone: !!landlord.phone }]
           : []),
       ]
     : [];
@@ -43,7 +43,7 @@ export const PropertyHeader = memo(function PropertyHeader({
   const tenantMeta = showTenant && tenant
     ? [
         { label: "Tenant", value: tenant.full_name || "—" },
-        ...(tenant.phone ? [{ label: "Contact", value: tenant.phone }] : []),
+        ...(tenant.phone ? [{ label: "Contact", value: tenant.phone, phone: true }] : []),
       ]
     : [];
 

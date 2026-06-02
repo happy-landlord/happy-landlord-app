@@ -41,8 +41,8 @@ export function MenuSheet({ visible, onClose }: MenuSheetProps) {
         <RoleGate allow="admin">
           <MenuItem
             Icon={ClipboardList}
-            label="Agent Requests"
-            onPress={() => navigate("/(app)/requests")}
+            label="Agents"
+            onPress={() => navigate("/(app)/agents")}
             badge={pendingRequests?.length ?? 0}
           />
           <View style={styles.divider} />

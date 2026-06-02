@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 
 import { theme } from "@/constants";
+import { PhoneLink } from "./PhoneLink";
 
 // ── MetaRow ───────────────────────────────────────────────────────────────────
 // Generic "divider + label/value columns" block extracted from PropertyHeader,
@@ -11,6 +12,8 @@ export type MetaItem = {
   label: string;
   value: string;
   danger?: boolean;
+  /** When true the value is rendered as a tappable phone link. */
+  phone?: boolean;
 };
 
 export type MetaRowProps = {
@@ -28,12 +31,19 @@ export function MetaRow({ items, divider = true }: MetaRowProps) {
         {items.map((item) => (
           <View key={item.label} style={styles.item}>
             <Text style={styles.label}>{item.label}</Text>
-            <Text
-              style={[styles.value, item.danger && styles.valueDanger]}
-              numberOfLines={1}
-            >
-              {item.value}
-            </Text>
+            {item.phone ? (
+              <PhoneLink
+                phone={item.value}
+                textStyle={[styles.value, item.danger && styles.valueDanger]}
+              />
+            ) : (
+              <Text
+                style={[styles.value, item.danger && styles.valueDanger]}
+                numberOfLines={1}
+              >
+                {item.value}
+              </Text>
+            )}
           </View>
         ))}
       </View>

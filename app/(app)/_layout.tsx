@@ -124,7 +124,7 @@ export default function AppLayout() {
         <Stack.Screen name="properties/[id]" />
         <Stack.Screen name="properties/[id]/keysets/[keysetId]" />
         <Stack.Screen name="checkouts/[id]" />
-        <Stack.Screen name="requests" options={{ title: "Agent Requests" }} />
+        <Stack.Screen name="agents" options={{ title: "Agents" }} />
         <Stack.Screen
           name="notifications"
           options={{ title: "Notifications" }}

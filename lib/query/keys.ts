@@ -45,6 +45,9 @@ export const QUERY_KEYS = {
         dateTo ?? "",
       ] as const,
   },
+  agents: {
+    all: ["agents"] as const,
+  },
   requests: {
     all: ["requests"] as const,
     mine: ["requests", "mine"] as const,
