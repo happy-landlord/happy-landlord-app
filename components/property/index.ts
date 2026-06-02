@@ -9,5 +9,5 @@
  */
 export * from "./KeySetsSection";
 export * from "./PropertiesFilterBar";
-export * from "./PropertyEditModal";
+export * from "./PropertyEditSheet";
 export * from "./PropertyHeader";

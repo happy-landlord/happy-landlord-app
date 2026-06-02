@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { QUERY_KEYS } from "@/lib/query";
@@ -13,10 +14,13 @@ import {
   extendKeySetCheckout,
   reportKeySetLost,
   undoReportKeySetLost,
+  updateKeySet,
   type CheckoutKeySetParams,
   type ReturnKeySetParams,
   type TransferKeySetParams,
   type ExtendKeySetParams,
+  type KeyInSet,
+  type UnassignedKey,
 } from "@/lib/services";
 import {
   fetchAdminDashboardSummary,
@@ -56,15 +60,56 @@ export function useUnassignedKeys(propertyId: string) {
   });
 }
 
+/**
+ * Composite query that returns ALL keys belonging to a property — both
+ * keys already assigned to a keyset (annotated with `keySetName`) and
+ * the unassigned pool, in one flat list. Used by the property edit
+ * sheet so the screen doesn't have to merge two queries inline.
+ */
+export type EnrichedKey = (KeyInSet | UnassignedKey) & {
+  keySetName?: string;
+};
+
+export function useAllPropertyKeys(propertyId: string) {
+  const keySetsQuery = useKeySets(propertyId);
+  const unassignedQuery = useUnassignedKeys(propertyId);
+
+  const allKeys = useMemo<EnrichedKey[]>(() => {
+    const keySets = keySetsQuery.data ?? [];
+    const unassigned = unassignedQuery.data ?? [];
+    return [
+      ...keySets.flatMap((ks) =>
+        ks.keys.map((k) => ({ ...k, keySetName: ks.name })),
+      ),
+      ...unassigned,
+    ];
+  }, [keySetsQuery.data, unassignedQuery.data]);
+
+  return {
+    allKeys,
+    isPending: keySetsQuery.isPending || unassignedQuery.isPending,
+    isError: keySetsQuery.isError || unassignedQuery.isError,
+  };
+}
+
 // ── Invalidation helper ───────────────────────────────────────────────────────
 
-function invalidateKeySets(
+/**
+ * Centralised cache invalidation for keyset-shaped mutations.
+ * Exported so screen-level mutations (e.g. KeySetEditSheet's combined
+ * assign/unassign flows) can reuse the exact same invalidation set
+ * instead of cherry-picking query keys themselves.
+ */
+export function invalidateKeySets(
   queryClient: ReturnType<typeof useQueryClient>,
   propertyId: string,
   keySetId?: string,
 ) {
   queryClient.invalidateQueries({
     queryKey: QUERY_KEYS.keySets.byProperty(propertyId),
+  });
+  queryClient.invalidateQueries({
+    queryKey: QUERY_KEYS.keySets.unassigned(propertyId),
   });
   if (keySetId) {
     queryClient.invalidateQueries({
@@ -132,12 +177,7 @@ export function useCreateKeys(propertyId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (inputs: DbKeyInsert[]) => createKeys(inputs),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: QUERY_KEYS.keySets.byProperty(propertyId),
-      });
-      queryClient.invalidateQueries({ queryKey: ["keySets"] });
-    },
+    onSuccess: () => invalidateKeySets(queryClient, propertyId),
   });
 }
 
@@ -145,12 +185,7 @@ export function useDeleteKey(propertyId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (keyId: string) => deleteKey(keyId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: QUERY_KEYS.keySets.byProperty(propertyId),
-      });
-      queryClient.invalidateQueries({ queryKey: ["keySets"] });
-    },
+    onSuccess: () => invalidateKeySets(queryClient, propertyId),
   });
 }
 
@@ -159,12 +194,21 @@ export function useUpdateKey(propertyId: string) {
   return useMutation({
     mutationFn: ({ keyId, patch }: { keyId: string; patch: DbKeyUpdate }) =>
       updateKey(keyId, patch),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: QUERY_KEYS.keySets.byProperty(propertyId),
-      });
-      queryClient.invalidateQueries({ queryKey: ["keySets"] });
-    },
+    onSuccess: () => invalidateKeySets(queryClient, propertyId),
+  });
+}
+
+// ── Keyset metadata mutation ─────────────────────────────────────────────────
+
+/**
+ * Rename / patch a keyset (currently only `name` is exposed in the UI,
+ * but the service accepts any subset of editable columns).
+ */
+export function useUpdateKeySet(propertyId: string, keySetId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (patch: { name?: string }) => updateKeySet(keySetId, patch),
+    onSuccess: () => invalidateKeySets(queryClient, propertyId, keySetId),
   });
 }
 

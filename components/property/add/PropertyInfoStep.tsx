@@ -23,7 +23,7 @@ import {
 import { formatLongDate } from "@/lib/utils";
 import type { KeyType } from "@/types";
 
-import type { KeyEntry, PropertyStep } from "./types";
+import type { KeyEntry, PropertyStep } from "./useAddPropertyWizard";
 
 const KEY_TYPE_OPTIONS = (Object.keys(KEY_TYPE_LABEL) as KeyType[]).map(
   (type) => {

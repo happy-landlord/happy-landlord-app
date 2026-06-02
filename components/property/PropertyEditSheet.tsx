@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -20,19 +20,16 @@ import {
 } from "lucide-react-native";
 import { BottomSheet, PickerModal } from "@/components/ui";
 import { KEY_TYPE_ICON, KEY_TYPE_LABEL, PROPERTY_TYPES, theme } from "@/constants";
-import { alertError } from "@/lib/utils";
+import { alertError, getKeyName, getKeySignature } from "@/lib/utils";
 import {
-  useKeySets,
-  useUnassignedKeys,
+  useAllPropertyKeys,
   useCreateKeys,
   useDeleteKey,
   useUpdateKey,
+  useUpdatePropertyDetails,
 } from "@/lib/hooks";
-import type {
-  PropertyWithLandlord,
-  KeyInSet,
-  UnassignedKey,
-} from "@/lib/services";
+import type { EnrichedKey } from "@/lib/hooks";
+import type { PropertyWithLandlord } from "@/lib/services";
 import type { DbKeyInsert, KeyType, PropertyType } from "@/types";
 
 const ALL_KEY_TYPE_OPTIONS = (Object.keys(KEY_TYPE_LABEL) as KeyType[]).map(
@@ -45,26 +42,9 @@ const ALL_KEY_TYPE_OPTIONS = (Object.keys(KEY_TYPE_LABEL) as KeyType[]).map(
     };
   },
 );
-// -- Enriched key type ---------------------------------------------------------
-type EnrichedKey = (KeyInSet | UnassignedKey) & { keySetName?: string };
 
 type ComparableKey = Pick<EnrichedKey, "key_type" | "label" | "code">;
 
-function getKeyName(key: ComparableKey) {
-  return (
-    key.label?.trim() ||
-    KEY_TYPE_LABEL[key.key_type as KeyType] ||
-    key.key_type
-  ).trim();
-}
-
-function getKeySignature(key: ComparableKey) {
-  return [
-    key.key_type,
-    getKeyName(key).toLocaleLowerCase(),
-    (key.code ?? "").trim().toLocaleLowerCase(),
-  ].join("::");
-}
 
 // -- PropertyKeysSection -------------------------------------------------------
 type PropertyKeysSectionProps = {
@@ -361,19 +341,9 @@ type Props = {
   visible: boolean;
   onClose: () => void;
 };
-export function PropertyEditModal({ property, visible, onClose }: Props) {
-  const { data: keySets = [] } = useKeySets(property.id);
-  const { data: unassignedKeys = [] } = useUnassignedKeys(property.id);
-  // All property keys: assigned (from keysets, with name) + unassigned
-  const allKeys = useMemo<EnrichedKey[]>(
-    () => [
-      ...keySets.flatMap((ks) =>
-        ks.keys.map((k) => ({ ...k, keySetName: ks.name })),
-      ),
-      ...unassignedKeys,
-    ],
-    [keySets, unassignedKeys],
-  );
+export function PropertyEditSheet({ property, visible, onClose }: Props) {
+  const { allKeys } = useAllPropertyKeys(property.id);
+  const updateDetailsMut = useUpdatePropertyDetails(property.id);
   const [propertyType, setPropertyType] = useState<PropertyType>(
     property.property_type,
   );
@@ -391,8 +361,34 @@ export function PropertyEditModal({ property, visible, onClose }: Props) {
       setLandlordContact(property.landlord?.phone ?? "");
     }
   }, [visible, property]);
+
+  const isDirty =
+    propertyType !== property.property_type ||
+    landlordName.trim() !== (property.landlord?.full_name ?? "").trim() ||
+    landlordContact.trim() !== (property.landlord?.phone ?? "").trim();
+
+  function handleSave() {
+    updateDetailsMut.mutate(
+      {
+        patch:
+          propertyType !== property.property_type
+            ? { property_type: propertyType }
+            : {},
+        landlord: {
+          holderId: property.landlord?.id ?? null,
+          name: landlordName,
+          phone: landlordContact,
+        },
+      },
+      {
+        onSuccess: onClose,
+        onError: (err) => alertError("Error", err, "Failed to save changes."),
+      },
+    );
+  }
+
   const selectedTypeLabel =
-    PROPERTY_TYPES.find((t) => t.value === propertyType)?.label ?? "Select�";
+    PROPERTY_TYPES.find((t) => t.value === propertyType)?.label ?? "Select…";
   return (
     <>
       <BottomSheet
@@ -432,7 +428,11 @@ export function PropertyEditModal({ property, visible, onClose }: Props) {
               ]}
             >
               <Text style={styles.selectText}>{selectedTypeLabel}</Text>
-              <Text style={styles.selectChevron}>�</Text>
+              <ChevronDown
+                size={16}
+                color={theme.colors.textMuted}
+                strokeWidth={2}
+              />
             </Pressable>
           </View>
           {/* Landlord */}
@@ -466,6 +466,27 @@ export function PropertyEditModal({ property, visible, onClose }: Props) {
             <PropertyKeysSection propertyId={property.id} allKeys={allKeys} />
           </View>
         </ScrollView>
+
+        {/* Save footer */}
+        <View style={styles.footer}>
+          <Pressable
+            onPress={handleSave}
+            disabled={!isDirty || updateDetailsMut.isPending}
+            style={({ pressed }) => [
+              styles.saveBtn,
+              (!isDirty || updateDetailsMut.isPending) && styles.saveBtnDisabled,
+              pressed && isDirty && { opacity: 0.85 },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Save property changes"
+          >
+            {updateDetailsMut.isPending ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.saveBtnText}>Save changes</Text>
+            )}
+          </Pressable>
+        </View>
       </BottomSheet>
       <PickerModal
         visible={showTypePicker}
@@ -523,7 +544,23 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
   },
   selectText: { fontSize: 15, color: theme.colors.text, fontWeight: "500" },
-  selectChevron: { fontSize: 18, color: theme.colors.textMuted },
+  footer: {
+    paddingHorizontal: theme.spacing.screen,
+    paddingTop: theme.spacing.sm,
+    paddingBottom: theme.spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+  },
+  saveBtn: {
+    height: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.primary,
+  },
+  saveBtnDisabled: { opacity: 0.45 },
+  saveBtnText: { fontSize: 15, fontWeight: "700", color: "#fff" },
   inputGroup: {
     backgroundColor: theme.colors.surface,
     borderWidth: 1,

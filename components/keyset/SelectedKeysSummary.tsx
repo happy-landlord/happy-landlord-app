@@ -2,7 +2,8 @@ import { StyleSheet, Text, View } from "react-native";
 import { KeyRound } from "lucide-react-native";
 
 import { IconBadge } from "@/components/ui/IconBadge";
-import { KEY_TYPE_ICON, KEY_TYPE_LABEL, theme } from "@/constants";
+import { KEY_TYPE_ICON, theme } from "@/constants";
+import { getKeyName } from "@/lib/utils";
 import type { KeyInSet } from "@/lib/services";
 
 // ── SelectedKeysSummary ───────────────────────────────────────────────────────
@@ -42,10 +43,7 @@ export function SelectedKeysSummary({
       <View style={variant === "compact" ? styles.listCompact : styles.list}>
         {keys.map((k) => {
           const Icon = KEY_TYPE_ICON[k.key_type] ?? KeyRound;
-          const label =
-            k.key_type === "other"
-              ? k.label
-              : (KEY_TYPE_LABEL[k.key_type] ?? k.key_type);
+          const label = getKeyName(k);
           if (variant === "compact") {
             return (
               <View key={k.id} style={styles.rowCompact}>

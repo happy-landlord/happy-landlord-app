@@ -5,15 +5,14 @@ import {
   uploadKeySetImages,
   updateKeySetImages,
 } from "@/lib/services";
-import { formatLongDate } from "@/lib/utils";
+import { buildKeySetCode, formatLongDate } from "@/lib/utils";
 import type { DbKeyInsert, DbProperty, DbPropertyInsert } from "@/types";
 import { KEY_TYPE_LABEL } from "@/constants";
-import {
-  buildKeySetCode,
-  type KeyEntry,
-  type KeySetDraft,
-  type PropertyStep,
-} from "./types";
+import type {
+  KeyEntry,
+  KeySetDraft,
+  PropertyStep,
+} from "./useAddPropertyWizard";
 
 export type CreatePropertyArgs = {
   property: PropertyStep;
@@ -30,7 +29,7 @@ export type CreatePropertyArgs = {
  *   2. Create the property row
  *   3. For each keyset draft: create keyset row, upload photos, insert global keys
  */
-export async function submitNewProperty({
+export async function submitProperty({
   property,
   propertyCode,
   keys,

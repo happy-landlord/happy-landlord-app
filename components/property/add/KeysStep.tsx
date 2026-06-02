@@ -8,19 +8,12 @@ import {
 } from "react-native";
 import { KeyRound, Plus, Trash2 } from "lucide-react-native";
 
-import { KEY_TYPE_ICON, KEY_TYPE_LABEL, theme } from "@/constants";
+import { KEY_TYPE_ICON, theme } from "@/constants";
 import { PhotoPicker , PrintButton } from "@/components/ui";
 
-import { buildQrPrintPage } from "@/lib/utils";
-import { buildKeySetCode, type KeyEntry, type KeySetDraft } from "./types";
+import { buildQrPrintPage, buildKeySetCode, getDraftKeyLabel } from "@/lib/utils";
+import type { KeyEntry, KeySetDraft } from "./useAddPropertyWizard";
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-
-function keyLabel(entry: KeyEntry): string {
-  if (entry.type === "other" && entry.otherLabel) return entry.otherLabel;
-  return KEY_TYPE_LABEL[entry.type] ?? entry.type;
-}
 
 // ── KeysStep ──────────────────────────────────────────────────────────────────
 
@@ -132,7 +125,7 @@ export function KeysStep({ keySets, keys, propertyCode, codeLoading, onChange }:
                     ]}
                     numberOfLines={1}
                   >
-                    {keyLabel(entry)}
+                    {getDraftKeyLabel(entry)}
                   </Text>
                   {entry.count > 1 && (
                     <View style={[
@@ -257,7 +250,7 @@ function KeySetDraftCard({ draft, keys, code, codeLoading, onUpdate, onDelete }:
               <View key={entry.id} style={styles.cardKeyPill}>
                 <Icon size={12} color={theme.colors.primary} strokeWidth={1.8} />
                 <Text style={styles.cardKeyPillLabel} numberOfLines={1}>
-                  {keyLabel(entry)}
+                  {getDraftKeyLabel(entry)}
                 </Text>
               </View>
             );

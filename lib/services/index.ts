@@ -6,7 +6,7 @@
  */
 export * from "./biometric.service";
 export * from "./keys.service";
-export * from "./keySets.service";
+export * from "./keysets.service";
 export * from "./notifications.service";
 export * from "./profile.service";
 export * from "./properties.service";

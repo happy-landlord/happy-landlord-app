@@ -4,7 +4,7 @@ import { AlertTriangle, Camera, KeyRound, Pencil } from "lucide-react-native";
 import { KeyStatusChip } from "@/components/KeyStatusChip";
 import { theme } from "@/constants";
 import { useFirstKeySetImageUrl } from "@/lib/hooks";
-import { isPastDue } from "@/lib/utils";
+import { getTotalKeyQuantity, isPastDue } from "@/lib/utils";
 import type { KeySetWithDetails } from "@/lib/services";
 
 // ── KeySetIdentityCard ───────────────────────────────────────────────────────
@@ -37,10 +37,7 @@ export function KeySetIdentityCard({
     status === "overdue" ||
     (keySet.due_back_at ? isPastDue(keySet.due_back_at) : false);
 
-  const totalKeys = (keySet.keys ?? []).reduce(
-    (sum, item) => sum + (item.quantity ?? 0),
-    0,
-  );
+  const totalKeys = getTotalKeyQuantity(keySet);
   const holderName = keySet.current_holder?.full_name;
   const holderType = keySet.current_holder?.holder_type;
   const holderPhone = keySet.current_holder?.phone;

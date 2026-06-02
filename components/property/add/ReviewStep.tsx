@@ -6,13 +6,10 @@ import {
   User,
 } from "lucide-react-native";
 
-import { KEY_TYPE_ICON, KEY_TYPE_LABEL, PROPERTY_TYPES, theme } from "@/constants";
-import type { KeyEntry, KeySetDraft, PropertyStep } from "./types";
+import { KEY_TYPE_ICON, PROPERTY_TYPES, theme } from "@/constants";
+import { getDraftKeyLabel } from "@/lib/utils";
+import type { KeyEntry, KeySetDraft, PropertyStep } from "./useAddPropertyWizard";
 
-function keyLabel(entry: KeyEntry): string {
-  if (entry.type === "other" && entry.otherLabel) return entry.otherLabel;
-  return KEY_TYPE_LABEL[entry.type] ?? entry.type;
-}
 
 type IconComponent = ComponentType<{
   size?: number;
@@ -162,7 +159,7 @@ export function ReviewStep({ propertyData, keys, keySets }: Props) {
                               <KeyIcon size={14} color={theme.colors.textMuted} strokeWidth={1.8} />
                             </View>
                             <Text style={styles.keyRowLabel} numberOfLines={1}>
-                              {keyLabel(key)}
+                              {getDraftKeyLabel(key)}
                             </Text>
                             {key.code ? (
                               <Text style={styles.keyRowCode} numberOfLines={1}>
@@ -199,7 +196,7 @@ export function ReviewStep({ propertyData, keys, keySets }: Props) {
                     <KeyIcon size={14} color={theme.colors.textMuted} strokeWidth={1.8} />
                   </View>
                   <Text style={styles.unassignedLabel} numberOfLines={1}>
-                    {keyLabel(key)}
+                    {getDraftKeyLabel(key)}
                   </Text>
                   {key.code ? (
                     <Text style={styles.unassignedCode} numberOfLines={1}>
