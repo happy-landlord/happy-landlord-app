@@ -114,8 +114,8 @@ const POPULAR_TOPICS: PopularTopic[] = [
   {
     id: "missing-key",
     icon: "key-outline",
-    title: "Key is missing",
-    onPress: () => Alert.alert("Key is missing", "Help article coming soon."),
+    title: "Keyset is missing",
+    onPress: () => Alert.alert("Keyset is missing", "Help article coming soon."),
   },
   {
     id: "access",
@@ -126,8 +126,8 @@ const POPULAR_TOPICS: PopularTopic[] = [
   {
     id: "return",
     icon: "return-down-back-outline",
-    title: "How to return a key",
-    onPress: () => Alert.alert("How to return a key", "Help article coming soon."),
+    title: "How to return a keyset",
+    onPress: () => Alert.alert("How to return a keyset", "Help article coming soon."),
   },
   {
     id: "password",
@@ -164,7 +164,7 @@ const BROWSE_SECTIONS: BrowseSection[] = [
       {
         id: "a3",
         question: "Why is my account pending approval?",
-        answer: "New accounts require approval from your property manager before you can access keys and properties.",
+        answer: "New accounts require approval from your property manager before you can access keysets and properties.",
       },
     ],
   },
@@ -173,27 +173,27 @@ const BROWSE_SECTIONS: BrowseSection[] = [
     icon: "key-outline",
     iconBg: theme.colors.accentSoft,
     iconColor: theme.colors.accentDark,
-    title: "Keys & Access",
+    title: "Keysets & Access",
     faqs: [
       {
         id: "k1",
-        question: "How do I check out a key?",
-        answer: "Scan the QR or NFC tag on the key, then confirm checkout. The key will be assigned to you.",
+        question: "How do I check out a keyset?",
+        answer: "Scan the QR or NFC tag on the keyset, then confirm checkout. The keyset will be assigned to you.",
       },
       {
         id: "k2",
-        question: "How do I return a key?",
-        answer: "Scan the key tag again while it is checked out to you. Confirm the return to complete the handover.",
+        question: "How do I return a keyset?",
+        answer: "Scan the keyset tag again while it is checked out to you. Confirm the return to complete the handover.",
       },
       {
         id: "k3",
         question: "What does 'overdue' mean?",
-        answer: "A key is overdue when its scheduled return date has passed and it has not been returned. Contact your manager.",
+        answer: "A keyset is overdue when its scheduled return date has passed and it has not been returned. Contact your manager.",
       },
       {
         id: "k4",
-        question: "How do I report a lost key?",
-        answer: "Open the key detail screen, tap the options menu, and select 'Report Lost'. Your manager will be notified.",
+        question: "How do I report a lost keyset?",
+        answer: "Open the keyset detail screen, tap the options menu, and select 'Report Lost'. Your manager will be notified.",
       },
     ],
   },
@@ -217,7 +217,7 @@ const BROWSE_SECTIONS: BrowseSection[] = [
       {
         id: "s3",
         question: "My phone doesn't support NFC. Can I still use the app?",
-        answer: "Yes. You can use QR code scanning instead. All key tags include a QR code as a fallback.",
+        answer: "Yes. You can use QR code scanning instead. All keyset tags include a QR code as a fallback.",
       },
     ],
   },
@@ -230,18 +230,18 @@ const BROWSE_SECTIONS: BrowseSection[] = [
     faqs: [
       {
         id: "c1",
-        question: "How does a key handover work?",
-        answer: "The current holder initiates a handover, and the recipient scans the key tag to accept and confirm transfer.",
+        question: "How does a keyset handover work?",
+        answer: "The current holder initiates a handover, and the recipient scans the keyset tag to accept and confirm transfer.",
       },
       {
         id: "c2",
-        question: "Can I hand a key to someone who isn't in the app?",
+        question: "Can I hand a keyset to someone who isn't in the app?",
         answer: "No. Both parties must have an active account. The recipient must be registered and approved.",
       },
       {
         id: "c3",
         question: "What happens if a handover is not confirmed?",
-        answer: "The key remains assigned to the original holder until the recipient scans and confirms. Contact your manager if you are stuck.",
+        answer: "The keyset remains assigned to the original holder until the recipient scans and confirms. Contact your manager if you are stuck.",
       },
     ],
   },
@@ -265,7 +265,7 @@ const BROWSE_SECTIONS: BrowseSection[] = [
       {
         id: "r3",
         question: "Can I cancel a booking?",
-        answer: "Yes. Open the request from My Requests and tap 'Cancel'. If the key is already checked out, you must return it first.",
+        answer: "Yes. Open the request from My Requests and tap 'Cancel'. If the keyset is already checked out, you must return it first.",
       },
     ],
   },

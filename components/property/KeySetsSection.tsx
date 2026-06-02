@@ -102,7 +102,7 @@ function AdminKeysView({
     <View style={styles.root}>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>
-          {keySets.length} {keySets.length === 1 ? "Key Set" : "Key Sets"}
+          {keySets.length} {keySets.length === 1 ? "Keyset" : "Keysets"}
         </Text>
         {keySets.length === 0 ? (
           <EmptyState
@@ -160,7 +160,12 @@ function AgentKeysView({
   propertyId: string;
   keySets: KeySetWithDetails[];
 }) {
-  if (keySets.length === 0) {
+  // Agents never need to see missing/damaged keysets — hide them entirely
+  const visibleKeySets = keySets.filter(
+    (ks) => ks.status !== "missing_damaged",
+  );
+
+  if (visibleKeySets.length === 0) {
     return (
       <EmptyState
         title="No key sets"
@@ -172,10 +177,11 @@ function AgentKeysView({
     <View style={styles.root}>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>
-          {keySets.length} {keySets.length === 1 ? "Key Set" : "Key Sets"}
+          {visibleKeySets.length}{" "}
+          {visibleKeySets.length === 1 ? "Key Set" : "Key Sets"}
         </Text>
         <View style={styles.list}>
-          {keySets.map((ks) => (
+          {visibleKeySets.map((ks) => (
             <AgentKeySetCard key={ks.id} keySet={ks} />
           ))}
         </View>

@@ -496,7 +496,36 @@ export type Database = {
           updated_by?: string;
           created_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "transactions_property_id_fkey";
+            columns: ["property_id"];
+            isOneToOne: false;
+            referencedRelation: "properties";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "transactions_key_set_id_fkey";
+            columns: ["key_set_id"];
+            isOneToOne: false;
+            referencedRelation: "key_sets";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "transactions_from_holder_id_fkey";
+            columns: ["from_holder_id"];
+            isOneToOne: false;
+            referencedRelation: "key_holders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "transactions_to_holder_id_fkey";
+            columns: ["to_holder_id"];
+            isOneToOne: false;
+            referencedRelation: "key_holders";
+            referencedColumns: ["id"];
+          },
+        ];
       };
     };
     Views: Record<string, never>;
@@ -522,6 +551,19 @@ export type Database = {
           p_notes?: string | null;
         };
         Returns: string;
+      };
+      report_key_set_missing: {
+        Args: {
+          p_key_set_id: string;
+          p_notes?: string | null;
+        };
+        Returns: void;
+      };
+      undo_report_key_set_missing: {
+        Args: {
+          p_key_set_id: string;
+        };
+        Returns: void;
       };
       approve_registration_request: {
         Args: {
@@ -647,8 +689,4 @@ export type ActivityTransaction = DbTransaction & {
   from_holder: Pick<DbKeyHolder, "full_name" | "holder_type" | "profile_id"> | null;
   to_holder: Pick<DbKeyHolder, "full_name" | "holder_type" | "profile_id"> | null;
   key_set: Pick<DbKeySet, "code" | "name"> | null;
-  items?: {
-    id: string;
-    key: { key_code: string; key_type: string; label: string } | null;
-  }[];
 };

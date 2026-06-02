@@ -50,7 +50,7 @@ type NotificationVisual = {
 
 const NOTIFICATION_VISUALS: Record<NotificationType, NotificationVisual> = {
   KEY_CHECKOUT_CREATED: {
-    label: "Key checkout",
+    label: "Keyset checkout",
     Icon: KeyRound,
     color: theme.colors.info,
     bg: theme.colors.infoSoft,
@@ -74,7 +74,7 @@ const NOTIFICATION_VISUALS: Record<NotificationType, NotificationVisual> = {
     bg: theme.colors.successSoft,
   },
   KEY_LOST_REPORTED: {
-    label: "Lost key",
+    label: "Lost keyset",
     Icon: AlertTriangle,
     color: theme.colors.danger,
     bg: theme.colors.dangerSoft,
@@ -183,7 +183,7 @@ export default function NotificationsScreen() {
           <EmptyState
             Icon={Bell}
             title="No notifications"
-            message="Updates about keys, checkouts, recalls, and registration requests will appear here."
+            message="Updates about keysets, checkouts, recalls, and registration requests will appear here."
           />
         }
         showsVerticalScrollIndicator={false}

@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { ChevronLeft, X } from "lucide-react-native";
@@ -22,6 +24,7 @@ import {
   STEP_LABELS,
   TOTAL_STEPS,
   type KeyEntry,
+  type KeySetDraft,
   type PropertyStep,
 } from "@/components/property/add/types";
 import { usePropertyCode } from "@/components/property/add/usePropertyCode";
@@ -30,7 +33,7 @@ import { useCreateProperty } from "@/hooks/useProperties";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const NEXT_LABELS = ["Next: Keys", "Next: Review", "Save Property"] as const;
+const NEXT_LABELS = ["Next: Keysets", "Next: Review", "Save Property"] as const;
 
 // ── Screen ───────────────────────────────────────────────────────────────────
 
@@ -38,11 +41,12 @@ export default function AddPropertyScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const createProperty = useCreateProperty();
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const [step, setStep] = useState(1);
   const [property, setProperty] = useState<PropertyStep>(DEFAULT_PROPERTY);
   const [keys, setKeys] = useState<KeyEntry[]>([]);
-  const [keyPhotoUris, setKeyPhotoUris] = useState<string[]>([]);
+  const [keySets, setKeySets] = useState<KeySetDraft[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitLabel, setSubmitLabel] = useState<string | null>(null);
 
@@ -67,8 +71,8 @@ export default function AddPropertyScreen() {
     Boolean(property.selectedPlace) ||
     Boolean(property.landlordName) ||
     Boolean(property.landlordContact) ||
-    property.photoUris.length > 0 ||
-    keys.length > 0;
+    keys.length > 0 ||
+    keySets.length > 0;
 
   // ── Navigation ─────────────────────────────────────────────────────────────
 
@@ -112,15 +116,17 @@ export default function AddPropertyScreen() {
 
   async function handleSubmit() {
     setSubmitting(true);
+    const totalPhotos = keySets.reduce((sum, ks) => sum + ks.photoUris.length, 0);
     setSubmitLabel(
-      property.photoUris.length > 0
-        ? `Uploading ${property.photoUris.length} photo${property.photoUris.length === 1 ? "" : "s"}…`
+      totalPhotos > 0
+        ? `Uploading ${totalPhotos} photo${totalPhotos === 1 ? "" : "s"}…`
         : "Saving…",
     );
     try {
       await submitNewProperty({
         property,
         keys,
+        keySets,
         createProperty: createProperty.mutateAsync,
       });
       Alert.alert(
@@ -150,33 +156,37 @@ export default function AddPropertyScreen() {
       <StepIndicator steps={STEP_LABELS} current={step} />
       <View style={styles.divider} />
 
-      <ScrollView
+      <KeyboardAwareScrollView
+        ref={scrollViewRef}
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
+        bottomOffset={Platform.OS === "ios" ? 32 : 16}
         showsVerticalScrollIndicator={false}
       >
         {step === 1 && (
           <PropertyInfoStep
             data={property}
             onChange={patchProperty}
-            codeLoading={propertyCode.loading}
             onAddressSelect={(place) =>
               propertyCode.generate(place, property.propertyType)
             }
+            keys={keys}
+            onKeysChange={setKeys}
           />
         )}
         {step === 2 && (
           <KeysStep
+            keySets={keySets}
             keys={keys}
-            photoUris={keyPhotoUris}
-            onChange={setKeys}
-            onPhotoChange={setKeyPhotoUris}
+            propertyCode={property.propertyCode}
+            codeLoading={propertyCode.loading}
+            onChange={setKeySets}
           />
         )}
-        {step === 3 && <ReviewStep propertyData={property} keys={keys} />}
-      </ScrollView>
+        {step === 3 && <ReviewStep propertyData={property} keys={keys} keySets={keySets} />}
+      </KeyboardAwareScrollView>
 
       <View
         style={[

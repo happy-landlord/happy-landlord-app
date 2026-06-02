@@ -231,7 +231,7 @@ export default function SettingsScreen() {
           }
           iconColor={pushEnabled ? theme.colors.primary : theme.colors.neutral}
           title="Push notifications"
-          subtitle="Alerts for key checkouts, due dates, overdue keys and recalls"
+          subtitle="Alerts for keyset checkouts, due dates, overdue keysets and recalls"
           disabled={pushLoading || togglePush.isPending}
           right={
             pushLoading ? (

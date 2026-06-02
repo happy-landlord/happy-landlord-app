@@ -9,12 +9,14 @@ import {
   Text,
   View,
 } from "react-native";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   AlertTriangle,
   CalendarClock,
   Camera,
+  ChevronRight,
+  Clock3,
   KeyRound,
   Pencil,
 } from "lucide-react-native";
@@ -36,13 +38,17 @@ import {
   useTransferKeySet,
   useExtendKeySet,
   useReportKeySetLost,
+  useUndoReportKeySetLost,
 } from "@/hooks/useKeySets";
 import { useProperty } from "@/hooks/useProperties";
 import { useCurrentUserId } from "@/hooks/useSession";
 import { useRole } from "@/hooks/useRole";
 import { useFirstKeySetImageUrl } from "@/hooks/useKeySetImages";
+import { useInfiniteActivity } from "@/hooks/useTransactions";
+import type { ActivityTransaction } from "@/types/database";
 import { theme } from "@/constants/theme";
-import { formatTime, isPastDue } from "@/lib/format";
+import { formatActivityTimestamp, formatTime, isPastDue } from "@/lib/format";
+import { MOVEMENT_CONFIG, getMovementLabel } from "@/constants/movements";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -63,12 +69,20 @@ const errMsg = (err: unknown, fallback: string) => {
 export default function KeySetDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const currentUserId = useCurrentUserId();
   const { isAdmin } = useRole();
 
   const { data: keySet, isLoading, isError, refetch } = useKeySet(id);
   const { data: property } = useProperty(keySet?.property_id ?? "");
   const { data: keySetImageUrl } = useFirstKeySetImageUrl(keySet?.images);
+
+  // Last activity preview — admin only, shown when keyset is available
+  const { data: lastActivityData } = useInfiniteActivity({
+    keySetId: id,
+    enabled: isAdmin && keySet?.status === "available",
+  });
+  const lastActivity = lastActivityData?.pages[0]?.slice(0, 5) ?? [];
 
   // For agent: check if they already have a checkout in this property
   const { data: propertySets } = useKeySets(keySet?.property_id ?? "");
@@ -84,13 +98,15 @@ export default function KeySetDetailScreen() {
   const transferMut = useTransferKeySet(keySet?.property_id ?? "");
   const extendMut = useExtendKeySet(keySet?.property_id ?? "");
   const reportLostMut = useReportKeySetLost(keySet?.property_id ?? "");
+  const undoLostMut = useUndoReportKeySetLost(keySet?.property_id ?? "");
 
   const isBusy =
     checkout.isPending ||
     returnMut.isPending ||
     transferMut.isPending ||
     extendMut.isPending ||
-    reportLostMut.isPending;
+    reportLostMut.isPending ||
+    undoLostMut.isPending;
 
   const [checkoutDays, setCheckoutDays] = useState(1);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
@@ -192,6 +208,13 @@ export default function KeySetDetailScreen() {
     );
   }, [keySet, reportLostMut]);
 
+  const handleUndoLost = useCallback(() => {
+    if (!keySet) return;
+    undoLostMut.mutate(keySet.id, {
+      onError: (err) => Alert.alert("Failed", errMsg(err, "Please try again.")),
+    });
+  }, [keySet, undoLostMut]);
+
   // ── Render states ──────────────────────────────────────────────────────────
 
   if (isLoading) return <LoadingState message="Loading keyset…" />;
@@ -201,6 +224,21 @@ export default function KeySetDetailScreen() {
       <ErrorState
         title="Keyset not found"
         message="Could not load this keyset."
+        onRetry={refetch}
+      />
+    );
+  }
+
+  // Agents should not interact with missing/damaged keysets they don't hold
+  if (
+    !isAdmin &&
+    keySet.status === "missing_damaged" &&
+    keySet.current_holder?.profile_id !== currentUserId
+  ) {
+    return (
+      <ErrorState
+        title="Keyset unavailable"
+        message="This keyset has been reported as missing or damaged and is not available."
         onRetry={refetch}
       />
     );
@@ -223,12 +261,20 @@ export default function KeySetDetailScreen() {
   const showAgentReturn = !isAdmin && isHeldByMe; // shows timer
   const showAgentExtend = !isAdmin && isHeldByMe;
   const showAgentTransfer = !isAdmin && isHeldByOther;
+
+  // "missing_damaged" state — admins can undo any report; agents can undo their own
+  const isMissingDamaged = keySet?.status === "missing_damaged";
+  const showUndoLost =
+    isMissingDamaged &&
+    (isAdmin || keySet?.current_holder?.profile_id === currentUserId);
+
   const hasActions =
     showAdminReturn ||
     showAgentCheckout ||
     showAgentReturn ||
     showAgentExtend ||
-    showAgentTransfer;
+    showAgentTransfer ||
+    showUndoLost;
 
   return (
     <>
@@ -407,11 +453,63 @@ export default function KeySetDetailScreen() {
           </View>
         )}
 
+        {/* Last Activity — admin only, when available */}
+        {isAdmin && keySet.status === "available" && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>Last Activity</Text>
+              {lastActivity.length > 0 && (
+                <Pressable
+                  onPress={() =>
+                    router.push({
+                      pathname: "/(app)/(tabs)/activity",
+                      params: {
+                        keySetId: keySet.id,
+                        keySetName: keySet.name,
+                      },
+                    } as never)
+                  }
+                  style={({ pressed }) => [
+                    styles.viewAllBtn,
+                    pressed && { opacity: 0.6 },
+                  ]}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.viewAllText}>View all</Text>
+                  <ChevronRight
+                    size={13}
+                    color={theme.colors.primary}
+                    strokeWidth={2.5}
+                  />
+                </Pressable>
+              )}
+            </View>
+            <View style={styles.activityCard}>
+              {lastActivity.length === 0 ? (
+                <Text style={styles.activityEmptyText}>
+                  No transactions recorded yet.
+                </Text>
+              ) : (
+                lastActivity.map((item, index) => (
+                  <ActivityPreviewRow
+                    key={item.id}
+                    item={item}
+                    currentUserId={currentUserId}
+                    showDivider={index < lastActivity.length - 1}
+                  />
+                ))
+              )}
+            </View>
+          </View>
+        )}
+
         {/* Actions */}
         {hasActions && (
           <View style={styles.actionsSection}>
-            {/* Due date row */}
-            {isAdmin && keySet.due_back_at &&
+            {/* Due date row — hidden when missing/damaged */}
+            {isAdmin &&
+              keySet.due_back_at &&
+              !isMissingDamaged &&
               (isHeldByMe || isHeldByOther || showAdminReturn) && (
                 <View
                   style={[
@@ -505,6 +603,16 @@ export default function KeySetDetailScreen() {
                 onPress={() => setShowTransferModal(true)}
               />
             )}
+
+            {/* Agent: Undo report lost */}
+            {showUndoLost && (
+              <ActionButton
+                label={undoLostMut.isPending ? "Undoing…" : "Undo Lost Report"}
+                variant="successOutline"
+                disabled={isBusy}
+                onPress={handleUndoLost}
+              />
+            )}
           </View>
         )}
       </ScrollView>
@@ -513,7 +621,7 @@ export default function KeySetDetailScreen() {
       <DurationModal
         visible={showCheckoutModal}
         title="Checkout keyset"
-        subtitle="Select how long you need the keys."
+        subtitle="Select how long you need the keyset."
         durationDays={checkoutDays}
         baseIso={undefined}
         isPending={checkout.isPending}
@@ -574,6 +682,42 @@ export default function KeySetDetailScreen() {
   );
 }
 
+// ── Activity preview row ──────────────────────────────────────────────────────
+
+function ActivityPreviewRow({
+  item,
+  currentUserId,
+  showDivider,
+}: {
+  item: ActivityTransaction;
+  currentUserId: string | undefined;
+  showDivider: boolean;
+}) {
+  const { Icon, color, bg } = MOVEMENT_CONFIG[item.transaction_type];
+  const label = getMovementLabel(item, currentUserId);
+
+  return (
+    <View
+      style={[styles.activityRow, showDivider && styles.activityRowDivider]}
+    >
+      <View style={[styles.activityIcon, { backgroundColor: bg }]}>
+        <Icon size={14} color={color} strokeWidth={2} />
+      </View>
+      <View style={styles.activityRowContent}>
+        <Text style={[styles.activityRowLabel, { color }]} numberOfLines={1}>
+          {label}
+        </Text>
+        <View style={styles.activityRowMeta}>
+          <Clock3 size={11} color={theme.colors.textLight} strokeWidth={2} />
+          <Text style={styles.activityRowTime} numberOfLines={1}>
+            {formatActivityTimestamp(item.created_at)}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 // ── Action button ─────────────────────────────────────────────────────────────
 
 function ActionButton({
@@ -583,7 +727,13 @@ function ActionButton({
   onPress,
 }: {
   label: string;
-  variant: "success" | "danger" | "dangerOutline" | "primary" | "secondary";
+  variant:
+    | "success"
+    | "successOutline"
+    | "danger"
+    | "dangerOutline"
+    | "primary"
+    | "secondary";
   disabled: boolean;
   onPress: () => void;
 }) {
@@ -599,16 +749,20 @@ function ActionButton({
   const textColor =
     variant === "secondary"
       ? theme.colors.textMuted
-      : variant === "dangerOutline"
-        ? theme.colors.danger
-        : "#fff";
+      : variant === "successOutline"
+        ? theme.colors.success
+        : variant === "dangerOutline"
+          ? theme.colors.danger
+          : "#fff";
 
   const borderStyle =
     variant === "secondary"
       ? { borderWidth: 1, borderColor: theme.colors.border }
-      : variant === "dangerOutline"
-        ? { borderWidth: 1.5, borderColor: theme.colors.danger }
-        : {};
+      : variant === "successOutline"
+        ? { borderWidth: 1.5, borderColor: theme.colors.success }
+        : variant === "dangerOutline"
+          ? { borderWidth: 1.5, borderColor: theme.colors.danger }
+          : {};
 
   return (
     <Pressable
@@ -901,6 +1055,72 @@ const styles = StyleSheet.create({
     color: theme.colors.textLight,
     textTransform: "uppercase",
     letterSpacing: 0.6,
+  },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  viewAllBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    paddingLeft: theme.spacing.sm,
+  },
+  viewAllText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: theme.colors.primary,
+  },
+  activityCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    overflow: "hidden",
+  },
+  activityEmptyText: {
+    padding: theme.spacing.md,
+    fontSize: 13,
+    color: theme.colors.textMuted,
+  },
+  activityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 11,
+  },
+  activityRowDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  activityIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: theme.radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  activityRowContent: {
+    flex: 1,
+    gap: 3,
+    minWidth: 0,
+  },
+  activityRowLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  activityRowMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  activityRowTime: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: theme.colors.textLight,
   },
   keysList: {
     backgroundColor: theme.colors.surface,

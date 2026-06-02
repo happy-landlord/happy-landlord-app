@@ -35,7 +35,7 @@ const STATUS_CONFIG: Record<KeyChipStatus, ChipConfig> = {
     color: theme.colors.neutral,
   },
   missing_damaged: {
-    label: "Missing / Damaged",
+    label: "Lost",
     bg: theme.colors.dangerSoft,
     color: theme.colors.danger,
   },

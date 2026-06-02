@@ -9,8 +9,8 @@ import {
   Pressable,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { FileText, X } from "lucide-react-native";
-import { useLocalSearchParams } from "expo-router";
+import { FileText, KeyRound, X } from "lucide-react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -47,17 +47,22 @@ function groupByDate(transactions: ActivityTransaction[]): Section[] {
 }
 
 // --- Activity item ---
-function ActivityItem({ item }: { item: ActivityTransaction }) {
+function ActivityItem({
+  item,
+  showKeySetCode,
+}: {
+  item: ActivityTransaction;
+  showKeySetCode: boolean;
+}) {
   const currentUserId = useCurrentUserId();
   const { Icon, color, bg } = MOVEMENT_CONFIG[item.transaction_type];
   const propertyLine = formatShortAddress(item.property);
   const label = getMovementLabel(item, currentUserId);
-  const keysLine =
-    (item.items?.length ?? 0) > 0
-      ? item.items!
-          .map((i) => i.key?.label ?? i.key?.key_code ?? "Key")
-          .join(" · ")
-      : null;
+  const keysLine = item.key_set
+    ? showKeySetCode
+      ? `${item.key_set.name} (${item.key_set.code})`
+      : item.key_set.name
+    : null;
   return (
     <View style={styles.item}>
       <View style={[styles.iconBadge, { backgroundColor: bg }]}>
@@ -91,10 +96,15 @@ function ActivityItem({ item }: { item: ActivityTransaction }) {
 // --- Screen ---
 export default function ActivityScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { isAdmin } = useRole();
   const searchRef = useRef<AddressSearchRef>(null);
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
-  const { propertyId } = useLocalSearchParams<{ propertyId?: string }>();
+  const { propertyId, keySetId, keySetName } = useLocalSearchParams<{
+    propertyId?: string;
+    keySetId?: string;
+    keySetName?: string;
+  }>();
 
   const search =
     selectedPlace?.suburb ??
@@ -110,7 +120,7 @@ export default function ActivityScreen() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteActivity({ search, propertyId });
+  } = useInfiniteActivity({ search, propertyId, keySetId });
 
   const allItems = useMemo(
     () => data?.pages.flat() ?? [],
@@ -121,9 +131,9 @@ export default function ActivityScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: ActivityTransaction }) => (
-      <ActivityItem item={item} />
+      <ActivityItem item={item} showKeySetCode={isAdmin} />
     ),
-    [],
+    [isAdmin],
   );
 
   const renderFooter = useCallback(() => {
@@ -168,6 +178,20 @@ export default function ActivityScreen() {
           </Pressable>
         ) : null}
       </View>
+      {keySetId ? (
+        <Pressable
+          onPress={() => router.setParams({ keySetId: undefined, keySetName: undefined })}
+          style={styles.keySetChip}
+          accessibilityRole="button"
+          accessibilityLabel="Clear keyset filter"
+        >
+          <KeyRound size={13} color={theme.colors.primary} strokeWidth={2} />
+          <Text style={styles.keySetChipText} numberOfLines={1}>
+            {keySetName ?? "Keyset"}
+          </Text>
+          <X size={13} color={theme.colors.primary} strokeWidth={2.5} />
+        </Pressable>
+      ) : null}
       <SectionList
         sections={sections}
         keyExtractor={(item) => item.id}
@@ -198,13 +222,13 @@ export default function ActivityScreen() {
           !isError ? (
             <EmptyState
               Icon={FileText}
-              title={selectedPlace ? "No results" : "No activity yet"}
+              title={keySetId ? "No activity" : selectedPlace ? "No results" : "No activity yet"}
               message={
-                selectedPlace
-                  ? `No transactions for "${selectedPlace.suburb ?? selectedPlace.description.split(",")[0].trim()}"`
-                  : isAdmin
-                    ? "No key transactions have been recorded yet."
-                    : "Key transactions you record will appear here."
+                keySetId
+                  ? `No transactions recorded for ${keySetName ?? "this keyset"}.`
+                  : selectedPlace
+                    ? `No transactions for "${selectedPlace.suburb ?? selectedPlace.description.split(",")[0].trim()}"`
+                    : "Keyset transactions you record will appear here."
               }
             />
           ) : null
@@ -248,6 +272,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
+  },
+  keySetChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 5,
+    marginHorizontal: theme.spacing.screen,
+    marginBottom: theme.spacing.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    backgroundColor: theme.colors.primarySoft,
+    borderRadius: theme.radius.pill,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+  },
+  keySetChipText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.primary,
+    maxWidth: 200,
   },
   sectionList: {
     flex: 1,

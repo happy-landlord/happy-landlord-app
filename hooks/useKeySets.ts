@@ -5,20 +5,21 @@ import {
   fetchKeySetsForProperty,
   fetchKeySetById,
   fetchUnassignedKeysForProperty,
+  fetchCheckedOutKeySets,
+  fetchKeySetsNeedingAttention,
   checkoutKeySet,
   returnKeySet,
   transferKeySet,
   extendKeySetCheckout,
   reportKeySetLost,
+  undoReportKeySetLost,
   type CheckoutKeySetParams,
   type ReturnKeySetParams,
   type TransferKeySetParams,
   type ExtendKeySetParams,
 } from "@/services/keySets.service";
 import {
-  fetchKeyDashboardCounts,
-  fetchKeysNeedingAttention,
-  fetchCheckedOutKeys,
+  fetchAdminDashboardSummary,
   createKeys,
   updateKey,
   deleteKey,
@@ -111,6 +112,14 @@ export function useReportKeySetLost(propertyId: string) {
   });
 }
 
+export function useUndoReportKeySetLost(propertyId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (keySetId: string) => undoReportKeySetLost(keySetId),
+    onSuccess: (_, keySetId) => invalidateKeySets(queryClient, propertyId, keySetId),
+  });
+}
+
 // ── Key CRUD mutations (used by KeyEditSheet) ─────────────────────────────────
 
 export function useCreateKeys(propertyId: string) {
@@ -149,28 +158,30 @@ export function useUpdateKey(propertyId: string) {
 
 // ── Dashboard / attention hooks (legacy keys service) ────────────────────────
 
-export function useCheckedOutKeys(limit = 5) {  const { userId, scope, ready } = useQueryScope();
+export function useCheckedOutKeySets(limit = 10) {
+  const { ready } = useQueryScope();
   return useQuery({
-    queryKey: [...QUERY_KEYS.keys.checkedOut(scope), limit],
-    queryFn: () => fetchCheckedOutKeys({ userId: userId!, limit }),
+    queryKey: [...QUERY_KEYS.keys.checkedOut("admin"), limit],
+    queryFn: () => fetchCheckedOutKeySets(limit),
     enabled: ready,
     staleTime: 1000 * 30,
   });
 }
 
-export function useKeyDashboardCounts() {
+
+export function useAdminDashboardSummary() {
   return useQuery({
     queryKey: QUERY_KEYS.dashboard.counts,
-    queryFn: fetchKeyDashboardCounts,
+    queryFn: fetchAdminDashboardSummary,
     staleTime: 1000 * 60 * 2,
   });
 }
 
-export function useKeysNeedingAttention() {
-  const { userId, ready } = useQueryScope();
+export function useKeySetsNeedingAttention() {
+  const { ready } = useQueryScope();
   return useQuery({
-    queryKey: QUERY_KEYS.dashboard.attention(userId ?? "none"),
-    queryFn: () => fetchKeysNeedingAttention(userId!),
+    queryKey: QUERY_KEYS.dashboard.attention("admin"),
+    queryFn: fetchKeySetsNeedingAttention,
     enabled: ready,
     staleTime: 1000 * 30,
   });

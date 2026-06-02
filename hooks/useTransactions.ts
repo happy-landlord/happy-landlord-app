@@ -25,17 +25,24 @@ export function useMyActivity() {
   });
 }
 
+type UseInfiniteActivityOptions = {
+  search?: string;
+  propertyId?: string;
+  keySetId?: string;
+  /** Override the enabled flag. Defaults to true (fires whenever ready). */
+  enabled?: boolean;
+};
+
 export function useInfiniteActivity({
   search = "",
   propertyId,
-}: {
-  search?: string;
-  propertyId?: string;
-} = {}) {
+  keySetId,
+  enabled: enabledOverride = true,
+}: UseInfiniteActivityOptions = {}) {
   const { userId, isAdmin, scope, ready } = useQueryScope();
 
   return useInfiniteQuery<ActivityTransaction[], Error>({
-    queryKey: QUERY_KEYS.activity.infinite(scope, search, propertyId),
+    queryKey: QUERY_KEYS.activity.infinite(scope, search, propertyId, keySetId),
     queryFn: ({ pageParam }) =>
       fetchActivity({
         userId: userId!,
@@ -43,11 +50,12 @@ export function useInfiniteActivity({
         page: (pageParam as number) ?? 0,
         search,
         propertyId,
+        keySetId,
       }),
     initialPageParam: 0,
     getNextPageParam: (lastPage, allPages) =>
       lastPage.length === ACTIVITY_PAGE_SIZE ? allPages.length : undefined,
-    enabled: ready,
+    enabled: ready && enabledOverride,
     staleTime: 1000 * 30,
   });
 }

@@ -102,7 +102,7 @@ export default function LoginScreen() {
           <Text style={styles.eyebrow}>HAPPY LANDLORD</Text>
           <Text style={styles.title}>Welcome back</Text>
           <Text style={styles.subtitle}>
-            Sign in to manage properties, key sets, and handovers from one
+            Sign in to manage properties, keysets, and handovers from one
             secure place.
           </Text>
         </View>
@@ -254,6 +254,7 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.background },
+  flex: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
     justifyContent: "center",

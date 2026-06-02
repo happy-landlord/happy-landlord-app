@@ -1,13 +1,12 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ChevronRight, Clock3, KeyRound, UserRound } from "lucide-react-native";
+import { ChevronRight, Clock3, KeyRound } from "lucide-react-native";
 import { useRouter } from "expo-router";
-
 import {
   useMyActivity,
   type ActivityTransaction,
 } from "@/hooks/useTransactions";
-import { useCheckedOutKeys } from "@/hooks/useKeySets";
+import { useCheckedOutKeySets, useKeySetsNeedingAttention } from "@/hooks/useKeySets";
 import { useCurrentUserId } from "@/hooks/useSession";
 import { useRole } from "@/hooks/useRole";
 import { theme } from "@/constants/theme";
@@ -16,43 +15,15 @@ import {
   formatShortAddress,
   formatActivityTimestamp,
 } from "@/lib/format";
-import type { CheckedOutKey } from "@/services/keys.service";
+import type { CheckedOutKeySet } from "@/services/keySets.service";
 import { KeyDashboardSummary } from "@/components/KeyDashboardSummary";
 import { PropertiesNeedingAttention } from "@/components/PropertiesNeedingAttention";
 
-// ── Group checked-out keys by property + holder ───────────────────────────────
+// ── Sort checked-out keysets ──────────────────────────────────────────────────
 
-type CheckedOutGroup = {
-  groupKey: string;
-  property: CheckedOutKey["property"];
-  property_id: string;
-  current_holder: CheckedOutKey["current_holder"];
-  keyLabels: string[];
-  due_back_at: string | null;
-};
-
-function groupCheckedOutKeys(keys: CheckedOutKey[]): CheckedOutGroup[] {
-  const map = new Map<string, CheckedOutGroup>();
-  for (const k of keys) {
-    // Include due_back_at in the group key so separate checkout activities
-    // at the same property by the same holder appear as separate cards.
-    const groupKey = `${k.property_id}::${k.current_holder_id ?? "none"}::${k.due_back_at ?? "no-due"}`;
-    const existing = map.get(groupKey);
-    if (existing) {
-      existing.keyLabels.push(k.label);
-    } else {
-      map.set(groupKey, {
-        groupKey,
-        property: k.property,
-        property_id: k.property_id,
-        current_holder: k.current_holder,
-        keyLabels: [k.label],
-        due_back_at: k.due_back_at,
-      });
-    }
-  }
+function sortCheckedOutKeySets(keys: CheckedOutKeySet[]): CheckedOutKeySet[] {
   // Sort by due date ascending (earliest first)
-  return Array.from(map.values()).sort((a, b) => {
+  return [...keys].sort((a, b) => {
     if (!a.due_back_at && !b.due_back_at) return 0;
     if (!a.due_back_at) return 1;
     if (!b.due_back_at) return -1;
@@ -64,12 +35,24 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { isAdmin } = useRole();
+  const currentUserId = useCurrentUserId();
   const { data: checkedOut = [], isLoading: checkedOutLoading } =
-    useCheckedOutKeys(6);
+    useCheckedOutKeySets(isAdmin ? 20 : 50);
   const { data: activity = [], isLoading: activityLoading } = useMyActivity();
+  // activity only shown for agents — still fetched so it's ready when needed
+  const { data: needsAttention = [], isLoading: attentionLoading } =
+    useKeySetsNeedingAttention();
 
   const recentActivity = activity.slice(0, 4);
-  const checkedOutGroups = groupCheckedOutKeys(checkedOut);
+
+  // Admins see all checked-out keysets; agents see only their own
+  const checkedOutKeySets = sortCheckedOutKeySets(
+    isAdmin
+      ? checkedOut
+      : checkedOut.filter(
+          (ks) => ks.current_holder?.profile_id === currentUserId,
+        ),
+  );
 
   return (
     <ScrollView
@@ -82,72 +65,65 @@ export default function HomeScreen() {
     >
       {/* Key status summary — admin only */}
       {isAdmin && (
-        <DashboardSection title="Key Status">
+        <DashboardSection title="Keyset status">
           <KeyDashboardSummary />
         </DashboardSection>
       )}
-      {/* Current checked out */}
-      <DashboardSection title="Current activity">
-        <View style={styles.compactCard}>
+      {/* Current checked out — only when there are items or loading */}
+      {(checkedOutLoading || checkedOutKeySets.length > 0) && (
+        <DashboardSection title="Keysets Checked Out">
           {checkedOutLoading ? (
-            <Text style={styles.emptyText}>Loading checked out keys…</Text>
-          ) : checkedOutGroups.length === 0 ? (
-            <Text style={styles.emptyText}>No keys currently checked out.</Text>
+            <View style={styles.compactCard}>
+              <Text style={styles.emptyText}>Loading checked out keysets…</Text>
+            </View>
           ) : (
-            checkedOutGroups.map((group, index) => (
-              <CheckedOutRow
-                key={group.groupKey}
-                group={group}
-                showDivider={index < checkedOutGroups.length - 1}
-                onPress={() => {
-                  const params = new URLSearchParams();
-                  if (group.due_back_at)
-                    params.set("selectDueAt", group.due_back_at);
-                  if (group.current_holder?.profile_id)
-                    params.set(
-                      "selectHolderId",
-                      group.current_holder.profile_id,
-                    );
-                  const qs = params.toString() ? `?${params.toString()}` : "";
-                  router.push(
-                    `/(app)/properties/${group.property_id}${qs}` as never,
-                  );
-                }}
-              />
-            ))
+            <View style={styles.cardList}>
+              {checkedOutKeySets.map((keySet) => (
+                <CheckedOutRow
+                  key={keySet.id}
+                  keySet={keySet}
+                  isAdmin={isAdmin}
+                  onPress={() =>
+                    router.push(`/(app)/properties/keyset/${keySet.id}` as never)
+                  }
+                />
+              ))}
+            </View>
           )}
-        </View>
-      </DashboardSection>
-
-      {/* Properties needing attention — admin only */}
-      {isAdmin && (
-        <DashboardSection title="Needs Attention">
-          <PropertiesNeedingAttention />
         </DashboardSection>
       )}
 
-      {/* Recent activity */}
-      <DashboardSection
-        title="Recent activity"
-        actionLabel="View all"
-        onPressAction={() => router.push("/(app)/(tabs)/activity")}
-      >
-        <View style={styles.compactCard}>
-          {activityLoading ? (
-            <Text style={styles.emptyText}>Loading recent activity…</Text>
-          ) : recentActivity.length === 0 ? (
-            <Text style={styles.emptyText}>No recent activity yet.</Text>
-          ) : (
-            recentActivity.map((item, index) => (
-              <ActivityRow
-                key={item.id}
-                item={item}
-                showDivider={index < recentActivity.length - 1}
-              />
-            ))
-          )}
-        </View>
-      </DashboardSection>
+      {/* Properties needing attention — admin only, hidden when empty */}
+      {isAdmin && (attentionLoading || needsAttention.length > 0) && (
+        <DashboardSection title="Needs Attention">
+          <PropertiesNeedingAttention data={needsAttention} isLoading={attentionLoading} />
+        </DashboardSection>
+      )}
+
+      {/* My activity — agents only */}
+      {!isAdmin && (
+        <DashboardSection
+          title="My activity"
+          actionLabel="View all"
+          onPressAction={() => router.push("/(app)/(tabs)/activity")}
+        >
+          <View style={styles.compactCard}>
+            {activityLoading ? (
+              <Text style={styles.emptyText}>Loading recent activity…</Text>
+            ) : recentActivity.length === 0 ? (
+              <Text style={styles.emptyText}>No recent activity yet.</Text>
+            ) : (
+              recentActivity.map((item, index) => (
+                <ActivityRow
+                  key={item.id}
+                  item={item}
+                  showDivider={index < recentActivity.length - 1}
+                />
+              ))
+            )}
+          </View>
+        </DashboardSection>
+      )}
     </ScrollView>
   );
 }
@@ -190,63 +166,100 @@ function DashboardSection({
 }
 
 function CheckedOutRow({
-  group,
-  showDivider,
+  keySet,
+  isAdmin,
   onPress,
 }: {
-  group: CheckedOutGroup;
-  showDivider: boolean;
+  keySet: CheckedOutKeySet;
+  isAdmin: boolean;
   onPress: () => void;
 }) {
-  const address =
-    group.property?.address ?? group.property?.formatted_address ?? "Property";
-  const location = formatPropertyLocation(group.property);
-  const keysLine = group.keyLabels.join(" · ");
-  const holderName = group.current_holder?.full_name ?? "Unknown holder";
-  const holderType = group.current_holder?.holder_type;
+  const address = keySet.property?.address ?? keySet.property?.formatted_address ?? "Property";
+  const suburb = keySet.property?.suburb;
+  const holderName = keySet.current_holder?.full_name ?? "Unknown";
+  const holderType = keySet.current_holder?.holder_type;
+  const holderPhone = keySet.current_holder?.phone ?? null;
+  const keyLabels = keySet.keys.map((key) => key.label);
+  const isOverdue = keySet.due_back_at ? new Date(keySet.due_back_at) < new Date() : false;
+
+  const iconBg = isOverdue ? theme.colors.dangerSoft : theme.colors.warningSoft;
+  const iconColor = isOverdue ? theme.colors.danger : theme.colors.warning;
+  const cardBorderColor = isOverdue ? theme.colors.danger : theme.colors.border;
 
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.checkedOutRow,
-        showDivider && styles.compactRowDivider,
-        pressed && styles.cardPressed,
-      ]}
+      style={({ pressed }) => [coStyles.card, { borderColor: cardBorderColor }, pressed && coStyles.cardPressed]}
+      accessibilityRole="button"
     >
-      <View style={[styles.rowIcon, styles.checkedOutIcon]}>
-        <KeyRound size={18} color={theme.colors.warning} strokeWidth={2} />
-      </View>
-      <View style={styles.rowContent}>
-        <Text style={styles.rowTitle} numberOfLines={1}>
-          {address}
-        </Text>
-        {location ? (
-          <Text style={styles.locationText} numberOfLines={1}>
-            {location}
-          </Text>
-        ) : null}
-        <Text style={styles.keyLabel} numberOfLines={1}>
-          {keysLine}
-        </Text>
-        <View style={styles.holderContactRow}>
-          <UserRound
-            size={13}
-            color={theme.colors.primary}
-            strokeWidth={2}
-          />
-          <Text style={styles.holderContactLabel} numberOfLines={1}>
-            {holderName}
-            {holderType ? ` · ${holderType}` : ""}
-          </Text>
+      {/* Top row: icon + name + key pills */}
+      <View style={coStyles.top}>
+        <View style={[coStyles.iconWrap, { backgroundColor: iconBg }]}>
+          <KeyRound size={22} color={iconColor} strokeWidth={1.8} />
+        </View>
+        <View style={coStyles.info}>
+          <View style={coStyles.titleRow}>
+            <Text style={coStyles.name} numberOfLines={1}>{keySet.name}</Text>
+            {keyLabels.length > 0 && (
+              <View style={coStyles.countPill}>
+                <Text style={coStyles.countText}>
+                  {keyLabels.length} {keyLabels.length === 1 ? "key" : "keys"}
+                </Text>
+              </View>
+            )}
+          </View>
+          <Text style={coStyles.suburb} numberOfLines={1}>{address}</Text>
+          {suburb ? (
+            <Text style={coStyles.suburb} numberOfLines={1}>{suburb}</Text>
+          ) : null}
+          {keyLabels.length > 0 && (
+            <View style={coStyles.keyPillsWrap}>
+              {keyLabels.map((label, i) => (
+                <View key={i} style={coStyles.keyPill}>
+                  <Text style={coStyles.keyPillText} numberOfLines={1}>{label}</Text>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
       </View>
-      <ChevronRight size={16} color={theme.colors.textLight} strokeWidth={2} />
+
+      {/* Meta row: admin only */}
+      {isAdmin && (
+        <View style={coStyles.meta}>
+          <View style={coStyles.metaDivider} />
+          <View style={coStyles.metaContent}>
+            <View style={coStyles.metaItem}>
+              <Text style={coStyles.metaLabel}>With</Text>
+              <Text style={[coStyles.metaValue, isOverdue && coStyles.metaValueDanger]} numberOfLines={1}>
+                {holderName}{holderType && holderType !== "agent" ? ` · ${holderType}` : ""}
+              </Text>
+            </View>
+            {holderPhone ? (
+              <View style={coStyles.metaItem}>
+                <Text style={coStyles.metaLabel}>Contact</Text>
+                <Text style={[coStyles.metaValue, isOverdue && coStyles.metaValueDanger]} numberOfLines={1}>
+                  {holderPhone}
+                </Text>
+              </View>
+            ) : keySet.due_back_at ? (
+              <View style={coStyles.metaItem}>
+                <Text style={coStyles.metaLabel}>{isOverdue ? "Was due" : "Due"}</Text>
+                <Text style={[coStyles.metaValue, isOverdue && coStyles.metaValueDanger]} numberOfLines={1}>
+                  {new Date(keySet.due_back_at).toLocaleDateString("en-AU", {
+                    weekday: "short", day: "numeric", month: "short",
+                  })}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+      )}
     </Pressable>
   );
 }
 
-function formatPropertyLocation(property: CheckedOutKey["property"]): string {
+function formatPropertyLocation(property: CheckedOutKeySet["property"]): string {
   if (!property) return "";
   return [property.suburb, property.city, property.postcode]
     .filter((part, index, parts) => {
@@ -258,6 +271,9 @@ function formatPropertyLocation(property: CheckedOutKey["property"]): string {
     })
     .join(" · ");
 }
+
+// kept for potential future use
+void formatPropertyLocation;
 
 function ActivityRow({
   item,
@@ -341,17 +357,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     paddingVertical: 12,
   },
-  checkedOutRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
-    backgroundColor: theme.colors.surfaceWarm,
-  },
   compactRowDivider: {
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
+  },
+  cardList: {
+    gap: theme.spacing.sm,
   },
   rowIcon: {
     width: 34,
@@ -365,8 +376,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     backgroundColor: theme.colors.warningSoft,
-  },
-  rowContent: {
+  },  rowContent: {
     flex: 1,
     gap: 3,
     minWidth: 0,
@@ -386,8 +396,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textLight,
     letterSpacing: 0.2,
     textTransform: "uppercase",
-  },
-  rowSubtitle: {
+  },  rowSubtitle: {
     fontSize: 12,
     fontWeight: "500",
     color: theme.colors.textMuted,
@@ -397,31 +406,123 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.textLight,
   },
-  holderContactRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: theme.spacing.xs,
-  },
-  holderContactLabel: {
-    flex: 1,
+  keyLabel: {
     fontSize: 12,
-    fontWeight: "700",
-    color: theme.colors.primaryDark,
+    fontWeight: "600",
+    color: theme.colors.textMuted,
   },
   activityMetaRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
   },
-  keyLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: theme.colors.textMuted,
-  },
   emptyText: {
     padding: theme.spacing.md,
     fontSize: 13,
     color: theme.colors.textMuted,
   },
+});
+
+// ── Checked-out card styles (mirrors AgentKeySetCard) ─────────────────────────
+const coStyles = StyleSheet.create({
+  card: {
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderRadius: theme.radius.lg,
+    overflow: "hidden",
+  },
+  cardPressed: { opacity: 0.72 },
+  top: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: theme.spacing.md,
+    padding: theme.spacing.md,
+  },
+  iconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: theme.radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  info: { flex: 1, gap: 6, minWidth: 0 },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: theme.spacing.sm,
+  },
+  name: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "700",
+    color: theme.colors.text,
+    letterSpacing: -0.2,
+  },
+  suburb: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: theme.colors.textMuted,
+    marginTop: -2,
+  },
+  countPill: {
+    flexShrink: 0,
+    borderRadius: theme.radius.pill,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    backgroundColor: theme.colors.neutralSoft,
+  },
+  countText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: theme.colors.textMuted,
+  },
+  keyPillsWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 5,
+  },
+  keyPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderRadius: theme.radius.sm,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: theme.colors.primarySoft,
+  },
+  keyPillText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: theme.colors.primaryDark,
+  },
+  meta: {
+    paddingHorizontal: theme.spacing.md,
+    paddingBottom: theme.spacing.md,
+  },
+  metaDivider: {
+    height: 1,
+    backgroundColor: theme.colors.border,
+    marginBottom: theme.spacing.sm,
+  },
+  metaContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
+  metaItem: { flex: 1, gap: 2 },
+  metaLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: theme.colors.textLight,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  metaValue: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.text,
+  },
+  metaValueDanger: { color: theme.colors.danger },
 });

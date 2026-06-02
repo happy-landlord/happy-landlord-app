@@ -8,64 +8,21 @@ import {
 import { useRouter } from "expo-router";
 
 import { theme } from "@/constants/theme";
-import { useKeysNeedingAttention } from "@/hooks/useKeySets";
-import type { CheckedOutKey } from "@/services/keys.service";
+import type { KeySetNeedingAttention } from "@/services/keySets.service";
 
-// ── Group by property ─────────────────────────────────────────────────────────
+// ── Sort helpers ──────────────────────────────────────────────────────────────
 
-type AttentionProperty = {
-  propertyId: string;
-  address: string;
-  unitNumber: string | null;
-  suburb: string;
-  city: string;
-  postcode: string | null;
-  lostCount: number;
-  overdueItems: { holderName: string | null; count: number }[];
-};
-
-function groupByProperty(keys: CheckedOutKey[]): AttentionProperty[] {
-  const map = new Map<string, AttentionProperty>();
-
-  for (const k of keys) {
-    if (!k.property) continue;
-    const pid = k.property_id;
-    if (!map.has(pid)) {
-      map.set(pid, {
-        propertyId: pid,
-        address: k.property.address,
-        unitNumber: null,
-        suburb: k.property.suburb,
-        city: k.property.city,
-        postcode: k.property.postcode,
-        lostCount: 0,
-        overdueItems: [],
-      });
-    }
-    const entry = map.get(pid)!;
-
-    if (k.status === "lost") {
-      entry.lostCount += 1;
-    } else if (k.status === "overdue") {
-      const holderName = k.current_holder?.full_name ?? null;
-      const existing = entry.overdueItems.find(
-        (o) => o.holderName === holderName,
-      );
-      if (existing) {
-        existing.count += 1;
-      } else {
-        entry.overdueItems.push({ holderName, count: 1 });
+function sortAttentionKeysets(
+  keysets: KeySetNeedingAttention[],
+): KeySetNeedingAttention[] {
+  return [...keysets]
+    .filter((item) => item.property)
+    .sort((a, b) => {
+      if (a.status !== b.status) {
+        return a.status === "missing_damaged" ? -1 : 1;
       }
-    }
-  }
-
-  return Array.from(map.values()).sort((a, b) => {
-    // Sort: properties with lost keys first, then overdue
-    if (a.lostCount !== b.lostCount) return b.lostCount - a.lostCount;
-    const aOverdue = a.overdueItems.reduce((s, o) => s + o.count, 0);
-    const bOverdue = b.overdueItems.reduce((s, o) => s + o.count, 0);
-    return bOverdue - aOverdue;
-  });
+      return a.name.localeCompare(b.name);
+    });
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -74,16 +31,19 @@ function AttentionCard({
   item,
   onPress,
 }: {
-  item: AttentionProperty;
+  item: KeySetNeedingAttention;
   onPress: () => void;
 }) {
-  const locationParts = [item.suburb, item.city, item.postcode]
+  const property = item.property;
+  const locationParts = [property?.suburb, property?.city, property?.postcode]
     .filter(Boolean)
     .filter(
       (v, i, arr) =>
         arr.findIndex((x) => x?.toLowerCase() === v?.toLowerCase()) === i,
     )
     .join(", ");
+  const isMissing = item.status === "missing_damaged";
+  const holderName = item.current_holder?.full_name ?? null;
 
 
   return (
@@ -91,7 +51,7 @@ function AttentionCard({
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${item.address} needs attention`}
+      accessibilityLabel={`${item.name} needs attention`}
     >
       {/* Icon */}
       <View style={styles.iconWrap}>
@@ -101,9 +61,10 @@ function AttentionCard({
       {/* Info */}
       <View style={styles.cardContent}>
         <Text style={styles.address} numberOfLines={1}>
-          {item.unitNumber
-            ? `${item.unitNumber}/${item.address}`
-            : item.address}
+          {item.name}
+        </Text>
+        <Text style={styles.propertyAddress} numberOfLines={1}>
+          {property?.address ?? "Property"}
         </Text>
         {locationParts ? (
           <Text style={styles.location} numberOfLines={1}>
@@ -113,26 +74,23 @@ function AttentionCard({
 
         {/* Alert badges */}
         <View style={styles.badges}>
-          {item.lostCount > 0 && (
+          {isMissing ? (
             <View style={styles.badge}>
               <AlertTriangle
                 size={12}
                 color={theme.colors.danger}
                 strokeWidth={2}
               />
-              <Text style={styles.badgeLost}>
-                {item.lostCount} missing {item.lostCount === 1 ? "key" : "keys"}
+              <Text style={styles.badgeLost}>Missing or damaged</Text>
+            </View>
+          ) : (
+            <View style={styles.badge}>
+              <Clock3 size={12} color={theme.colors.warning} strokeWidth={2} />
+              <Text style={styles.badgeOverdue} numberOfLines={1}>
+                Overdue{holderName ? ` · ${holderName}` : ""}
               </Text>
             </View>
           )}
-          {item.overdueItems.map((o, i) => (
-            <View key={i} style={styles.badge}>
-              <Clock3 size={12} color={theme.colors.warning} strokeWidth={2} />
-              <Text style={styles.badgeOverdue} numberOfLines={1}>
-                {o.count} overdue{o.holderName ? ` · ${o.holderName}` : ""}
-              </Text>
-            </View>
-          ))}
         </View>
       </View>
 
@@ -143,11 +101,16 @@ function AttentionCard({
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function PropertiesNeedingAttention() {
+export function PropertiesNeedingAttention({
+  data = [],
+  isLoading = false,
+}: {
+  data?: KeySetNeedingAttention[];
+  isLoading?: boolean;
+}) {
   const router = useRouter();
-  const { data = [], isLoading } = useKeysNeedingAttention();
 
-  const properties = groupByProperty(data);
+  const keysets = sortAttentionKeysets(data);
 
   if (isLoading) {
     return (
@@ -157,7 +120,7 @@ export function PropertiesNeedingAttention() {
     );
   }
 
-  if (properties.length === 0) {
+  if (keysets.length === 0) {
     return (
       <View style={styles.compactCard}>
         <Text style={styles.emptyText}>
@@ -169,12 +132,12 @@ export function PropertiesNeedingAttention() {
 
   return (
     <View style={styles.list}>
-      {properties.map((item) => (
+      {keysets.map((item) => (
         <AttentionCard
-          key={item.propertyId}
+          key={item.id}
           item={item}
           onPress={() =>
-            router.push(`/(app)/properties/${item.propertyId}` as never)
+            router.push(`/(app)/properties/keyset/${item.id}` as never)
           }
         />
       ))}
@@ -219,6 +182,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     color: theme.colors.text,
+  },
+  propertyAddress: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: theme.colors.textMuted,
   },
   location: {
     fontSize: 12,

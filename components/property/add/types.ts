@@ -13,8 +13,6 @@ export type PropertyStep = {
   landlordName: string;
   landlordContact: string;
   dateReceived: Date;
-  /** Local URIs from the picker; uploaded to Supabase Storage on save. */
-  photoUris: string[];
   /** Generated as soon as an address is selected; used on save. */
   propertyCode: string | null;
 };
@@ -24,6 +22,19 @@ export type KeyEntry = {
   id: string;
   type: KeyItemType;
   count: number;
+  /** Optional code / tag number printed on the key (e.g. "K-01"). */
+  code: string | null;
+  /** Custom name used when type is "other". */
+  otherLabel: string | null;
+};
+
+/** A keyset draft in the wizard — becomes one row in `key_sets` on save. */
+export type KeySetDraft = {
+  id: string;
+  name: string;
+  photoUris: string[];
+  /** IDs of KeyEntry items (from step 1) to include in this keyset. */
+  keyIds: string[];
 };
 
 // ── Property type options ────────────────────────────────────────────────────
@@ -51,11 +62,10 @@ export const DEFAULT_PROPERTY: PropertyStep = {
   landlordName: "",
   landlordContact: "",
   dateReceived: new Date(),
-  photoUris: [],
   propertyCode: null,
 };
 
-export const STEP_LABELS = ["Property", "Keys", "Review"] as const;
+export const STEP_LABELS = ["Property", "Keysets", "Review"] as const;
 export const TOTAL_STEPS = STEP_LABELS.length;
 
 // ── Formatting helpers ───────────────────────────────────────────────────────

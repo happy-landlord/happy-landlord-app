@@ -76,8 +76,8 @@ export default function KeysScreen() {
             : adminTab === "leased"
               ? "No properties are currently leased."
               : adminTab === "landlord"
-                ? "No keys have been returned to landlords."
-                : "No keys are currently in the office."
+                ? "No keysets have been returned to landlords."
+                : "No keysets are currently in the office."
         }
       />
     );
@@ -159,12 +159,12 @@ export default function KeysScreen() {
       {/* Content */}
       {isError ? (
         <ErrorState
-          title="Couldn't load keys"
+          title="Couldn't load keysets"
           message="Check your connection and try again."
           onRetry={refetch}
         />
       ) : isLoading ? (
-        <LoadingState message="Loading keys…" />
+        <LoadingState message="Loading keysets…" />
       ) : (
         <FlatList
           data={properties}

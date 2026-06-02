@@ -55,7 +55,7 @@ export const MOVEMENT_CONFIG: Record<KeyTransactionType, MovementConfig> = {
     bg: theme.colors.dangerSoft,
   },
   marked_missing_damaged: {
-    label: "Missing / Damaged",
+    label: "Reported Lost",
     Icon: XCircle,
     color: theme.colors.danger,
     bg: theme.colors.dangerSoft,
@@ -94,24 +94,43 @@ export function getMovementLabel(
   item: ActivityTransaction,
   currentUserId?: string | null,
 ): string {
-  const isMe = Boolean(currentUserId && item.updated_by === currentUserId);
   const cfg = MOVEMENT_CONFIG[item.transaction_type];
+
+  // "returned" — actor is always the from_holder (who physically had the key).
+  // Do NOT use updated_by here: an admin may record the return on behalf of an agent.
+  if (item.transaction_type === "returned") {
+    const isMeHolder = Boolean(
+      currentUserId && item.from_holder?.profile_id === currentUserId,
+    );
+    if (isMeHolder) return "You returned";
+    const name = item.from_holder?.full_name;
+    return name ? `${name} returned` : cfg.label;
+  }
+
+  // "checked_out" — actor is the to_holder (who took the key).
+  if (item.transaction_type === "checked_out") {
+    const isMeHolder = Boolean(
+      currentUserId && item.to_holder?.profile_id === currentUserId,
+    );
+    if (isMeHolder) return cfg.youLabel ?? "You checked out";
+    const name = item.to_holder?.full_name;
+    return name ? `${name} ${cfg.label.toLowerCase()}` : cfg.label;
+  }
+
+  // All other types: check if the current user was the one who performed it
+  const isMe = Boolean(currentUserId && item.updated_by === currentUserId);
   if (isMe) {
     return cfg.youLabel ?? `You ${cfg.label.toLowerCase()}`;
   }
 
-  // Find the name of whoever actually performed the action (matched by updated_by)
+  // Find the actor name by matching updated_by to a holder's profile_id
   const actorName =
-    [item.to_holder, item.from_holder]
-      .find((h) => h?.profile_id === item.updated_by)
-      ?.full_name ??
-    item.to_holder?.full_name ??
+    [item.from_holder, item.to_holder].find(
+      (h) => h?.profile_id === item.updated_by,
+    )?.full_name ??
     item.from_holder?.full_name ??
+    item.to_holder?.full_name ??
     null;
 
-  if (actorName) {
-    return `${actorName} ${cfg.label.toLowerCase()}`;
-  }
-
-  return cfg.label;
+  return actorName ? `${actorName} ${cfg.label.toLowerCase()}` : cfg.label;
 }

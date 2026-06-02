@@ -2,44 +2,24 @@ import { StyleSheet, Text, View } from "react-native";
 import Svg, { Path, Text as SvgText } from "react-native-svg";
 
 import { theme } from "@/constants/theme";
-import { useKeyDashboardCounts } from "@/hooks/useKeySets";
-import type { DashboardStatusCount } from "@/services/keys.service";
+import { useAdminDashboardSummary } from "@/hooks/useKeySets";
+import type { AdminDashboardSummary } from "@/services/keys.service";
 
-// ── Status config ─────────────────────────────────────────────────────────────
-
-type StatusConfig = { label: string; color: string };
-
-const STATUS_CONFIG: Record<string, StatusConfig> = {
-  available:        { label: "Available",       color: theme.colors.success },
-  checked_out:      { label: "Checked out",     color: theme.colors.warning },
-  with_tenant:      { label: "With tenant",     color: theme.colors.info },
-  overdue:          { label: "Overdue",         color: theme.colors.danger },
-  missing_damaged:  { label: "Missing/Damaged", color: theme.colors.textLight },
-  with_landlord:    { label: "With landlord",   color: theme.colors.primary },
-};
-
-// ── Donut chart helpers ───────────────────────────────────────────────────────
+// ── Donut chart ───────────────────────────────────────────────────────────────
 
 const SIZE = 130;
 const OUTER_R = 54;
 const INNER_R = 36;
 const CX = SIZE / 2;
 const CY = SIZE / 2;
-const CENTER_TOTAL_Y = CY - 7;
-const CENTER_LABEL_Y = CY + 12;
-const GAP_DEG = 2; // small gap between segments
+const GAP_DEG = 2;
 
 function toRad(deg: number) {
   return ((deg - 90) * Math.PI) / 180;
 }
 
-function arcPath(
-  startDeg: number,
-  endDeg: number,
-): string {
-  // Guard: if segment is nearly 360, cap slightly to avoid degenerate arc
+function arcPath(startDeg: number, endDeg: number): string {
   const effectiveEnd = endDeg - startDeg >= 359.9 ? startDeg + 359.9 : endDeg;
-
   const x1 = CX + OUTER_R * Math.cos(toRad(startDeg));
   const y1 = CY + OUTER_R * Math.sin(toRad(startDeg));
   const x2 = CX + OUTER_R * Math.cos(toRad(effectiveEnd));
@@ -48,9 +28,7 @@ function arcPath(
   const y3 = CY + INNER_R * Math.sin(toRad(effectiveEnd));
   const x4 = CX + INNER_R * Math.cos(toRad(startDeg));
   const y4 = CY + INNER_R * Math.sin(toRad(startDeg));
-
   const large = effectiveEnd - startDeg > 180 ? 1 : 0;
-
   return [
     `M ${x1} ${y1}`,
     `A ${OUTER_R} ${OUTER_R} 0 ${large} 1 ${x2} ${y2}`,
@@ -60,119 +38,104 @@ function arcPath(
   ].join(" ");
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+type Segment = { label: string; value: number; color: string };
 
-function DonutChart({
-  rows,
-  total,
-}: {
-  rows: DashboardStatusCount[];
-  total: number;
-}) {
-  const nonZero = rows.filter((r) => r.count > 0);
+function DonutChart({ segments, total }: { segments: Segment[]; total: number }) {
+  const nonZero = segments.filter((s) => s.value > 0);
   const useGap = nonZero.length > 1;
-
   let cursor = 0;
-  const segments = nonZero.map((r) => {
-    const span = (r.count / total) * 360;
+  const paths = nonZero.map((s) => {
+    const span = (s.value / total) * 360;
     const startDeg = cursor + (useGap ? GAP_DEG / 2 : 0);
     const endDeg = cursor + span - (useGap ? GAP_DEG / 2 : 0);
     cursor += span;
-    const cfg = STATUS_CONFIG[r.dashboard_status];
-    return { path: arcPath(startDeg, endDeg), color: cfg?.color ?? theme.colors.border };
+    return { path: arcPath(startDeg, endDeg), color: s.color };
   });
 
   return (
-    <View style={styles.chartWrap}>
-      <Svg width={SIZE} height={SIZE}>
-        {segments.map((seg, i) => (
-          <Path key={i} d={seg.path} fill={seg.color} />
-        ))}
-        {/* Center total */}
-        <SvgText
-          x={CX}
-          y={CENTER_TOTAL_Y}
-          textAnchor="middle"
-          alignmentBaseline="middle"
-          fontSize={22}
-          fontWeight="800"
-          fill={theme.colors.text}
-        >
-          {total}
-        </SvgText>
-        <SvgText
-          x={CX}
-          y={CENTER_LABEL_Y}
-          textAnchor="middle"
-          alignmentBaseline="middle"
-          fontSize={11}
-          fontWeight="600"
-          fill={theme.colors.textLight}
-        >
-          Total
-        </SvgText>
-      </Svg>
-    </View>
+    <Svg width={SIZE} height={SIZE}>
+      {paths.map((p, i) => (
+        <Path key={i} d={p.path} fill={p.color} />
+      ))}
+      <SvgText
+        x={CX} y={CY - 7}
+        textAnchor="middle" alignmentBaseline="middle"
+        fontSize={22} fontWeight="800" fill={theme.colors.text}
+      >
+        {total}
+      </SvgText>
+      <SvgText
+        x={CX} y={CY + 12}
+        textAnchor="middle" alignmentBaseline="middle"
+        fontSize={11} fontWeight="600" fill={theme.colors.textLight}
+      >
+        Keysets
+      </SvgText>
+    </Svg>
   );
 }
 
-function Legend({ rows }: { rows: DashboardStatusCount[] }) {
-  return (
-    <View style={styles.legend}>
-      {rows.map((r) => {
-        const cfg = STATUS_CONFIG[r.dashboard_status];
-        if (!cfg) return null;
-        return (
-          <View key={r.dashboard_status} style={styles.legendRow}>
-            <View style={[styles.legendDot, { backgroundColor: cfg.color }]} />
-            <Text style={styles.legendCount}>{r.count}</Text>
-            <Text style={styles.legendLabel} numberOfLines={1}>{cfg.label}</Text>
-          </View>
-        );
-      })}
-    </View>
-  );
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function buildSegments(d: AdminDashboardSummary): Segment[] {
+  return [
+    { label: "Available",     value: d.available_keysets,    color: theme.colors.success },
+    { label: "Checked out",   value: d.checked_out_keysets,  color: theme.colors.warning },
+    { label: "Overdue",       value: d.overdue_keysets,      color: theme.colors.danger },
+    { label: "Lost/Damaged",  value: d.lost_keysets,         color: theme.colors.textLight },
+  ];
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function KeyDashboardSummary() {
-  const { data = [], isLoading, isError, error } = useKeyDashboardCounts();
-
-  const total = data.reduce((s, r) => s + r.count, 0);
+  const { data, isLoading, isError } = useAdminDashboardSummary();
 
   if (isLoading) {
-    return (
-      <View style={styles.card}>
-        <Text style={styles.placeholder}>Loading…</Text>
-      </View>
-    );
+    return <View style={styles.card}><Text style={styles.placeholder}>Loading…</Text></View>;
   }
 
-  if (isError) {
-    const msg = error instanceof Error ? error.message : String(error);
-    return (
-      <View style={styles.card}>
-        <Text style={styles.placeholder}>
-          {__DEV__ ? `Error: ${msg}` : "Could not load counts."}
-        </Text>
-      </View>
-    );
+  if (isError || !data) {
+    return <View style={styles.card}><Text style={styles.placeholder}>Could not load summary.</Text></View>;
   }
 
-  if (total === 0) {
-    return (
-      <View style={styles.card}>
-        <Text style={styles.placeholder}>No keys registered.</Text>
-      </View>
-    );
-  }
+  const segments = buildSegments(data);
+  const total = data.total_keysets;
 
   return (
     <View style={styles.card}>
-      <View style={styles.body}>
-        <DonutChart rows={data} total={total} />
-        <Legend rows={data} />
+      {/* Donut + legend row */}
+      <View style={styles.chartRow}>
+        <View style={styles.chartWrap}>
+          <DonutChart segments={segments} total={total} />
+        </View>
+        <View style={styles.legend}>
+          {segments.map((s) => (
+            <View key={s.label} style={styles.legendRow}>
+              <View style={[styles.legendDot, { backgroundColor: s.color }]} />
+              <Text style={[styles.legendCount, { color: s.color }]}>{s.value}</Text>
+              <Text style={styles.legendLabel} numberOfLines={1}>{s.label}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Divider */}
+      <View style={styles.divider} />
+
+      {/* Extra stats row */}
+      <View style={styles.statsRow}>
+        <View style={styles.statItem}>
+          <Text style={styles.statValue}>{data.total_properties}</Text>
+          <Text style={styles.statLabel}>Properties</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <Text style={[styles.statValue, { color: theme.colors.info }]}>
+            {data.properties_with_tenant}
+          </Text>
+          <Text style={styles.statLabel}>With tenant</Text>
+        </View>
       </View>
     </View>
   );
@@ -187,8 +150,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.border,
     padding: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
-  body: {
+  placeholder: {
+    fontSize: 13,
+    color: theme.colors.textLight,
+    paddingVertical: theme.spacing.sm,
+  },
+  chartRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing.md,
@@ -198,13 +167,6 @@ const styles = StyleSheet.create({
     height: SIZE,
     flexShrink: 0,
   },
-  placeholder: {
-    fontSize: 13,
-    color: theme.colors.textLight,
-    paddingVertical: theme.spacing.sm,
-  },
-
-  // ── Legend ────────────────────────────────────────────────────────────────
   legend: {
     flex: 1,
     gap: 8,
@@ -223,12 +185,40 @@ const styles = StyleSheet.create({
   legendCount: {
     fontSize: 14,
     fontWeight: "800",
-    color: theme.colors.text,
     minWidth: 26,
   },
   legendLabel: {
     flex: 1,
     fontSize: 13,
+    fontWeight: "500",
+    color: theme.colors.textMuted,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: theme.colors.border,
+  },
+  statsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  statItem: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 4,
+    gap: 2,
+  },
+  statDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: theme.colors.border,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: theme.colors.text,
+  },
+  statLabel: {
+    fontSize: 11,
     fontWeight: "500",
     color: theme.colors.textMuted,
   },

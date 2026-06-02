@@ -24,8 +24,8 @@ export const QUERY_KEYS = {
   activity: {
     all: ["activity", "all"] as const,
     mine: (userId: string) => ["activity", "mine", userId] as const,
-    infinite: (scope: string, search: string, propertyId?: string) =>
-      ["activity", "infinite", scope, search, propertyId ?? ""] as const,
+    infinite: (scope: string, search: string, propertyId?: string, keySetId?: string) =>
+      ["activity", "infinite", scope, search, propertyId ?? "", keySetId ?? ""] as const,
   },
   requests: {
     all: ["requests"] as const,

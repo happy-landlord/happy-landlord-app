@@ -8,7 +8,12 @@ import {
 
 import { theme } from "@/constants/theme";
 import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
-import { PROPERTY_TYPES, type KeyEntry, type PropertyStep } from "./types";
+import { PROPERTY_TYPES, type KeyEntry, type KeySetDraft, type PropertyStep } from "./types";
+
+function keyLabel(entry: KeyEntry): string {
+  if (entry.type === "other" && entry.otherLabel) return entry.otherLabel;
+  return KEY_TYPE_LABEL[entry.type] ?? entry.type;
+}
 
 type IconComponent = ComponentType<{
   size?: number;
@@ -19,14 +24,12 @@ type IconComponent = ComponentType<{
 type Props = {
   propertyData: PropertyStep;
   keys: KeyEntry[];
+  keySets: KeySetDraft[];
 };
 
-export function ReviewStep({ propertyData, keys }: Props) {
+export function ReviewStep({ propertyData, keys, keySets }: Props) {
   const selectedTypeLabel =
-    PROPERTY_TYPES.find((t) => t.value === propertyData.propertyType)?.label ??
-    "";
-
-  const totalPhysicalKeys = keys.reduce((sum, key) => sum + key.count, 0);
+    PROPERTY_TYPES.find((t) => t.value === propertyData.propertyType)?.label ?? "";
 
   const descriptionParts =
     propertyData.selectedPlace?.description
@@ -55,12 +58,27 @@ export function ReviewStep({ propertyData, keys }: Props) {
         .join(", ") || descriptionParts.slice(1).join(", ")
     : "";
 
+  const allocatedCounts: Record<string, number> = {};
+  for (const ks of keySets) {
+    for (const keyId of ks.keyIds) {
+      allocatedCounts[keyId] = (allocatedCounts[keyId] ?? 0) + 1;
+    }
+  }
+
+  const unassignedKeys = keys
+    .map((key) => ({
+      key,
+      quantity: Math.max(0, key.count - (allocatedCounts[key.id] ?? 0)),
+    }))
+    .filter(({ quantity }) => quantity > 0);
+
   return (
     <View style={styles.container}>
       <Text style={styles.subheading}>
         A final, easy-to-scan summary before creating the property.
       </Text>
 
+      {/* Property overview card */}
       <View style={styles.overviewCard}>
         <View style={styles.overviewHeaderRow}>
           <View style={styles.propertyIconTile}>
@@ -109,39 +127,95 @@ export function ReviewStep({ propertyData, keys }: Props) {
         ) : null}
       </View>
 
+      {/* Keysets summary */}
       <InfoSection
-        title="Keys"
+        title="Keysets"
         icon={KeyRound}
-        trailing={`${totalPhysicalKeys} ${totalPhysicalKeys === 1 ? "key" : "keys"}`}
+        trailing={`${keySets.length} set${keySets.length === 1 ? "" : "s"}`}
       >
-        {keys.length === 0 ? (
+        {keySets.length === 0 ? (
           <View style={styles.emptyKeyCard}>
-            <KeyRound
-              size={18}
-              color={theme.colors.textLight}
-              strokeWidth={1.8}
-            />
-            <Text style={styles.noKeys}>No keys added.</Text>
+            <KeyRound size={18} color={theme.colors.textLight} strokeWidth={1.8} />
+            <Text style={styles.noKeys}>No keysets added.</Text>
           </View>
         ) : (
-          <View style={styles.keyPillGrid}>
-            {keys.map((key) => {
-              const KeyIcon = KEY_TYPE_ICON[key.type] ?? KeyRound;
+          <View style={styles.keySetList}>
+            {keySets.map((ks, i) => {
+              const ksKeys = keys.filter((k) => ks.keyIds.includes(k.id));
               return (
-                <View key={key.id} style={styles.keyPill}>
-                  <KeyIcon size={15} color={theme.colors.primary} strokeWidth={1.8} />
-                  <Text style={styles.keyPillLabel} numberOfLines={1}>
-                    {KEY_TYPE_LABEL[key.type] ?? key.type}
-                  </Text>
-                  <Text style={styles.keyPillCount}>
-                    × {key.count}
-                  </Text>
+                <View key={ks.id} style={styles.keySetRow}>
+                  <View style={styles.keySetRowTop}>
+                    <Text style={styles.keySetIndex}>{i + 1}</Text>
+                    <Text style={styles.keySetName} numberOfLines={1}>{ks.name}</Text>
+                    {ks.photoUris.length > 0 && (
+                      <Text style={styles.keySetPhotos}>
+                        {ks.photoUris.length} photo{ks.photoUris.length === 1 ? "" : "s"}
+                      </Text>
+                    )}
+                  </View>
+                  {ksKeys.length > 0 && (
+                    <View style={styles.keyRowsList}>
+                      {ksKeys.map((key) => {
+                        const KeyIcon = KEY_TYPE_ICON[key.type] ?? KeyRound;
+                        return (
+                          <View key={key.id} style={styles.keyRow}>
+                            <View style={styles.keyRowIconCircle}>
+                              <KeyIcon size={14} color={theme.colors.textMuted} strokeWidth={1.8} />
+                            </View>
+                            <Text style={styles.keyRowLabel} numberOfLines={1}>
+                              {keyLabel(key)}
+                            </Text>
+                            {key.code ? (
+                              <Text style={styles.keyRowCode} numberOfLines={1}>
+                                {key.code}
+                              </Text>
+                            ) : null}
+                          </View>
+                        );
+                      })}
+                    </View>
+                  )}
                 </View>
               );
             })}
           </View>
         )}
       </InfoSection>
+
+      {/* Unassigned keys */}
+      {unassignedKeys.length > 0 && (
+        <InfoSection
+          title="Unassigned Keys"
+          icon={KeyRound}
+          trailing={`${unassignedKeys.reduce((sum, item) => sum + item.quantity, 0)} key${
+            unassignedKeys.reduce((sum, item) => sum + item.quantity, 0) === 1 ? "" : "s"
+          }`}
+        >
+          <View style={styles.unassignedList}>
+            {unassignedKeys.map(({ key, quantity }) => {
+              const KeyIcon = KEY_TYPE_ICON[key.type] ?? KeyRound;
+              return (
+                <View key={key.id} style={styles.unassignedRow}>
+                  <View style={styles.unassignedIconCircle}>
+                    <KeyIcon size={14} color={theme.colors.textMuted} strokeWidth={1.8} />
+                  </View>
+                  <Text style={styles.unassignedLabel} numberOfLines={1}>
+                    {keyLabel(key)}
+                  </Text>
+                  {key.code ? (
+                    <Text style={styles.unassignedCode} numberOfLines={1}>
+                      {key.code}
+                    </Text>
+                  ) : null}
+                  <View style={styles.qtyBadge}>
+                    <Text style={styles.qtyBadgeText}>{quantity}</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        </InfoSection>
+      )}
     </View>
   );
 }
@@ -325,6 +399,80 @@ const styles = StyleSheet.create({
     color: theme.colors.textLight,
     fontWeight: "600",
   },
+
+  keySetList: { gap: 6 },
+  keySetRow: {
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 8,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.background,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    gap: 6,
+  },
+  keySetRowTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
+  keySetIndex: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: theme.colors.primarySoft,
+    textAlign: "center",
+    lineHeight: 20,
+    fontSize: 11,
+    fontWeight: "800",
+    color: theme.colors.primary,
+  },
+  keySetName: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "700",
+    color: theme.colors.text,
+  },
+  keySetPhotos: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: theme.colors.textMuted,
+  },
+  keyRowsList: { gap: 6 },
+  keyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    padding: 10,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+  },
+  keyRowIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.colors.neutralSoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  keyRowLabel: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 14,
+    fontWeight: "700",
+    color: theme.colors.text,
+  },
+  keyRowCode: {
+    maxWidth: 100,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.neutralSoft,
+    fontSize: 11,
+    fontWeight: "800",
+    color: theme.colors.textMuted,
+  },
   keyPillGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -333,23 +481,84 @@ const styles = StyleSheet.create({
   keyPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 5,
     paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 7,
+    paddingVertical: 6,
     borderRadius: theme.radius.pill,
     borderWidth: 1,
     borderColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
   },
   keyPillLabel: {
-    maxWidth: 120,
-    fontSize: 13,
+    maxWidth: 110,
+    fontSize: 12,
     fontWeight: "700",
     color: theme.colors.text,
   },
+  keyPillCode: {
+    maxWidth: 78,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.neutralSoft,
+    fontSize: 10,
+    fontWeight: "800",
+    color: theme.colors.textMuted,
+  },
   keyPillCount: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "900",
     color: theme.colors.primary,
+  },
+
+  // ── Unassigned keys ───────────────────────────────────────────────────────
+  unassignedList: { gap: 8 },
+  unassignedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    padding: 10,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.background,
+  },
+  unassignedIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.colors.neutralSoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  unassignedLabel: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 14,
+    fontWeight: "700",
+    color: theme.colors.text,
+  },
+  unassignedCode: {
+    maxWidth: 100,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.neutralSoft,
+    fontSize: 11,
+    fontWeight: "800",
+    color: theme.colors.textMuted,
+  },
+  qtyBadge: {
+    minWidth: 28,
+    alignItems: "center",
+    borderRadius: theme.radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: theme.colors.neutralSoft,
+  },
+  qtyBadgeText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: theme.colors.textMuted,
   },
 });
