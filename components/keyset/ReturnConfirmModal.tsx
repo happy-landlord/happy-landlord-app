@@ -3,7 +3,7 @@ import { View } from "react-native";
 import { Archive, Calendar, UserRound } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
-import { ConfirmModal } from "@/components/ui";
+import { ConfirmSheet } from "@/components/ui";
 import { SelectedKeysSummary } from "./SelectedKeysSummary";
 import { SummaryRow, summaryStyles } from "./KeySetSummaryRow";
 import { formatDateTime } from "@/lib/utils";
@@ -11,6 +11,8 @@ import type { KeyInSet } from "@/lib/services";
 
 export type ReturnConfirmModalProps = {
   visible: boolean;
+  /** Name of the keyset being returned — shown in the sheet title. */
+  keySetName: string;
   /** Property code to direct the agent to the correct cabinet slot. */
   propertyCode?: string | null;
   /** Name of the person returning the keys. */
@@ -26,6 +28,7 @@ export type ReturnConfirmModalProps = {
 
 export const ReturnConfirmModal = memo(function ReturnConfirmModal({
   visible,
+  keySetName,
   propertyCode,
   holderName,
   returningKeys = [],
@@ -35,9 +38,9 @@ export const ReturnConfirmModal = memo(function ReturnConfirmModal({
   onConfirm,
 }: ReturnConfirmModalProps) {
   return (
-    <ConfirmModal
+    <ConfirmSheet
       visible={visible}
-      title="Return keys?"
+      title={`Return ${keySetName}`}
       subtitle="Confirm these keys are going back into the cabinet. Place them on the hook for this property before confirming."
       confirmLabel={isPending ? "Returning…" : "Confirm return"}
       confirmTone="danger"
@@ -76,6 +79,6 @@ export const ReturnConfirmModal = memo(function ReturnConfirmModal({
           valueTone={propertyCode ? "primary" : undefined}
         />
       </View>
-    </ConfirmModal>
+    </ConfirmSheet>
   );
 });

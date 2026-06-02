@@ -1,27 +1,30 @@
-import { useState } from "react";
 import { ScrollView, StyleSheet } from "react-native";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import {
   KeySetActionsPanel,
-  KeySetDurationModal,
-  KeySetEditSheet,
   KeySetIdentityCard,
   KeySetKeysList,
   KeySetLastActivity,
-  ReturnConfirmModal,
-  TransferConfirmModal,
+  KeySetModals,
+  KeySetScreenProvider,
 } from "@/components/keyset";
 import { PropertyHeader } from "@/components/property";
 import { ErrorState, LoadingState } from "@/components/ui";
-import { useKeySetActions, useRole } from "@/hooks";
-import { useCurrentUserId, useKeySet, useProperty } from "@/lib/hooks";
+import { useRole } from "@/hooks";
+import {
+  useCurrentUserId,
+  useKeySet,
+  useProperty,
+} from "@/lib/hooks";
 import { theme } from "@/constants";
+
 // -- Keyset detail screen ----------------------------------------------------
-// Coordinator: data fetching, modal state and role-aware composition of the
-// keyset detail sub-components. Visual logic (image fetching, activity preview,
-// holder derivations, etc.) lives in `@/components/keyset/*` so this screen
-// stays focused on flow.
+// Orchestration only: fetches the keyset (to handle loading / error / access
+// gating), then hands off to `<KeySetScreenProvider>`. Every child component
+// reads its own data from TanStack + the screen context, so this file has no
+// modal state and no callback wiring.
 export default function KeySetDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
@@ -29,15 +32,7 @@ export default function KeySetDetailScreen() {
   const { isAdmin } = useRole();
   const { data: keySet, isPending, isError, refetch } = useKeySet(id);
   const { data: property } = useProperty(keySet?.property_id ?? "");
-  const actions = useKeySetActions({ keySet, currentUserId, isAdmin });
-  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
-  const [checkoutDays, setCheckoutDays] = useState(1);
-  const [showReturnModal, setShowReturnModal] = useState(false);
-  const [showTransferModal, setShowTransferModal] = useState(false);
-  const [showExtendModal, setShowExtendModal] = useState(false);
-  const [extendDays, setExtendDays] = useState(1);
-  const [editKeysOpen, setEditKeysOpen] = useState(false);
-  // -- Render states ---------------------------------------------------------
+
   if (isPending) return <LoadingState message="Loading keyset..." />;
   if (isError || !keySet) {
     return (
@@ -48,10 +43,12 @@ export default function KeySetDetailScreen() {
       />
     );
   }
-  // Agents should not interact with missing/damaged keysets they do not hold
+
+  // Agents should not interact with missing/damaged keysets they do not hold.
+  const isMissingDamaged = keySet.status === "missing_damaged";
   if (
     !isAdmin &&
-    actions.isMissingDamaged &&
+    isMissingDamaged &&
     keySet.current_holder?.profile_id !== currentUserId
   ) {
     return (
@@ -62,9 +59,11 @@ export default function KeySetDetailScreen() {
       />
     );
   }
+
   const showLastActivity = isAdmin && keySet.status === "available";
+
   return (
-    <>
+    <KeySetScreenProvider keySetId={id}>
       <Stack.Screen options={{ title: keySet.name }} />
       <ScrollView
         style={styles.screen}
@@ -75,98 +74,18 @@ export default function KeySetDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
         {property && <PropertyHeader property={property} />}
-        <KeySetIdentityCard
-          keySet={keySet}
-          currentUserId={currentUserId}
-          isAdmin={isAdmin}
-          onEditPress={isAdmin ? () => setEditKeysOpen(true) : undefined}
-        />
-        <KeySetKeysList keys={keySet.keys ?? []} />
+        <KeySetIdentityCard />
+        <KeySetKeysList />
         {showLastActivity && (
           <KeySetLastActivity keySetId={keySet.id} keySetName={keySet.name} />
         )}
-        <KeySetActionsPanel
-          actions={actions}
-          isAdmin={isAdmin}
-          dueBackAt={keySet.due_back_at}
-          onAdminReturnPress={() => setShowReturnModal(true)}
-          onCheckoutPress={() => {
-            setCheckoutDays(1);
-            setShowCheckoutModal(true);
-          }}
-          onExtendPress={() => {
-            setExtendDays(1);
-            setShowExtendModal(true);
-          }}
-          onTransferPress={() => setShowTransferModal(true)}
-        />
+        <KeySetActionsPanel />
       </ScrollView>
-      {/* Checkout modal */}
-      <KeySetDurationModal
-        visible={showCheckoutModal}
-        title={`Checkout ${keySet.name}`}
-        subtitle="Select how long you need the keyset."
-        keys={keySet.keys ?? []}
-        durationDays={checkoutDays}
-        baseIso={undefined}
-        isPending={actions.isCheckoutPending}
-        onDurationChange={setCheckoutDays}
-        onCancel={() => setShowCheckoutModal(false)}
-        onConfirm={() =>
-          actions.checkout(checkoutDays, () => setShowCheckoutModal(false))
-        }
-        confirmLabel="Confirm"
-      />
-      {/* Extend modal */}
-      <KeySetDurationModal
-        visible={showExtendModal}
-        title="Extend checkout"
-        subtitle="Add more days from the current due date."
-        durationDays={extendDays}
-        baseIso={keySet.due_back_at ?? undefined}
-        isPending={actions.isExtendPending}
-        onDurationChange={setExtendDays}
-        onCancel={() => setShowExtendModal(false)}
-        onConfirm={() =>
-          actions.extend(extendDays, () => setShowExtendModal(false))
-        }
-        confirmLabel="Extend"
-        confirmTone="primary"
-      />
-      {/* Admin: edit keys in this keyset */}
-      {isAdmin && (
-        <KeySetEditSheet
-          visible={editKeysOpen}
-          onClose={() => setEditKeysOpen(false)}
-          propertyId={keySet.property_id}
-          keySetId={keySet.id}
-          keySetName={keySet.name}
-          keys={keySet.keys ?? []}
-        />
-      )}
-      {/* Admin: return confirm modal */}
-      <ReturnConfirmModal
-        visible={showReturnModal}
-        propertyCode={property?.property_code ?? null}
-        holderName={keySet.current_holder?.full_name ?? null}
-        returningKeys={keySet.keys ?? []}
-        dueBackAt={keySet.due_back_at ?? null}
-        isPending={actions.isReturnPending}
-        onCancel={() => setShowReturnModal(false)}
-        onConfirm={() => actions.adminReturn(() => setShowReturnModal(false))}
-      />
-      {/* Agent: transfer confirm modal */}
-      <TransferConfirmModal
-        visible={showTransferModal}
-        currentHolderName={keySet.current_holder?.full_name ?? null}
-        dueBackAt={keySet.due_back_at ?? null}
-        isPending={actions.isTransferPending}
-        onCancel={() => setShowTransferModal(false)}
-        onConfirm={() => actions.transfer(() => setShowTransferModal(false))}
-      />
-    </>
+      <KeySetModals />
+    </KeySetScreenProvider>
   );
 }
+
 const styles = StyleSheet.create({
   screen: {
     flex: 1,

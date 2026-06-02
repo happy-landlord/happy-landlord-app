@@ -1,37 +1,37 @@
-import { StyleSheet, Text, View } from "react-native";
-import { CalendarClock } from "lucide-react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
+import { CalendarClock, CalendarX } from "lucide-react-native";
 
 import { CountdownTimer } from "./CountdownTimer";
+import { useKeySetScreen } from "./KeySetScreenContext";
 import { Button } from "@/components/ui";
 import { theme } from "@/constants";
+import {
+  useCurrentUserId,
+  useKeySet,
+} from "@/lib/hooks";
+import { useKeySetActions, useKeysetAvailability, useRole } from "@/hooks";
 import { formatDueAt } from "@/lib/utils";
-import type { KeySetActions } from "@/hooks";
 
 // ── KeySetActionsPanel ───────────────────────────────────────────────────────
-// Renders the action buttons (and admin-only due summary / agent countdown)
-// for the keyset detail screen. Visibility and pending flags come from
-// `useKeySetActions`, so this component is purely presentational — the screen
-// owns the modals that the button presses open.
+// Self-contained action button stack for the keyset detail screen.
+// Reads keyset, role, availability, and actions from hooks; opens modals via
+// the screen context. The parent screen mounts it with zero props.
 
-export type KeySetActionsPanelProps = {
-  actions: KeySetActions;
-  isAdmin: boolean;
-  dueBackAt: string | null | undefined;
-  onAdminReturnPress: () => void;
-  onCheckoutPress: () => void;
-  onExtendPress: () => void;
-  onTransferPress: () => void;
-};
+export function KeySetActionsPanel() {
+  const { keySetId, openModal } = useKeySetScreen();
+  const { data: keySet } = useKeySet(keySetId);
+  const currentUserId = useCurrentUserId();
+  const { isAdmin } = useRole();
+  const availability = useKeysetAvailability(keySetId);
+  const actions = useKeySetActions({
+    keySet,
+    currentUserId,
+    isAdmin,
+    availability,
+  });
 
-export function KeySetActionsPanel({
-  actions,
-  isAdmin,
-  dueBackAt,
-  onAdminReturnPress,
-  onCheckoutPress,
-  onExtendPress,
-  onTransferPress,
-}: KeySetActionsPanelProps) {
+  const dueBackAt = keySet?.due_back_at;
+
   const {
     overdue,
     isHeldByMe,
@@ -39,6 +39,8 @@ export function KeySetActionsPanel({
     isMissingDamaged,
     showAdminReturn,
     showAgentCheckout,
+    showAgentReserve,
+    showAgentCancelReservation,
     showAgentReturn,
     showAgentExtend,
     showAgentReportLost,
@@ -55,6 +57,38 @@ export function KeySetActionsPanel({
     !!dueBackAt &&
     !isMissingDamaged &&
     (isHeldByMe || isHeldByOther || showAdminReturn);
+
+  // The reservation to cancel is whichever active/upcoming reservation belongs to me
+  const myReservation = (() => {
+    if (!availability) return undefined;
+    if (
+      availability.activeReservation?.reserved_by?.profile_id === currentUserId
+    ) {
+      return availability.activeReservation;
+    }
+    if (
+      availability.nextReservation?.reserved_by?.profile_id === currentUserId
+    ) {
+      return availability.nextReservation;
+    }
+    return undefined;
+  })();
+
+  const handleCancelReservation = () => {
+    if (!myReservation) return;
+    Alert.alert(
+      "Cancel reservation?",
+      "Your reservation will be cancelled and the keyset will be available again.",
+      [
+        { text: "Keep", style: "cancel" },
+        {
+          text: "Cancel Reservation",
+          style: "destructive",
+          onPress: () => actions.cancelReservation(myReservation.id, () => {}),
+        },
+      ],
+    );
+  };
 
   return (
     <View style={styles.section}>
@@ -77,7 +111,7 @@ export function KeySetActionsPanel({
           title="Mark as Returned"
           variant="danger"
           disabled={isBusy}
-          onPress={onAdminReturnPress}
+          onPress={() => openModal({ kind: "return" })}
         />
       )}
 
@@ -88,17 +122,35 @@ export function KeySetActionsPanel({
           title="Checkout Keyset"
           variant="success"
           disabled={isBusy}
-          onPress={onCheckoutPress}
+          onPress={() => openModal({ kind: "checkout", days: 1 })}
         />
       )}
 
-      {showAgentCheckout && (
+      {showAgentReserve && (
         <Button
           title="Reserve"
           variant="successOutline"
           disabled={isBusy}
-          onPress={() => {}}
+          onPress={() => openModal({ kind: "reserve" })}
         />
+      )}
+
+      {showAgentCancelReservation && (
+        <View style={styles.cancelRow}>
+          <CalendarX
+            size={14}
+            color={theme.colors.warning}
+            strokeWidth={2}
+          />
+          <Text style={styles.cancelLabel}>You have a reservation</Text>
+          <Button
+            title="Cancel"
+            variant="dangerOutline"
+            disabled={isBusy}
+            onPress={handleCancelReservation}
+            style={styles.cancelBtn}
+          />
+        </View>
       )}
 
       {showAgentExtend && (
@@ -106,7 +158,7 @@ export function KeySetActionsPanel({
           title="Extend Duration"
           variant="primary"
           disabled={isBusy}
-          onPress={onExtendPress}
+          onPress={() => openModal({ kind: "extend", days: 1 })}
         />
       )}
 
@@ -115,7 +167,7 @@ export function KeySetActionsPanel({
           title="Report Lost"
           variant="dangerOutline"
           disabled={isBusy}
-          onPress={actions.reportLost}
+          onPress={() => openModal({ kind: "reportLost" })}
         />
       )}
 
@@ -124,7 +176,7 @@ export function KeySetActionsPanel({
           title={isBusy ? "Transferring…" : "Transfer to Me"}
           variant="primary"
           disabled={isBusy}
-          onPress={onTransferPress}
+          onPress={() => openModal({ kind: "transfer" })}
         />
       )}
 
@@ -156,4 +208,26 @@ const styles = StyleSheet.create({
   dueText: { fontSize: 13, color: theme.colors.warning },
   dueTextOverdue: { color: theme.colors.danger },
   dueDate: { fontWeight: "700" },
+  cancelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: theme.colors.warningSoft,
+    borderRadius: theme.radius.md,
+    paddingLeft: 12,
+    paddingVertical: 6,
+    paddingRight: 6,
+  },
+  cancelLabel: {
+    flex: 1,
+    fontSize: 13,
+    color: theme.colors.warning,
+    fontWeight: "600",
+  },
+  cancelBtn: {
+    minHeight: 36,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: theme.radius.pill,
+  },
 });

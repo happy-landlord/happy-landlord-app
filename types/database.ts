@@ -433,6 +433,49 @@ export type Database = {
         Relationships: [];
       };
 
+      reservations: {
+        Row: {
+          id: string;
+          key_set_id: string;
+          property_id: string;
+          reserved_by_holder_id: string;
+          starts_at: string;
+          ends_at: string;
+          status: "active" | "cancelled" | "completed" | "expired";
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          key_set_id: string;
+          property_id: string;
+          reserved_by_holder_id: string;
+          starts_at: string;
+          ends_at: string;
+          status?: "active" | "cancelled" | "completed" | "expired";
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          key_set_id?: string;
+          property_id?: string;
+          reserved_by_holder_id?: string;
+          starts_at?: string;
+          ends_at?: string;
+          status?: "active" | "cancelled" | "completed" | "expired";
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
       transactions: {
         Row: {
           id: string;
@@ -528,6 +571,21 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      reserve_key_set: {
+        Args: {
+          p_key_set_id: string;
+          p_starts_at: string;
+          p_ends_at: string;
+          p_notes?: string | null;
+        };
+        Returns: string;
+      };
+      cancel_reservation: {
+        Args: {
+          p_reservation_id: string;
+        };
+        Returns: void;
+      };
       checkout_key_set: {
         Args: {
           p_key_set_id: string;
@@ -662,6 +720,11 @@ export type DbRegistrationRequest = Tables<"registration_requests">;
 export type DbNotification = Tables<"notifications">;
 export type DbUserPushToken = Tables<"user_push_tokens">;
 
+// Reservations ────────────────────────────────────────────────────────────────
+export type DbReservation = Tables<"reservations">;
+export type DbReservationInsert = TablesInsert<"reservations">;
+export type ReservationStatus = DbReservation["status"];
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared shapes (used by multiple tables)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -692,5 +755,4 @@ export type ActivityTransaction = DbTransaction & {
   to_holder: Pick<DbKeyHolder, "full_name" | "holder_type" | "profile_id"> | null;
   key_set: Pick<DbKeySet, "code" | "name"> | null;
 };
-
 

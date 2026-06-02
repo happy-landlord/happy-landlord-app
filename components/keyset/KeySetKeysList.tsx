@@ -1,21 +1,20 @@
 import { StyleSheet, Text, View } from "react-native";
 import { KeyRound } from "lucide-react-native";
 
+import { useKeySetScreen } from "./KeySetScreenContext";
 import { KEY_TYPE_ICON, theme } from "@/constants";
+import { useKeySet } from "@/lib/hooks";
 import { getKeyName } from "@/lib/utils";
-import type { KeySetWithDetails } from "@/lib/services";
 
 // ── KeySetKeysList ───────────────────────────────────────────────────────────
-// Bordered list of the keys inside a keyset, one row per key. Used on the
-// keyset detail screen.
+// Bordered list of the keys inside a keyset, one row per key. Reads its
+// keyset from context + TanStack — no props.
 
-type KeyInSet = NonNullable<KeySetWithDetails["keys"]>[number];
+export function KeySetKeysList() {
+  const { keySetId } = useKeySetScreen();
+  const { data: keySet } = useKeySet(keySetId);
+  const keys = keySet?.keys ?? [];
 
-export type KeySetKeysListProps = {
-  keys: KeyInSet[];
-};
-
-export function KeySetKeysList({ keys }: KeySetKeysListProps) {
   if (keys.length === 0) return null;
 
   return (
@@ -89,4 +88,3 @@ const styles = StyleSheet.create({
     color: theme.colors.primaryDark,
   },
 });
-

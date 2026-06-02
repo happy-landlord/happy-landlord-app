@@ -211,6 +211,7 @@ function AgentKeySetCard({ keySet }: { keySet: KeySetWithDetails }) {
 
       <TransferConfirmModal
         visible={showTransferModal}
+        keySetName={keySet.name}
         currentHolderName={holderName ?? null}
         transferringKeys={keys}
         dueBackAt={keySet.due_back_at ?? null}

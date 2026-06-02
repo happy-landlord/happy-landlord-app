@@ -13,6 +13,7 @@ export * from "./useNotifications";
 export * from "./useProfile";
 export * from "./useProperties";
 export * from "./usePropertyImages";
+export * from "./useReservations";
 export * from "./useSession";
 export * from "./useTransactions";
 

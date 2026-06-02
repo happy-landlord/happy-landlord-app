@@ -4,6 +4,7 @@
  * Import via:
  *   import { formatDate, alertError, DAY_MS } from "@/lib/utils";
  */
+export * from "./availability";
 export * from "./errors";
 export * from "./format";
 export * from "./keys";

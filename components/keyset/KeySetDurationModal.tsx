@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { CalendarClock } from "lucide-react-native";
 
-import { ConfirmModal, type ConfirmModalTone } from "@/components/ui";
+import { ConfirmSheet, type ConfirmSheetTone } from "@/components/ui";
 import { DURATION_DAYS, theme } from "@/constants";
 import { formatDueAt, isoInDays } from "@/lib/utils";
 import { SelectedKeysSummary } from "./SelectedKeysSummary";
@@ -24,7 +24,7 @@ type Props = {
   onCancel: () => void;
   onConfirm: () => void;
   confirmLabel: string;
-  confirmTone?: ConfirmModalTone;
+  confirmTone?: ConfirmSheetTone;
   /** Optional key summary shown above the duration picker. */
   keys?: KeyInSet[];
 };
@@ -57,10 +57,10 @@ export function KeySetDurationModal({
   const hasKeysSummary = keys.length > 0;
 
   return (
-    <ConfirmModal
+    <ConfirmSheet
       visible={visible}
       title={title}
-      subtitle={hasKeysSummary ? undefined : subtitle}
+      subtitle={subtitle}
       confirmLabel={isPending ? "Processing…" : confirmLabel}
       confirmTone={confirmTone}
       isPending={isPending}
@@ -74,8 +74,6 @@ export function KeySetDurationModal({
           </View>
         </View>
       )}
-
-      {hasKeysSummary ? <Text style={styles.instruction}>{subtitle}</Text> : null}
 
       <View style={styles.grid}>
         {DURATION_DAYS.map((days) => {
@@ -112,7 +110,7 @@ export function KeySetDurationModal({
           <Text style={styles.dueDate}>{formatDueAt(newDueIso)}</Text>
         </Text>
       </View>
-    </ConfirmModal>
+    </ConfirmSheet>
   );
 }
 
@@ -128,13 +126,6 @@ const styles = StyleSheet.create({
   summaryPadded: {
     paddingHorizontal: theme.spacing.md,
     paddingVertical: 12,
-  },
-  instruction: {
-    fontSize: 14,
-    color: theme.colors.textMuted,
-    textAlign: "center",
-    lineHeight: 20,
-    marginTop: -theme.spacing.xs,
   },
   grid: {
     flexDirection: "row",

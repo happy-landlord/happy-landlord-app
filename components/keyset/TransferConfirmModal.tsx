@@ -3,7 +3,7 @@ import { View } from "react-native";
 import { Calendar, UserCheck } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
-import { ConfirmModal } from "@/components/ui";
+import { ConfirmSheet } from "@/components/ui";
 import { SelectedKeysSummary } from "./SelectedKeysSummary";
 import { SummaryRow, summaryStyles } from "./KeySetSummaryRow";
 import { formatDateTime } from "@/lib/utils";
@@ -11,6 +11,8 @@ import type { KeyInSet } from "@/lib/services";
 
 export type TransferConfirmModalProps = {
   visible: boolean;
+  /** Name of the keyset being transferred — shown in the sheet title. */
+  keySetName: string;
   /** Name of the agent currently holding the keyset. */
   currentHolderName?: string | null;
   /** Keys being transferred — shown as a summary in the modal. */
@@ -24,6 +26,7 @@ export type TransferConfirmModalProps = {
 
 export const TransferConfirmModal = memo(function TransferConfirmModal({
   visible,
+  keySetName,
   currentHolderName,
   transferringKeys = [],
   dueBackAt,
@@ -32,9 +35,9 @@ export const TransferConfirmModal = memo(function TransferConfirmModal({
   onConfirm,
 }: TransferConfirmModalProps) {
   return (
-    <ConfirmModal
+    <ConfirmSheet
       visible={visible}
-      title="Transfer keys?"
+      title={`Transfer ${keySetName}`}
       subtitle="Confirm these keys are being transferred into your custody. You will be responsible for returning them when done."
       confirmLabel={isPending ? "Transferring…" : "Transfer to me"}
       confirmTone="primary"
@@ -66,6 +69,6 @@ export const TransferConfirmModal = memo(function TransferConfirmModal({
           value={dueBackAt ? formatDateTime(dueBackAt) : "Return time not set"}
         />
       </View>
-    </ConfirmModal>
+    </ConfirmSheet>
   );
 });

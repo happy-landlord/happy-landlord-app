@@ -42,6 +42,10 @@ export const QUERY_KEYS = {
     /** Signed URLs for a set of paths (e.g. all images of one property). */
     signedUrls: (paths: string[]) => ["storage", "signedUrls", ...paths] as const,
   },
+  reservations: {
+    forKeySet: (keySetId: string) =>
+      ["reservations", "keySet", keySetId] as const,
+  },
   dashboard: {
     counts: ["dashboard", "counts"] as const,
     attention: (userId: string) => ["dashboard", "attention", userId] as const,

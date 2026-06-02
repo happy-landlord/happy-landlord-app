@@ -2,30 +2,27 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { AlertTriangle, Camera, KeyRound, Pencil } from "lucide-react-native";
 
 import { KeyStatusChip } from "@/components/KeyStatusChip";
+import { ReservationStatusChip } from "./ReservationStatusChip";
+import { useKeySetScreen } from "./KeySetScreenContext";
 import { theme } from "@/constants";
-import { useFirstKeySetImageUrl } from "@/lib/hooks";
+import { useCurrentUserId, useFirstKeySetImageUrl, useKeySet } from "@/lib/hooks";
+import { useKeysetAvailability, useRole } from "@/hooks";
 import { getTotalKeyQuantity, isPastDue } from "@/lib/utils";
-import type { KeySetWithDetails } from "@/lib/services";
 
 // ── KeySetIdentityCard ───────────────────────────────────────────────────────
-// Hero card on the keyset detail screen. Self-contained: derives holder /
-// status flags from the keyset + current user, and fetches its own banner
-// image via TanStack (which dedupes against other consumers).
+// Hero card on the keyset detail screen. Self-sufficient: pulls `keySet`,
+// `currentUserId`, role, availability, and its banner image from hooks —
+// the parent screen only needs to mount it inside `<KeySetScreenProvider>`.
 
-export type KeySetIdentityCardProps = {
-  keySet: KeySetWithDetails;
-  currentUserId: string | undefined;
-  isAdmin: boolean;
-  onEditPress?: () => void;
-};
+export function KeySetIdentityCard() {
+  const { keySetId, openModal } = useKeySetScreen();
+  const { data: keySet } = useKeySet(keySetId);
+  const currentUserId = useCurrentUserId();
+  const { isAdmin } = useRole();
+  const availability = useKeysetAvailability(keySetId);
+  const { data: imageUrl } = useFirstKeySetImageUrl(keySet?.images);
 
-export function KeySetIdentityCard({
-  keySet,
-  currentUserId,
-  isAdmin,
-  onEditPress,
-}: KeySetIdentityCardProps) {
-  const { data: imageUrl } = useFirstKeySetImageUrl(keySet.images);
+  if (!keySet) return null;
 
   const status = keySet.status;
   const holderProfileId = keySet.current_holder?.profile_id;
@@ -96,6 +93,9 @@ export function KeySetIdentityCard({
           <View style={styles.info}>
             <View style={styles.statusRow}>
               {isAdmin && <KeyStatusChip status={keySet.status} />}
+              {!isAdmin && availability && (
+                <ReservationStatusChip availability={availability} />
+              )}
               <View style={styles.countPill}>
                 <Text style={styles.countText}>
                   {totalKeys} {totalKeys === 1 ? "key" : "keys"}
@@ -108,9 +108,9 @@ export function KeySetIdentityCard({
             ) : null}
           </View>
 
-          {isAdmin && onEditPress && (
+          {isAdmin && (
             <Pressable
-              onPress={onEditPress}
+              onPress={() => openModal({ kind: "editKeys" })}
               style={({ pressed }) => [
                 styles.editBtn,
                 pressed && styles.editBtnPressed,
@@ -285,4 +285,3 @@ const styles = StyleSheet.create({
   },
   metaValueDanger: { color: theme.colors.danger },
 });
-

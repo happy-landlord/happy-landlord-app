@@ -1,5 +1,4 @@
 import { useCallback } from "react";
-import { Alert } from "react-native";
 
 import {
   useCheckoutKeySet,
@@ -9,10 +8,12 @@ import {
   useReturnKeySet,
   useTransferKeySet,
   useUndoReportKeySetLost,
+  useReserveKeySet,
+  useCancelReservation,
 } from "@/lib/hooks";
 import { alertError, isoInDays, isPastDue } from "@/lib/utils";
 import type { KeySetWithDetails } from "@/lib/services";
-
+import type { KeysetAvailability } from "@/lib/utils";
 
 // ── Public types ─────────────────────────────────────────────────────────────
 export type KeySetActions = {
@@ -22,7 +23,10 @@ export type KeySetActions = {
   isReturnPending: boolean;
   isTransferPending: boolean;
   isExtendPending: boolean;
+  isReportLostPending: boolean;
   isUndoLostPending: boolean;
+  isReservePending: boolean;
+  isCancelReservationPending: boolean;
 
   // derived state
   isAvailable: boolean;
@@ -34,6 +38,8 @@ export type KeySetActions = {
   // visibility flags (single source of truth for which buttons appear)
   showAdminReturn: boolean;
   showAgentCheckout: boolean;
+  showAgentReserve: boolean;
+  showAgentCancelReservation: boolean;
   showAgentReturn: boolean;
   showAgentExtend: boolean;
   showAgentReportLost: boolean;
@@ -46,31 +52,28 @@ export type KeySetActions = {
   transfer: (onClose: () => void) => void;
   extend: (days: number, onClose: () => void) => void;
   adminReturn: (onClose: () => void) => void;
-  reportLost: () => void;
+  reportLost: (onClose: () => void) => void;
   undoLost: () => void;
+  reserve: (startsAt: string, endsAt: string, notes: string | null, onClose: () => void) => void;
+  cancelReservation: (reservationId: string, onClose: () => void) => void;
 };
 
-/**
- * Consolidates all keyset-detail screen logic: mutations, role-aware derived
- * state, button-visibility decisions and the (slightly involved) error /
- * confirm handlers. The screen becomes purely presentational.
- *
- * The "do I already have another checkout in this property?" check is also
- * owned here so the screen doesn't have to know about peer keysets.
- */
 export function useKeySetActions({
   keySet,
   currentUserId,
   isAdmin,
+  availability,
 }: {
   keySet: KeySetWithDetails | null | undefined;
   currentUserId: string | undefined;
   isAdmin: boolean;
+  /** Optional availability descriptor computed from reservations. */
+  availability?: KeysetAvailability;
 }): KeySetActions {
   const propertyId = keySet?.property_id ?? "";
+  const keySetId = keySet?.id ?? "";
 
-  // Peer keysets (only relevant for agents). useKeySets is gated on a
-  // non-empty propertyId, so this is a no-op until the keyset loads.
+  // Peer keysets (only relevant for agents)
   const { data: propertySets } = useKeySets(propertyId);
   const myPropertyCheckout =
     !isAdmin && keySet && currentUserId
@@ -89,6 +92,8 @@ export function useKeySetActions({
   const extendMut = useExtendKeySet(propertyId);
   const reportLostMut = useReportKeySetLost(propertyId);
   const undoLostMut = useUndoReportKeySetLost(propertyId);
+  const reserveMut = useReserveKeySet(propertyId, keySetId);
+  const cancelReservationMut = useCancelReservation(propertyId, keySetId);
 
   const isBusy =
     checkoutMut.isPending ||
@@ -96,7 +101,9 @@ export function useKeySetActions({
     transferMut.isPending ||
     extendMut.isPending ||
     reportLostMut.isPending ||
-    undoLostMut.isPending;
+    undoLostMut.isPending ||
+    reserveMut.isPending ||
+    cancelReservationMut.isPending;
 
   // ── Derived state ──────────────────────────────────────────────────────
   const status = keySet?.status;
@@ -114,10 +121,18 @@ export function useKeySetActions({
   const isAvailable = status === "available";
   const isMissingDamaged = status === "missing_damaged";
 
+  // Reservation-aware checkout / reserve visibility
+  const canCheckout = availability ? availability.canCheckout : isAvailable;
+  const canReserve = availability ? availability.canReserve : isAvailable;
+  const canCancelReservation = availability?.canCancelReservation ?? false;
+
   // ── Visibility ─────────────────────────────────────────────────────────
   const showAdminReturn = isAdmin && (isHeldByMe || isHeldByOther);
   const showAgentCheckout =
-    !isAdmin && isAvailable && !myPropertyCheckout && !isHeldByMe;
+    !isAdmin && canCheckout && !myPropertyCheckout && !isHeldByMe;
+  const showAgentReserve =
+    !isAdmin && canReserve && !myPropertyCheckout && !isHeldByMe;
+  const showAgentCancelReservation = !isAdmin && canCancelReservation;
   const showAgentReturn = !isAdmin && isHeldByMe;
   const showAgentExtend = !isAdmin && isHeldByMe;
   const showAgentReportLost = !isAdmin && isHeldByMe;
@@ -128,6 +143,8 @@ export function useKeySetActions({
   const hasActions =
     showAdminReturn ||
     showAgentCheckout ||
+    showAgentReserve ||
+    showAgentCancelReservation ||
     showAgentReturn ||
     showAgentExtend ||
     showAgentReportLost ||
@@ -195,24 +212,16 @@ export function useKeySetActions({
     [keySet, returnMut],
   );
 
-  const reportLost = useCallback(() => {
-    if (!keySet) return;
-    Alert.alert(
-      "Report as lost?",
-      "This will mark the keyset as missing or damaged. This action cannot be undone easily.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Report Lost",
-          style: "destructive",
-          onPress: () =>
-            reportLostMut.mutate(keySet.id, {
-              onError: (err) => alertError("Failed", err),
-            }),
-        },
-      ],
-    );
-  }, [keySet, reportLostMut]);
+  const reportLost = useCallback(
+    (onClose: () => void) => {
+      if (!keySet) return;
+      reportLostMut.mutate(keySet.id, {
+        onSuccess: onClose,
+        onError: (err) => alertError("Failed", err),
+      });
+    },
+    [keySet, reportLostMut],
+  );
 
   const undoLost = useCallback(() => {
     if (!keySet) return;
@@ -221,13 +230,41 @@ export function useKeySetActions({
     });
   }, [keySet, undoLostMut]);
 
+  const reserve = useCallback(
+    (startsAt: string, endsAt: string, notes: string | null, onClose: () => void) => {
+      if (!keySet) return;
+      reserveMut.mutate(
+        { keySetId: keySet.id, startsAt, endsAt, notes },
+        {
+          onSuccess: onClose,
+          onError: (err) => alertError("Reservation failed", err),
+        },
+      );
+    },
+    [keySet, reserveMut],
+  );
+
+  const cancelReservation = useCallback(
+    (reservationId: string, onClose: () => void) => {
+      if (!keySet) return;
+      cancelReservationMut.mutate(reservationId, {
+        onSuccess: onClose,
+        onError: (err) => alertError("Cancellation failed", err),
+      });
+    },
+    [keySet, cancelReservationMut],
+  );
+
   return {
     isBusy,
     isCheckoutPending: checkoutMut.isPending,
     isReturnPending: returnMut.isPending,
     isTransferPending: transferMut.isPending,
     isExtendPending: extendMut.isPending,
+    isReportLostPending: reportLostMut.isPending,
     isUndoLostPending: undoLostMut.isPending,
+    isReservePending: reserveMut.isPending,
+    isCancelReservationPending: cancelReservationMut.isPending,
     isAvailable,
     isHeldByMe,
     isHeldByOther,
@@ -235,6 +272,8 @@ export function useKeySetActions({
     overdue,
     showAdminReturn,
     showAgentCheckout,
+    showAgentReserve,
+    showAgentCancelReservation,
     showAgentReturn,
     showAgentExtend,
     showAgentReportLost,
@@ -247,5 +286,7 @@ export function useKeySetActions({
     adminReturn,
     reportLost,
     undoLost,
+    reserve,
+    cancelReservation,
   };
 }
