@@ -4,7 +4,7 @@ import { Building2, MapPin, Pencil } from "lucide-react-native";
 
 import { useRole } from "@/hooks/useRole";
 import { theme } from "@/constants/theme";
-import type { PropertyWithLandlord } from "@/services/properties.service";
+import type { PropertyWithLandlord } from "@/lib/services/properties.service";
 import { PropertyEditModal } from "@/components/property/PropertyEditModal";
 
 import { PROPERTY_TYPE_LABEL } from "./propertyLabels";
@@ -40,14 +40,19 @@ export const PropertyHeader = memo(function PropertyHeader({
         <View style={styles.info}>
           <View style={styles.typeBadge}>
             <Text style={styles.typeBadgeText}>
-              {PROPERTY_TYPE_LABEL[property.property_type] ?? property.property_type}
+              {PROPERTY_TYPE_LABEL[property.property_type] ??
+                property.property_type}
             </Text>
           </View>
 
           <Text style={styles.title}>{title}</Text>
 
           <View style={styles.locationRow}>
-            <MapPin size={12} color={theme.colors.textLight} strokeWidth={1.8} />
+            <MapPin
+              size={12}
+              color={theme.colors.textLight}
+              strokeWidth={1.8}
+            />
             <Text style={styles.locationText}>{location}</Text>
           </View>
         </View>
@@ -55,7 +60,10 @@ export const PropertyHeader = memo(function PropertyHeader({
         {isAdmin ? (
           <Pressable
             onPress={() => setEditOpen(true)}
-            style={({ pressed }) => [styles.editBtn, pressed && styles.editBtnPressed]}
+            style={({ pressed }) => [
+              styles.editBtn,
+              pressed && styles.editBtnPressed,
+            ]}
             accessibilityRole="button"
             accessibilityLabel="Edit property"
             hitSlop={8}

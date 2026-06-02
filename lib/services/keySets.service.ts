@@ -1,18 +1,13 @@
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase/client";
 import type {
   DbKeySet,
   DbKeySetInsert,
   DbKeySetUpdate,
   KeyType,
+  StoredImage,
 } from "@/types/database";
 
 // ── Shared types ──────────────────────────────────────────────────────────────
-
-export type KeySetImage = {
-  path: string;
-  sort_order: number;
-  is_hidden: boolean;
-};
 
 export type KeyInSet = {
   id: string;
@@ -22,6 +17,9 @@ export type KeyInSet = {
   quantity: number;
   notes: string | null;
 };
+
+/** `UnassignedKey` is structurally identical to `KeyInSet` — use `KeyInSet` directly. */
+export type UnassignedKey = KeyInSet;
 
 export type KeySetHolder = {
   id: string;
@@ -34,15 +32,6 @@ export type KeySetHolder = {
 export type KeySetWithDetails = DbKeySet & {
   keys: KeyInSet[];
   current_holder: KeySetHolder | null;
-};
-
-export type UnassignedKey = {
-  id: string;
-  key_type: KeyType;
-  label: string;
-  code: string | null;
-  quantity: number;
-  notes: string | null;
 };
 
 /** A keyset that is currently checked out or overdue, with holder + property info. */
@@ -162,12 +151,14 @@ export async function fetchCheckedOutKeySets(
 ): Promise<CheckedOutKeySet[]> {
   const { data, error } = await supabase
     .from("key_sets")
-    .select(`
+    .select(
+      `
       id, property_id, name, code, status, due_back_at, current_holder_id,
       current_holder:current_holder_id(full_name, holder_type, profile_id, phone),
       property:property_id(address, formatted_address, suburb, city, postcode),
       keys(label)
-    `)
+    `,
+    )
     .in("status", ["checked_out", "overdue"])
     .order("due_back_at", { ascending: true, nullsFirst: false })
     .limit(limit);
@@ -180,14 +171,18 @@ export async function fetchCheckedOutKeySets(
  * Fetch all keysets needing admin attention: overdue or missing/damaged.
  * Ordered so missing/damaged appear first, then overdue.
  */
-export async function fetchKeySetsNeedingAttention(): Promise<KeySetNeedingAttention[]> {
+export async function fetchKeySetsNeedingAttention(): Promise<
+  KeySetNeedingAttention[]
+> {
   const { data, error } = await supabase
     .from("key_sets")
-    .select(`
+    .select(
+      `
       id, property_id, name, status,
       current_holder:current_holder_id(full_name, holder_type, profile_id),
       property:property_id(address, suburb, city, postcode)
-    `)
+    `,
+    )
     .in("status", ["overdue", "missing_damaged"])
     .order("status", { ascending: true }); // missing_damaged < overdue alphabetically
 
@@ -299,7 +294,10 @@ export async function extendKeySetCheckout({
 /**
  * Marks a key set as missing/damaged via RPC.
  */
-export async function reportKeySetLost(keySetId: string, notes?: string | null): Promise<void> {
+export async function reportKeySetLost(
+  keySetId: string,
+  notes?: string | null,
+): Promise<void> {
   const { error } = await supabase.rpc("report_key_set_missing", {
     p_key_set_id: keySetId,
     p_notes: notes ?? null,
@@ -366,7 +364,7 @@ function resolveKeySetImageStoragePath(path: string): {
   return { bucket: "key_sets", path };
 }
 
-export function getVisibleKeySetImages(images: KeySetImage[]): KeySetImage[] {
+export function getVisibleKeySetImages(images: StoredImage[]): StoredImage[] {
   return [...images]
     .filter((img) => !img.is_hidden)
     .sort((a, b) => a.sort_order - b.sort_order);
@@ -388,14 +386,14 @@ export async function fetchSignedKeySetImageUrl(
 /**
  * Uploads local photo URIs to Supabase Storage under
  * `properties/{propertyId}/{keySetId}/` in the `properties` bucket
- * and returns a `KeySetImage[]` array ready to be saved in the DB.
+ * and returns a `StoredImage[]` array ready to be saved in the DB.
  */
 export async function uploadKeySetImages(
   propertyId: string,
   keySetId: string,
   localUris: string[],
-): Promise<KeySetImage[]> {
-  const results: KeySetImage[] = [];
+): Promise<StoredImage[]> {
+  const results: StoredImage[] = [];
 
   for (let i = 0; i < localUris.length; i++) {
     const uri = localUris[i];
@@ -412,7 +410,9 @@ export async function uploadKeySetImages(
       .upload(storagePath, arrayBuffer, { contentType, upsert: true });
 
     if (error) {
-      throw new Error(`Failed to upload keyset photo ${i + 1}: ${error.message}`);
+      throw new Error(
+        `Failed to upload keyset photo ${i + 1}: ${error.message}`,
+      );
     }
 
     results.push({
@@ -431,7 +431,7 @@ export async function uploadKeySetImages(
  */
 export async function updateKeySetImages(
   keySetId: string,
-  images: KeySetImage[],
+  images: StoredImage[],
 ): Promise<void> {
   const { error } = await supabase
     .from("key_sets")
@@ -440,4 +440,3 @@ export async function updateKeySetImages(
 
   if (error) throw error;
 }
-

@@ -1,13 +1,10 @@
-import { supabase } from "@/lib/supabase";
-import type { Database } from "@/types/database";
+import { supabase } from "@/lib/supabase/client";
+import type { DbProfile, DbProfileUpdate } from "@/types/database";
 
-export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
-export type ProfileEdits = Pick<
-  Database["public"]["Tables"]["profiles"]["Update"],
-  "full_name" | "phone"
->;
+/** Profile fields the user can edit themselves. */
+export type ProfileEdits = Pick<DbProfileUpdate, "full_name" | "phone">;
 
-export async function fetchProfile(userId: string): Promise<Profile | null> {
+export async function fetchProfile(userId: string): Promise<DbProfile | null> {
   const { data, error } = await supabase
     .from("profiles")
     .select("*")
@@ -15,13 +12,13 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
     .maybeSingle();
 
   if (error) throw error;
-  return data as Profile | null;
+  return data as DbProfile | null;
 }
 
 export async function updateProfile(
   userId: string,
   edits: ProfileEdits
-): Promise<Profile> {
+): Promise<DbProfile> {
   const { data, error } = await supabase
     .from("profiles")
     .update(edits as never)
@@ -30,7 +27,7 @@ export async function updateProfile(
     .single();
 
   if (error) throw error;
-  return data as Profile;
+  return data as DbProfile;
 }
 
 // ── Profile image ─────────────────────────────────────────────────────────────
@@ -105,4 +102,3 @@ export async function fetchSignedProfileImageUrl(
   }
   return data.signedUrl;
 }
-

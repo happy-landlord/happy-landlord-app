@@ -3,14 +3,48 @@ import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 
-import { supabase } from "@/lib/supabase";
-import type {
-  DbNotification,
-  NotificationNavigationData,
-  NotificationType,
-} from "@/types/database";
+import { supabase } from "@/lib/supabase/client";
+import type { DbNotification } from "@/types/database";
 
-export type AppNotification = DbNotification;
+// ── App-domain notification types ───────────────────────────────────────────
+// These live here (not in database.ts) because they describe app conventions
+// for the notification payload, not the underlying DB schema.
+
+/** Discriminator for the `notifications.type` column. */
+export type NotificationType =
+  | "KEY_CHECKOUT_CREATED"
+  | "KEY_DUE_SOON"
+  | "KEY_OVERDUE"
+  | "KEY_RETURNED"
+  | "KEY_LOST_REPORTED"
+  | "USER_REGISTRATION_REQUESTED"
+  | "KEY_RECALL_REQUESTED";
+
+/**
+ * Payload attached to a push notification's `data` field. Accepts both
+ * snake_case and camelCase variants to be forgiving with upstream senders.
+ */
+export type NotificationNavigationData = {
+  route?: string;
+  path?: string;
+  related_property_id?: string;
+  relatedPropertyId?: string;
+  property_id?: string;
+  propertyId?: string;
+  related_key_set_id?: string;
+  relatedKeySetId?: string;
+  key_set_id?: string;
+  keySetId?: string;
+  related_checkout_id?: string;
+  relatedCheckoutId?: string;
+  checkout_id?: string;
+  checkoutId?: string;
+  transaction_id?: string;
+  transactionId?: string;
+  key_id?: string;
+  keyId?: string;
+  [key: string]: unknown;
+};
 
 export const NOTIFICATION_TYPES = {
   KEY_CHECKOUT_CREATED: "KEY_CHECKOUT_CREATED",
@@ -95,7 +129,7 @@ export async function saveUserPushToken(
 
 export async function fetchNotifications(
   userId: string
-): Promise<AppNotification[]> {
+): Promise<DbNotification[]> {
   const { data, error } = await supabase
     .from("notifications")
     .select("*")
@@ -103,7 +137,7 @@ export async function fetchNotifications(
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return (data ?? []) as AppNotification[];
+  return (data ?? []) as DbNotification[];
 }
 
 export async function fetchUnreadNotificationCount(userId: string): Promise<number> {
@@ -246,7 +280,7 @@ export function getNotificationTargetPath(
 
 export function getNotificationRowTargetPath(
   notification: Pick<
-    AppNotification,
+    DbNotification,
     "type" | "related_property_id" | "related_key_set_id" | "related_checkout_id"
   >
 ): string | null {

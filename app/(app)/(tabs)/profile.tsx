@@ -21,15 +21,15 @@ import {
   useProfile,
   useUpdateProfile,
   useProfileImageUrl,
-} from "@/hooks/useProfile";
-import { useCurrentUserId } from "@/hooks/useSession";
+} from "@/lib/hooks/useProfile";
+import { useCurrentUserId } from "@/lib/hooks/useSession";
 import { useQueryClient } from "@tanstack/react-query";
-import { QUERY_KEYS } from "@/constants/queryKeys";
+import { QUERY_KEYS } from "@/lib/query/keys";
 import {
   uploadProfileImage,
   updateProfileImagePath,
-} from "@/services/profile.service";
-import type { ProfileEdits } from "@/services/profile.service";
+} from "@/lib/services/profile.service";
+import type { ProfileEdits } from "@/lib/services/profile.service";
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -102,7 +102,10 @@ export default function ProfileScreen() {
     } else {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (perm.status !== "granted") {
-        Alert.alert("Permission required", "Allow photo library access in Settings.");
+        Alert.alert(
+          "Permission required",
+          "Allow photo library access in Settings.",
+        );
         return;
       }
       result = await ImagePicker.launchImageLibraryAsync({
@@ -137,7 +140,9 @@ export default function ProfileScreen() {
     } catch (err) {
       Alert.alert(
         "Upload failed",
-        err instanceof Error ? err.message : "Could not upload photo. Please try again.",
+        err instanceof Error
+          ? err.message
+          : "Could not upload photo. Please try again.",
       );
     } finally {
       setUploadingImage(false);
@@ -146,7 +151,9 @@ export default function ProfileScreen() {
 
   if (isLoading) return <LoadingState message="Loading profile…" />;
   if (isError || !profile) {
-    return <ErrorState onRetry={refetch} message="Could not load your profile." />;
+    return (
+      <ErrorState onRetry={refetch} message="Could not load your profile." />
+    );
   }
 
   const hasName = Boolean(profile.full_name?.trim());
@@ -167,7 +174,10 @@ export default function ProfileScreen() {
         <Pressable
           onPress={handleAvatarPress}
           disabled={uploadingImage}
-          style={({ pressed }) => [styles.avatarShell, pressed && styles.avatarShellPressed]}
+          style={({ pressed }) => [
+            styles.avatarShell,
+            pressed && styles.avatarShellPressed,
+          ]}
           accessibilityRole="button"
           accessibilityLabel="Change profile photo"
         >
@@ -352,7 +362,11 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   avatarImage: { width: 84, height: 84 },
-  avatarText: { fontSize: 30, fontWeight: "800", color: theme.colors.textInverse },
+  avatarText: {
+    fontSize: 30,
+    fontWeight: "800",
+    color: theme.colors.textInverse,
+  },
   cameraBadge: {
     position: "absolute",
     bottom: 2,
@@ -413,7 +427,12 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.7,
   },
-  rowValue: { fontSize: 15, color: theme.colors.text, fontWeight: "600", lineHeight: 21 },
+  rowValue: {
+    fontSize: 15,
+    color: theme.colors.text,
+    fontWeight: "600",
+    lineHeight: 21,
+  },
   emptyValue: { color: theme.colors.textMuted, fontWeight: "500" },
   rowInput: {
     fontSize: 15,
@@ -442,11 +461,19 @@ const styles = StyleSheet.create({
   btnFull: { flex: 0, width: "100%" },
   btnPrimary: { backgroundColor: theme.colors.primary },
   btnDisabled: { opacity: 0.6 },
-  btnPrimaryLabel: { fontSize: 15, fontWeight: "700", color: theme.colors.textInverse },
+  btnPrimaryLabel: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: theme.colors.textInverse,
+  },
   btnOutline: {
     borderWidth: 1,
     borderColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
   },
-  btnOutlineLabel: { fontSize: 15, fontWeight: "600", color: theme.colors.text },
+  btnOutlineLabel: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: theme.colors.text,
+  },
 });

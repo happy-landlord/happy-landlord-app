@@ -5,7 +5,7 @@ import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { theme } from "@/constants/theme";
 import type { KeyType } from "@/types/database";
-import type { KeyInSet } from "@/services/keySets.service";
+import type { KeyInSet } from "@/lib/services/keySets.service";
 
 type AgentKeyGroup = {
   key_type: KeyType;

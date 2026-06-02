@@ -5,13 +5,13 @@ import { ChevronRight, MapPin } from "lucide-react-native";
 
 import type { DbProperty } from "@/types/database";
 import { useRole } from "@/hooks/useRole";
-import { useCurrentUserId } from "@/hooks/useSession";
+import { useCurrentUserId } from "@/lib/hooks/useSession";
 import { PROPERTY_TYPE_LABEL } from "@/components/property/add/types";
-import { QUERY_KEYS } from "@/constants/queryKeys";
+import { QUERY_KEYS } from "@/lib/query/keys";
 import {
   fetchKeySetsForProperty,
   type KeySetWithDetails,
-} from "@/services/keySets.service";
+} from "@/lib/services/keySets.service";
 import { theme } from "@/constants/theme";
 
 type PropertyCardProps = {
@@ -89,7 +89,8 @@ export function PropertyCard({ property }: PropertyCardProps) {
         {/* Type badge */}
         <View style={styles.typeBadge}>
           <Text style={styles.typeBadgeText}>
-            {PROPERTY_TYPE_LABEL[property.property_type] ?? property.property_type}
+            {PROPERTY_TYPE_LABEL[property.property_type] ??
+              property.property_type}
           </Text>
         </View>
 
@@ -107,7 +108,12 @@ export function PropertyCard({ property }: PropertyCardProps) {
         </View>
       </View>
 
-      <ChevronRight size={18} color={theme.colors.textLight} strokeWidth={1.8} style={styles.chevron} />
+      <ChevronRight
+        size={18}
+        color={theme.colors.textLight}
+        strokeWidth={1.8}
+        style={styles.chevron}
+      />
     </Pressable>
   );
 }

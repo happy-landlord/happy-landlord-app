@@ -3,7 +3,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { theme } from "@/constants/theme";
 import { Logo } from "@/components/ui/Logo";
-import { useSignOut } from "@/hooks/useSession";
+import { useSignOut } from "@/lib/hooks/useSession";
 
 export default function PendingApprovalScreen() {
   const insets = useSafeAreaInsets();

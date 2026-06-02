@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { QUERY_KEYS } from "@/constants/queryKeys";
+import { QUERY_KEYS } from "@/lib/query/keys";
 import {
   fetchKeySetsForProperty,
   fetchKeySetById,
@@ -17,13 +17,13 @@ import {
   type ReturnKeySetParams,
   type TransferKeySetParams,
   type ExtendKeySetParams,
-} from "@/services/keySets.service";
+} from "@/lib/services/keySets.service";
 import {
   fetchAdminDashboardSummary,
   createKeys,
   updateKey,
   deleteKey,
-} from "@/services/keys.service";
+} from "@/lib/services/keys.service";
 import type { DbKeyInsert, DbKeyUpdate } from "@/types/database";
 import { useQueryScope } from "@/hooks/useRole";
 
@@ -63,9 +63,13 @@ function invalidateKeySets(
   propertyId: string,
   keySetId?: string,
 ) {
-  queryClient.invalidateQueries({ queryKey: QUERY_KEYS.keySets.byProperty(propertyId) });
+  queryClient.invalidateQueries({
+    queryKey: QUERY_KEYS.keySets.byProperty(propertyId),
+  });
   if (keySetId) {
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.keySets.detail(keySetId) });
+    queryClient.invalidateQueries({
+      queryKey: QUERY_KEYS.keySets.detail(keySetId),
+    });
   }
   queryClient.invalidateQueries({ queryKey: ["activity"] });
 }
@@ -108,7 +112,8 @@ export function useReportKeySetLost(propertyId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (keySetId: string) => reportKeySetLost(keySetId),
-    onSuccess: (_, keySetId) => invalidateKeySets(queryClient, propertyId, keySetId),
+    onSuccess: (_, keySetId) =>
+      invalidateKeySets(queryClient, propertyId, keySetId),
   });
 }
 
@@ -116,7 +121,8 @@ export function useUndoReportKeySetLost(propertyId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (keySetId: string) => undoReportKeySetLost(keySetId),
-    onSuccess: (_, keySetId) => invalidateKeySets(queryClient, propertyId, keySetId),
+    onSuccess: (_, keySetId) =>
+      invalidateKeySets(queryClient, propertyId, keySetId),
   });
 }
 
@@ -127,7 +133,9 @@ export function useCreateKeys(propertyId: string) {
   return useMutation({
     mutationFn: (inputs: DbKeyInsert[]) => createKeys(inputs),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.keySets.byProperty(propertyId) });
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.keySets.byProperty(propertyId),
+      });
       queryClient.invalidateQueries({ queryKey: ["keySets"] });
     },
   });
@@ -138,7 +146,9 @@ export function useDeleteKey(propertyId: string) {
   return useMutation({
     mutationFn: (keyId: string) => deleteKey(keyId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.keySets.byProperty(propertyId) });
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.keySets.byProperty(propertyId),
+      });
       queryClient.invalidateQueries({ queryKey: ["keySets"] });
     },
   });
@@ -150,7 +160,9 @@ export function useUpdateKey(propertyId: string) {
     mutationFn: ({ keyId, patch }: { keyId: string; patch: DbKeyUpdate }) =>
       updateKey(keyId, patch),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.keySets.byProperty(propertyId) });
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.keySets.byProperty(propertyId),
+      });
       queryClient.invalidateQueries({ queryKey: ["keySets"] });
     },
   });
@@ -167,7 +179,6 @@ export function useCheckedOutKeySets(limit = 10) {
     staleTime: 1000 * 30,
   });
 }
-
 
 export function useAdminDashboardSummary() {
   return useQuery({

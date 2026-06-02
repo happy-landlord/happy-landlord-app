@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 
 import { theme } from "@/constants/theme";
 import type { DbProperty } from "@/types/database";
-import type { KeyInSet } from "@/services/keySets.service";
+import type { KeyInSet } from "@/lib/services/keySets.service";
 
 export type PropertySummaryProps = {
   property: DbProperty;

@@ -8,7 +8,7 @@ import {
 import { useRouter } from "expo-router";
 
 import { theme } from "@/constants/theme";
-import type { KeySetNeedingAttention } from "@/services/keySets.service";
+import type { KeySetNeedingAttention } from "@/lib/services/keySets.service";
 
 // ── Sort helpers ──────────────────────────────────────────────────────────────
 
@@ -44,7 +44,6 @@ function AttentionCard({
     .join(", ");
   const isMissing = item.status === "missing_damaged";
   const holderName = item.current_holder?.full_name ?? null;
-
 
   return (
     <Pressable

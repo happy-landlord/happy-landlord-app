@@ -12,20 +12,11 @@ import { theme } from "@/constants/theme";
 import { PhotoPicker } from "@/components/ui/PhotoPicker";
 import { PrintButton } from "@/components/ui/PrintButton";
 import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
-import { buildQrPrintPage } from "@/lib/print";
-import type { KeyEntry, KeySetDraft } from "./types";
+import { buildQrPrintPage } from "@/lib/utils/print";
+import { buildKeySetCode, type KeyEntry, type KeySetDraft } from "./types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function buildKeySetCode(
-  propertyCode: string | null,
-  index: number,
-  total: number,
-): string | null {
-  if (!propertyCode) return null;
-  if (total === 1) return propertyCode.toUpperCase();
-  return `${propertyCode.toUpperCase()}-${index + 1}`;
-}
 
 function keyLabel(entry: KeyEntry): string {
   if (entry.type === "other" && entry.otherLabel) return entry.otherLabel;
@@ -470,11 +461,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     color: theme.colors.text,
-  },
-  cardKeyPillCount: {
-    fontSize: 11,
-    fontWeight: "900",
-    color: theme.colors.primary,
   },
   photoSection: {
     paddingTop: theme.spacing.sm,

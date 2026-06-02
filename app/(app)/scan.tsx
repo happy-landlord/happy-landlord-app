@@ -13,7 +13,7 @@ import type { BarcodeScanningResult } from "expo-camera";
 import * as Haptics from "expo-haptics";
 import { ScanLine, X, RefreshCw } from "lucide-react-native";
 
-import { fetchKeySetByCode } from "@/services/keySets.service";
+import { fetchKeySetByCode } from "@/lib/services/keySets.service";
 import { theme } from "@/constants/theme";
 
 // ---------------------------------------------------------------------------
@@ -76,10 +76,13 @@ export default function ScanScreen() {
       const payload = parseQrPayload(data);
 
       if (!payload) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(
+          () => {},
+        );
         setScanState({
           status: "error",
-          message: "This QR code isn't recognised. Please scan a Happy Landlord keyset QR code.",
+          message:
+            "This QR code isn't recognised. Please scan a Happy Landlord keyset QR code.",
         });
         return;
       }
@@ -89,22 +92,28 @@ export default function ScanScreen() {
       try {
         const keySet = await fetchKeySetByCode(payload.code);
         if (keySet) {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+          Haptics.notificationAsync(
+            Haptics.NotificationFeedbackType.Success,
+          ).catch(() => {});
           router.replace(`/(app)/properties/keyset/${keySet.id}` as never);
           return;
         }
 
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+        Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Warning,
+        ).catch(() => {});
         setScanState({ status: "notFound" });
       } catch {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(
+          () => {},
+        );
         setScanState({
           status: "error",
           message: "Something went wrong while looking up this QR code.",
         });
       }
     },
-    [router]
+    [router],
   );
 
   // ── Permission not yet determined ─────────────────────────────────────────
@@ -115,7 +124,9 @@ export default function ScanScreen() {
   // ── Permission denied ─────────────────────────────────────────────────────
   if (!permission.granted) {
     return (
-      <View style={[styles.fill, styles.center, { paddingBottom: insets.bottom }]}>
+      <View
+        style={[styles.fill, styles.center, { paddingBottom: insets.bottom }]}
+      >
         <ScanLine size={48} color={theme.colors.primary} strokeWidth={1.5} />
         <Text style={styles.permTitle}>Camera access needed</Text>
         <Text style={styles.permBody}>
@@ -151,7 +162,11 @@ export default function ScanScreen() {
             <View style={[styles.corner, styles.cornerBL]} />
             <View style={[styles.corner, styles.cornerBR]} />
             {scanState.status === "loading" && (
-              <ActivityIndicator size="large" color="#fff" style={styles.spinnerInner} />
+              <ActivityIndicator
+                size="large"
+                color="#fff"
+                style={styles.spinnerInner}
+              />
             )}
           </View>
           <View style={styles.maskSide} />
@@ -161,7 +176,10 @@ export default function ScanScreen() {
 
       {/* Instruction / status text */}
       <View
-        style={[styles.statusBox, { paddingBottom: insets.bottom + theme.spacing.xl }]}
+        style={[
+          styles.statusBox,
+          { paddingBottom: insets.bottom + theme.spacing.xl },
+        ]}
         pointerEvents="none"
       >
         {scanState.status === "scanning" && (
@@ -176,13 +194,20 @@ export default function ScanScreen() {
           </Text>
         )}
         {scanState.status === "error" && (
-          <Text style={[styles.hint, styles.hintError]}>{scanState.message}</Text>
+          <Text style={[styles.hint, styles.hintError]}>
+            {scanState.message}
+          </Text>
         )}
       </View>
 
       {/* Retry button — shown after errors */}
       {(scanState.status === "error" || scanState.status === "notFound") && (
-        <View style={[styles.retryRow, { bottom: insets.bottom + theme.spacing.md }]}>
+        <View
+          style={[
+            styles.retryRow,
+            { bottom: insets.bottom + theme.spacing.md },
+          ]}
+        >
           <Pressable style={styles.retryBtn} onPress={reset}>
             <RefreshCw size={16} color="#fff" strokeWidth={2} />
             <Text style={styles.retryLabel}>Scan again</Text>
@@ -209,20 +234,32 @@ const MASK_COLOR = "rgba(0,0,0,0.55)";
 
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: "#000" },
-  center: { alignItems: "center", justifyContent: "center", gap: theme.spacing.md, padding: theme.spacing.xl },
+  center: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: theme.spacing.md,
+    padding: theme.spacing.xl,
+  },
 
   permTitle: {
-    fontSize: 20, fontWeight: "700", color: theme.colors.text,
-    textAlign: "center", marginTop: theme.spacing.sm,
+    fontSize: 20,
+    fontWeight: "700",
+    color: theme.colors.text,
+    textAlign: "center",
+    marginTop: theme.spacing.sm,
   },
   permBody: {
-    fontSize: 15, color: theme.colors.textMuted,
-    textAlign: "center", lineHeight: 22,
+    fontSize: 15,
+    color: theme.colors.textMuted,
+    textAlign: "center",
+    lineHeight: 22,
   },
   btn: {
-    marginTop: theme.spacing.sm, backgroundColor: theme.colors.primary,
+    marginTop: theme.spacing.sm,
+    backgroundColor: theme.colors.primary,
     borderRadius: theme.radius.pill,
-    paddingVertical: theme.spacing.md, paddingHorizontal: theme.spacing.xl,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.xl,
   },
   btnLabel: { fontSize: 16, fontWeight: "700", color: "#fff" },
 
@@ -232,32 +269,78 @@ const styles = StyleSheet.create({
   maskBottom: { flex: 1.5, backgroundColor: MASK_COLOR },
 
   viewfinder: { width: FINDER_SIZE, height: FINDER_SIZE },
-  corner: { position: "absolute", width: CORNER_SIZE, height: CORNER_SIZE, borderColor: "#fff" },
-  cornerTL: { top: 0, left: 0, borderTopWidth: CORNER_THICKNESS, borderLeftWidth: CORNER_THICKNESS, borderTopLeftRadius: 4 },
-  cornerTR: { top: 0, right: 0, borderTopWidth: CORNER_THICKNESS, borderRightWidth: CORNER_THICKNESS, borderTopRightRadius: 4 },
-  cornerBL: { bottom: 0, left: 0, borderBottomWidth: CORNER_THICKNESS, borderLeftWidth: CORNER_THICKNESS, borderBottomLeftRadius: 4 },
-  cornerBR: { bottom: 0, right: 0, borderBottomWidth: CORNER_THICKNESS, borderRightWidth: CORNER_THICKNESS, borderBottomRightRadius: 4 },
+  corner: {
+    position: "absolute",
+    width: CORNER_SIZE,
+    height: CORNER_SIZE,
+    borderColor: "#fff",
+  },
+  cornerTL: {
+    top: 0,
+    left: 0,
+    borderTopWidth: CORNER_THICKNESS,
+    borderLeftWidth: CORNER_THICKNESS,
+    borderTopLeftRadius: 4,
+  },
+  cornerTR: {
+    top: 0,
+    right: 0,
+    borderTopWidth: CORNER_THICKNESS,
+    borderRightWidth: CORNER_THICKNESS,
+    borderTopRightRadius: 4,
+  },
+  cornerBL: {
+    bottom: 0,
+    left: 0,
+    borderBottomWidth: CORNER_THICKNESS,
+    borderLeftWidth: CORNER_THICKNESS,
+    borderBottomLeftRadius: 4,
+  },
+  cornerBR: {
+    bottom: 0,
+    right: 0,
+    borderBottomWidth: CORNER_THICKNESS,
+    borderRightWidth: CORNER_THICKNESS,
+    borderBottomRightRadius: 4,
+  },
   spinnerInner: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
 
   statusBox: {
-    position: "absolute", bottom: 0, left: 0, right: 0,
-    alignItems: "center", paddingHorizontal: theme.spacing.xl,
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    paddingHorizontal: theme.spacing.xl,
   },
-  hint: { fontSize: 15, color: "rgba(255,255,255,0.85)", textAlign: "center", fontWeight: "500" },
+  hint: {
+    fontSize: 15,
+    color: "rgba(255,255,255,0.85)",
+    textAlign: "center",
+    fontWeight: "500",
+  },
   hintError: { color: "#FF7B7B" },
 
   retryRow: { position: "absolute", left: 0, right: 0, alignItems: "center" },
   retryBtn: {
-    flexDirection: "row", alignItems: "center", gap: theme.spacing.sm,
-    backgroundColor: theme.colors.primary, borderRadius: theme.radius.pill,
-    paddingVertical: theme.spacing.sm + 2, paddingHorizontal: theme.spacing.lg,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.radius.pill,
+    paddingVertical: theme.spacing.sm + 2,
+    paddingHorizontal: theme.spacing.lg,
   },
   retryLabel: { fontSize: 15, fontWeight: "700", color: "#fff" },
 
   closeBtn: {
-    position: "absolute", right: theme.spacing.screen,
-    width: 38, height: 38, borderRadius: 19,
+    position: "absolute",
+    right: theme.spacing.screen,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: "rgba(0,0,0,0.4)",
-    alignItems: "center", justifyContent: "center",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

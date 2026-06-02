@@ -14,10 +14,10 @@ import {
   Warehouse,
 } from "lucide-react-native";
 
-import { KEY_TYPE_LABEL } from "@/components/KeyStatusChip";
+import { KEY_TYPE_LABEL } from "@/components/key/keyLabels";
 import { theme } from "@/constants/theme";
 import type { KeyType } from "@/types/database";
-import type { KeyInSet } from "@/services/keySets.service";
+import type { KeyInSet } from "@/lib/services/keySets.service";
 
 // ── Icon map per key type ──────────────────────────────────────────────────────
 
@@ -45,7 +45,10 @@ export type KeyCardProps = {
   onPress?: () => void;
 };
 
-export const KeyCard = memo(function KeyCard({ keyItem, onPress }: KeyCardProps) {
+export const KeyCard = memo(function KeyCard({
+  keyItem,
+  onPress,
+}: KeyCardProps) {
   const Icon = KEY_TYPE_ICON[keyItem.key_type] ?? KeyRound;
   const typeLabel = KEY_TYPE_LABEL[keyItem.key_type] ?? keyItem.key_type;
 
@@ -68,9 +71,13 @@ export const KeyCard = memo(function KeyCard({ keyItem, onPress }: KeyCardProps)
         <Text style={styles.typeText}>{typeLabel}</Text>
       </View>
 
-        <View style={styles.right}>
-          <ChevronRight size={16} color={theme.colors.textLight} strokeWidth={1.8} />
-        </View>
+      <View style={styles.right}>
+        <ChevronRight
+          size={16}
+          color={theme.colors.textLight}
+          strokeWidth={1.8}
+        />
+      </View>
     </Pressable>
   );
 });
@@ -123,4 +130,3 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
 });
-

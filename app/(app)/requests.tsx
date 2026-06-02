@@ -9,11 +9,19 @@ import {
 import { CheckCircle, Clock, Phone, UserX, XCircle } from "lucide-react-native";
 
 import { theme } from "@/constants/theme";
-import { useRegistrationRequests, useReviewRequest } from "@/hooks/useAgentRequests";
-import type { RegistrationRequest } from "@/services/requests.service";
+import {
+  useRegistrationRequests,
+  useReviewRequest,
+} from "@/lib/hooks/useAgentRequests";
+import type { RegistrationRequest } from "@/lib/services/requests.service";
 
 export default function RequestsScreen() {
-  const { data: requests, isLoading, error, refetch } = useRegistrationRequests();
+  const {
+    data: requests,
+    isLoading,
+    error,
+    refetch,
+  } = useRegistrationRequests();
   const { approve, reject } = useReviewRequest();
 
   if (isLoading) {
@@ -49,7 +57,7 @@ export default function RequestsScreen() {
     );
   }
 
-  const pending  = requests.filter((r) => r.status === "pending");
+  const pending = requests.filter((r) => r.status === "pending");
   const reviewed = requests.filter((r) => r.status !== "pending");
 
   return (
@@ -63,7 +71,8 @@ export default function RequestsScreen() {
           <View style={styles.sectionHeader}>
             <View style={styles.pendingDot} />
             <Text style={styles.sectionTitle}>
-              {pending.length} pending {pending.length === 1 ? "request" : "requests"}
+              {pending.length} pending{" "}
+              {pending.length === 1 ? "request" : "requests"}
             </Text>
           </View>
         ) : null
@@ -75,11 +84,13 @@ export default function RequestsScreen() {
           onReject={() => reject.mutate({ requestId: item.id })}
           isApprovingThis={
             approve.isPending &&
-            (approve.variables as { requestId: string } | undefined)?.requestId === item.id
+            (approve.variables as { requestId: string } | undefined)
+              ?.requestId === item.id
           }
           isRejectingThis={
             reject.isPending &&
-            (reject.variables as { requestId: string } | undefined)?.requestId === item.id
+            (reject.variables as { requestId: string } | undefined)
+              ?.requestId === item.id
           }
         />
       )}
@@ -105,9 +116,21 @@ function RequestCard({
   const isPending = request.status === "pending";
 
   const statusConfig = {
-    pending:  { color: theme.colors.warning, bg: theme.colors.warningSoft,  label: "Pending" },
-    approved: { color: theme.colors.success, bg: theme.colors.successSoft,  label: "Approved" },
-    rejected: { color: theme.colors.danger,  bg: theme.colors.dangerSoft,   label: "Rejected" },
+    pending: {
+      color: theme.colors.warning,
+      bg: theme.colors.warningSoft,
+      label: "Pending",
+    },
+    approved: {
+      color: theme.colors.success,
+      bg: theme.colors.successSoft,
+      label: "Approved",
+    },
+    rejected: {
+      color: theme.colors.danger,
+      bg: theme.colors.dangerSoft,
+      label: "Rejected",
+    },
   }[request.status];
 
   const initial = (request.full_name || request.email || "?")[0].toUpperCase();
@@ -135,7 +158,9 @@ function RequestCard({
           ) : null}
         </View>
 
-        <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
+        <View
+          style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}
+        >
           <Text style={[styles.statusLabel, { color: statusConfig.color }]}>
             {statusConfig.label}
           </Text>
@@ -179,7 +204,11 @@ function RequestCard({
               <ActivityIndicator size="small" color={theme.colors.surface} />
             ) : (
               <>
-                <CheckCircle size={16} color={theme.colors.surface} strokeWidth={2} />
+                <CheckCircle
+                  size={16}
+                  color={theme.colors.surface}
+                  strokeWidth={2}
+                />
                 <Text style={styles.approveBtnLabel}>Approve</Text>
               </>
             )}
@@ -198,7 +227,11 @@ function RequestCard({
               <ActivityIndicator size="small" color={theme.colors.danger} />
             ) : (
               <>
-                <XCircle size={16} color={theme.colors.danger} strokeWidth={2} />
+                <XCircle
+                  size={16}
+                  color={theme.colors.danger}
+                  strokeWidth={2}
+                />
                 <Text style={styles.rejectBtnLabel}>Reject</Text>
               </>
             )}
@@ -210,7 +243,11 @@ function RequestCard({
       {!isPending && request.reviewed_at && (
         <View style={styles.reviewedRow}>
           {request.status === "approved" ? (
-            <CheckCircle size={14} color={theme.colors.success} strokeWidth={2} />
+            <CheckCircle
+              size={14}
+              color={theme.colors.success}
+              strokeWidth={2}
+            />
           ) : (
             <UserX size={14} color={theme.colors.danger} strokeWidth={2} />
           )}
@@ -270,7 +307,10 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     maxWidth: 280,
   },
-  list: { padding: theme.spacing.screen, backgroundColor: theme.colors.background },
+  list: {
+    padding: theme.spacing.screen,
+    backgroundColor: theme.colors.background,
+  },
   separator: { height: theme.spacing.md },
   sectionHeader: {
     flexDirection: "row",
@@ -304,7 +344,11 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  cardHeader: { flexDirection: "row", alignItems: "flex-start", gap: theme.spacing.md },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: theme.spacing.md,
+  },
   avatarCircle: {
     width: 44,
     height: 44,
@@ -314,11 +358,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexShrink: 0,
   },
-  avatarLetter: { fontSize: 18, fontWeight: "700", color: theme.colors.primary },
+  avatarLetter: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: theme.colors.primary,
+  },
   cardMeta: { flex: 1, gap: 2 },
   cardName: { fontSize: 15, fontWeight: "600", color: theme.colors.text },
   cardEmail: { fontSize: 13, color: theme.colors.textMuted },
-  phoneRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 1 },
+  phoneRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 1,
+  },
   cardPhone: { fontSize: 12, color: theme.colors.textLight },
   statusBadge: {
     paddingVertical: 3,
@@ -340,7 +393,12 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.infoSoft,
     borderRadius: theme.radius.pill,
   },
-  roleText: { fontSize: 11, fontWeight: "600", color: theme.colors.info, textTransform: "capitalize" },
+  roleText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: theme.colors.info,
+    textTransform: "capitalize",
+  },
   dateText: { fontSize: 12, color: theme.colors.textLight },
   noteBox: {
     backgroundColor: theme.colors.neutralSoft,
@@ -348,7 +406,11 @@ const styles = StyleSheet.create({
     padding: theme.spacing.sm,
     marginTop: 2,
   },
-  noteText: { fontSize: 13, color: theme.colors.textMuted, fontStyle: "italic" },
+  noteText: {
+    fontSize: 13,
+    color: theme.colors.textMuted,
+    fontStyle: "italic",
+  },
   actions: {
     flexDirection: "row",
     gap: theme.spacing.sm,
@@ -366,13 +428,26 @@ const styles = StyleSheet.create({
   },
   btnPressed: { opacity: 0.75 },
   approveBtn: { backgroundColor: theme.colors.success },
-  approveBtnLabel: { color: theme.colors.surface, fontWeight: "600", fontSize: 14 },
+  approveBtnLabel: {
+    color: theme.colors.surface,
+    fontWeight: "600",
+    fontSize: 14,
+  },
   rejectBtn: {
     backgroundColor: theme.colors.dangerSoft,
     borderWidth: 1,
     borderColor: theme.colors.danger,
   },
-  rejectBtnLabel: { color: theme.colors.danger, fontWeight: "600", fontSize: 14 },
-  reviewedRow: { flexDirection: "row", alignItems: "center", gap: theme.spacing.xs, marginTop: 2 },
+  rejectBtnLabel: {
+    color: theme.colors.danger,
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  reviewedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.xs,
+    marginTop: 2,
+  },
   reviewedText: { fontSize: 12, color: theme.colors.textLight },
 });

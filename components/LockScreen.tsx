@@ -14,14 +14,14 @@ import { Eye, EyeOff, Fingerprint, ShieldCheck } from "lucide-react-native";
 import { Input } from "@/components/ui/Input";
 import { Logo } from "@/components/ui/Logo";
 import { theme } from "@/constants/theme";
-import { supabase } from "@/lib/supabase";
-import { useLockStore } from "@/lib/lockStore";
+import { supabase } from "@/lib/supabase/client";
+import { useLockStore } from "@/lib/state/lockStore";
 import {
   authenticateWithBiometrics,
   getBiometricCapability,
   getBiometricLabel,
   type BiometricCapability,
-} from "@/services/biometric.service";
+} from "@/lib/services/biometric.service";
 
 type LockMode = "biometric" | "password";
 
@@ -36,7 +36,9 @@ export function LockScreen({ userName, userEmail }: LockScreenProps) {
   const insets = useSafeAreaInsets();
   const { setLocked } = useLockStore();
 
-  const [capability, setCapability] = useState<BiometricCapability | null>(null);
+  const [capability, setCapability] = useState<BiometricCapability | null>(
+    null,
+  );
   const [mode, setMode] = useState<LockMode>("biometric");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
@@ -83,7 +85,9 @@ export function LockScreen({ userName, userEmail }: LockScreenProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [capability]);
 
-  const biometricLabel = capability ? getBiometricLabel(capability.type) : "Biometrics";
+  const biometricLabel = capability
+    ? getBiometricLabel(capability.type)
+    : "Biometrics";
   const firstName = userName?.split(" ")[0] ?? null;
 
   async function triggerBiometric() {
@@ -108,14 +112,14 @@ export function LockScreen({ userName, userEmail }: LockScreenProps) {
       // (e.g. "user_cancel" on older SDK builds, iOS-specific error strings).
       const err = result.error as string;
       const shouldFallback =
-        err === "user_cancel" ||            // user tapped "Use password instead"
-        err === "user_fallback" ||          // user chose device fallback
-        err === "not_enrolled" ||           // biometric removed from device settings
-        err === "passcode_not_set" ||       // device has no passcode enrolled
-        err === "not_available" ||          // hardware not available / Expo Go
+        err === "user_cancel" || // user tapped "Use password instead"
+        err === "user_fallback" || // user chose device fallback
+        err === "not_enrolled" || // biometric removed from device settings
+        err === "passcode_not_set" || // device has no passcode enrolled
+        err === "not_available" || // hardware not available / Expo Go
         err === "biometry_not_available" || // iOS: Face ID/Touch ID not available
-        err === "biometry_not_enrolled" ||  // iOS: no biometric enrolled
-        err === "biometry_lockout" ||       // iOS: too many failures, locked out
+        err === "biometry_not_enrolled" || // iOS: no biometric enrolled
+        err === "biometry_lockout" || // iOS: too many failures, locked out
         err === "biometry_lockout_permanent"; // iOS: permanently locked
 
       if (shouldFallback) {
@@ -205,17 +209,26 @@ export function LockScreen({ userName, userEmail }: LockScreenProps) {
               {isAuthenticating ? (
                 <ActivityIndicator size="large" color={theme.colors.primary} />
               ) : (
-                <Fingerprint size={52} color={theme.colors.primary} strokeWidth={1.4} />
+                <Fingerprint
+                  size={52}
+                  color={theme.colors.primary}
+                  strokeWidth={1.4}
+                />
               )}
             </Pressable>
 
             <Text style={styles.tapHint}>
-              {isAuthenticating ? "Authenticating…" : `Tap to use ${biometricLabel}`}
+              {isAuthenticating
+                ? "Authenticating…"
+                : `Tap to use ${biometricLabel}`}
             </Text>
 
             <Pressable
               onPress={() => setMode("password")}
-              style={({ pressed }) => [styles.altLink, pressed && { opacity: 0.6 }]}
+              style={({ pressed }) => [
+                styles.altLink,
+                pressed && { opacity: 0.6 },
+              ]}
             >
               <Text style={styles.altLinkText}>Use password instead</Text>
             </Pressable>
@@ -253,9 +266,17 @@ export function LockScreen({ userName, userEmail }: LockScreenProps) {
                   }
                 >
                   {showPassword ? (
-                    <EyeOff size={18} color={theme.colors.textLight} strokeWidth={2} />
+                    <EyeOff
+                      size={18}
+                      color={theme.colors.textLight}
+                      strokeWidth={2}
+                    />
                   ) : (
-                    <Eye size={18} color={theme.colors.textLight} strokeWidth={2} />
+                    <Eye
+                      size={18}
+                      color={theme.colors.textLight}
+                      strokeWidth={2}
+                    />
                   )}
                 </Pressable>
               }
@@ -273,10 +294,17 @@ export function LockScreen({ userName, userEmail }: LockScreenProps) {
               accessibilityLabel="Unlock app"
             >
               {isVerifying ? (
-                <ActivityIndicator size="small" color={theme.colors.textInverse} />
+                <ActivityIndicator
+                  size="small"
+                  color={theme.colors.textInverse}
+                />
               ) : (
                 <>
-                  <ShieldCheck size={17} color={theme.colors.textInverse} strokeWidth={2} />
+                  <ShieldCheck
+                    size={17}
+                    color={theme.colors.textInverse}
+                    strokeWidth={2}
+                  />
                   <Text style={styles.unlockBtnText}>Unlock</Text>
                 </>
               )}
@@ -285,9 +313,14 @@ export function LockScreen({ userName, userEmail }: LockScreenProps) {
             {capability?.isAvailable ? (
               <Pressable
                 onPress={backToBiometric}
-                style={({ pressed }) => [styles.altLink, pressed && { opacity: 0.6 }]}
+                style={({ pressed }) => [
+                  styles.altLink,
+                  pressed && { opacity: 0.6 },
+                ]}
               >
-                <Text style={styles.altLinkText}>← Back to {biometricLabel}</Text>
+                <Text style={styles.altLinkText}>
+                  ← Back to {biometricLabel}
+                </Text>
               </Pressable>
             ) : null}
           </View>
@@ -428,4 +461,3 @@ const styles = StyleSheet.create({
     color: theme.colors.textInverse,
   },
 });
-

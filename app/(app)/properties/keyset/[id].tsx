@@ -1,8 +1,6 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import {
-  Alert,
   Image,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -23,6 +21,7 @@ import {
 
 import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
 import { CountdownTimer } from "@/components/key/CountdownTimer";
+import { KeySetDurationModal } from "@/components/key/KeySetDurationModal";
 import { KeyStatusChip } from "@/components/KeyStatusChip";
 import { KeySetEditSheet } from "@/components/property/KeySetEditSheet";
 import { PropertyHeader } from "@/components/property/PropertyHeader";
@@ -30,39 +29,17 @@ import { ReturnConfirmModal } from "@/components/key/ReturnConfirmModal";
 import { TransferConfirmModal } from "@/components/key/TransferConfirmModal";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingState } from "@/components/ui/LoadingState";
-import {
-  useKeySet,
-  useKeySets,
-  useCheckoutKeySet,
-  useReturnKeySet,
-  useTransferKeySet,
-  useExtendKeySet,
-  useReportKeySetLost,
-  useUndoReportKeySetLost,
-} from "@/hooks/useKeySets";
-import { useProperty } from "@/hooks/useProperties";
-import { useCurrentUserId } from "@/hooks/useSession";
+import { useKeySet } from "@/lib/hooks/useKeySets";
+import { useKeySetActions } from "@/hooks/useKeySetActions";
+import { useProperty } from "@/lib/hooks/useProperties";
+import { useCurrentUserId } from "@/lib/hooks/useSession";
 import { useRole } from "@/hooks/useRole";
-import { useFirstKeySetImageUrl } from "@/hooks/useKeySetImages";
-import { useInfiniteActivity } from "@/hooks/useTransactions";
+import { useFirstKeySetImageUrl } from "@/lib/hooks/useKeySetImages";
+import { useInfiniteActivity } from "@/lib/hooks/useTransactions";
 import type { ActivityTransaction } from "@/types/database";
 import { theme } from "@/constants/theme";
-import { formatActivityTimestamp, formatTime, isPastDue } from "@/lib/format";
+import { formatActivityTimestamp, formatDueAt } from "@/lib/utils/format";
 import { MOVEMENT_CONFIG, getMovementLabel } from "@/constants/movements";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-const calcDueBackIso = (days = 1) =>
-  new Date(Date.now() + days * DAY_MS).toISOString();
-const DURATION_DAYS = [1, 2, 3, 5, 7] as const;
-
-const errMsg = (err: unknown, fallback: string) => {
-  if (err instanceof Error) return err.message;
-  if (err && typeof err === "object" && "message" in err)
-    return String((err as { message: unknown }).message);
-  return fallback;
-};
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -73,7 +50,7 @@ export default function KeySetDetailScreen() {
   const currentUserId = useCurrentUserId();
   const { isAdmin } = useRole();
 
-  const { data: keySet, isLoading, isError, refetch } = useKeySet(id);
+  const { data: keySet, isPending, isError, refetch } = useKeySet(id);
   const { data: property } = useProperty(keySet?.property_id ?? "");
   const { data: keySetImageUrl } = useFirstKeySetImageUrl(keySet?.images);
 
@@ -84,140 +61,19 @@ export default function KeySetDetailScreen() {
   });
   const lastActivity = lastActivityData?.pages[0]?.slice(0, 5) ?? [];
 
-  // For agent: check if they already have a checkout in this property
-  const { data: propertySets } = useKeySets(keySet?.property_id ?? "");
-  const myPropertyCheckout = (propertySets ?? []).find(
-    (ks) =>
-      ks.id !== id &&
-      (ks.status === "checked_out" || ks.status === "overdue") &&
-      ks.current_holder?.profile_id === currentUserId,
-  );
+  const actions = useKeySetActions({ keySet, currentUserId, isAdmin });
 
-  const checkout = useCheckoutKeySet(keySet?.property_id ?? "");
-  const returnMut = useReturnKeySet(keySet?.property_id ?? "");
-  const transferMut = useTransferKeySet(keySet?.property_id ?? "");
-  const extendMut = useExtendKeySet(keySet?.property_id ?? "");
-  const reportLostMut = useReportKeySetLost(keySet?.property_id ?? "");
-  const undoLostMut = useUndoReportKeySetLost(keySet?.property_id ?? "");
-
-  const isBusy =
-    checkout.isPending ||
-    returnMut.isPending ||
-    transferMut.isPending ||
-    extendMut.isPending ||
-    reportLostMut.isPending ||
-    undoLostMut.isPending;
-
-  const [checkoutDays, setCheckoutDays] = useState(1);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [checkoutDays, setCheckoutDays] = useState(1);
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showExtendModal, setShowExtendModal] = useState(false);
   const [extendDays, setExtendDays] = useState(1);
   const [editKeysOpen, setEditKeysOpen] = useState(false);
 
-  // ── Derived state ──────────────────────────────────────────────────────────
-
-  const isHeldByMe =
-    (keySet?.status === "checked_out" || keySet?.status === "overdue") &&
-    keySet?.current_holder?.profile_id === currentUserId;
-
-  const isHeldByOther =
-    (keySet?.status === "checked_out" || keySet?.status === "overdue") &&
-    keySet?.current_holder?.profile_id !== currentUserId;
-
-  const overdue =
-    keySet?.status === "overdue" ||
-    (keySet?.due_back_at ? isPastDue(keySet.due_back_at) : false);
-
-  const isAvailable = keySet?.status === "available";
-
-  // ── Handlers ───────────────────────────────────────────────────────────────
-
-  const handleCheckout = useCallback(() => {
-    if (!keySet) return;
-    checkout.mutate(
-      { keySetId: keySet.id, dueBackAt: calcDueBackIso(checkoutDays) },
-      {
-        onSuccess: () => setShowCheckoutModal(false),
-        onError: (err) =>
-          Alert.alert("Checkout failed", errMsg(err, "Please try again.")),
-      },
-    );
-  }, [checkout, keySet, checkoutDays]);
-
-  const handleTransfer = useCallback(() => {
-    if (!keySet) return;
-    transferMut.mutate(
-      { keySetId: keySet.id },
-      {
-        onSuccess: () => setShowTransferModal(false),
-        onError: (err) =>
-          Alert.alert("Transfer failed", errMsg(err, "Please try again.")),
-      },
-    );
-  }, [keySet, transferMut]);
-
-  const handleExtend = useCallback(() => {
-    if (!keySet) return;
-    const newDueBack = new Date(
-      (keySet.due_back_at
-        ? new Date(keySet.due_back_at).getTime()
-        : Date.now()) +
-        extendDays * DAY_MS,
-    ).toISOString();
-    extendMut.mutate(
-      { keySetId: keySet.id, dueBackAt: newDueBack },
-      {
-        onSuccess: () => setShowExtendModal(false),
-        onError: (err) =>
-          Alert.alert("Extend failed", errMsg(err, "Please try again.")),
-      },
-    );
-  }, [extendMut, keySet, extendDays]);
-
-  const handleAdminReturn = useCallback(() => {
-    if (!keySet) return;
-    returnMut.mutate(
-      { keySetId: keySet.id },
-      {
-        onSuccess: () => setShowReturnModal(false),
-        onError: (err) =>
-          Alert.alert("Failed", errMsg(err, "Please try again.")),
-      },
-    );
-  }, [keySet, returnMut]);
-
-  const handleReportLost = useCallback(() => {
-    if (!keySet) return;
-    Alert.alert(
-      "Report as lost?",
-      "This will mark the keyset as missing or damaged. This action cannot be undone easily.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Report Lost",
-          style: "destructive",
-          onPress: () =>
-            reportLostMut.mutate(keySet.id, {
-              onError: (err) =>
-                Alert.alert("Failed", errMsg(err, "Please try again.")),
-            }),
-        },
-      ],
-    );
-  }, [keySet, reportLostMut]);
-
-  const handleUndoLost = useCallback(() => {
-    if (!keySet) return;
-    undoLostMut.mutate(keySet.id, {
-      onError: (err) => Alert.alert("Failed", errMsg(err, "Please try again.")),
-    });
-  }, [keySet, undoLostMut]);
-
   // ── Render states ──────────────────────────────────────────────────────────
 
-  if (isLoading) return <LoadingState message="Loading keyset…" />;
+  if (isPending) return <LoadingState message="Loading keyset…" />;
 
   if (isError || !keySet) {
     return (
@@ -232,7 +88,7 @@ export default function KeySetDetailScreen() {
   // Agents should not interact with missing/damaged keysets they don't hold
   if (
     !isAdmin &&
-    keySet.status === "missing_damaged" &&
+    actions.isMissingDamaged &&
     keySet.current_holder?.profile_id !== currentUserId
   ) {
     return (
@@ -251,30 +107,22 @@ export default function KeySetDetailScreen() {
   const holderName = keySet.current_holder?.full_name;
   const holderType = keySet.current_holder?.holder_type;
 
-  // ── Actions to show ────────────────────────────────────────────────────────
-  // Admin: Mark returned (if checked_out/overdue), mark overdue (future)
-  // Agent: checkout (if available + no checkout in this property), return+extend (if mine), transfer (if other's)
-
-  const showAdminReturn = isAdmin && (isHeldByMe || isHeldByOther);
-  const showAgentCheckout =
-    !isAdmin && isAvailable && !myPropertyCheckout && !isHeldByMe;
-  const showAgentReturn = !isAdmin && isHeldByMe; // shows timer
-  const showAgentExtend = !isAdmin && isHeldByMe;
-  const showAgentTransfer = !isAdmin && isHeldByOther;
-
-  // "missing_damaged" state — admins can undo any report; agents can undo their own
-  const isMissingDamaged = keySet?.status === "missing_damaged";
-  const showUndoLost =
-    isMissingDamaged &&
-    (isAdmin || keySet?.current_holder?.profile_id === currentUserId);
-
-  const hasActions =
-    showAdminReturn ||
-    showAgentCheckout ||
-    showAgentReturn ||
-    showAgentExtend ||
-    showAgentTransfer ||
-    showUndoLost;
+  const {
+    overdue,
+    isAvailable,
+    isHeldByMe,
+    isHeldByOther,
+    isMissingDamaged,
+    showAdminReturn,
+    showAgentCheckout,
+    showAgentReturn,
+    showAgentExtend,
+    showAgentReportLost,
+    showAgentTransfer,
+    showUndoLost,
+    hasActions,
+    isBusy,
+  } = actions;
 
   return (
     <>
@@ -530,19 +378,12 @@ export default function KeySetDetailScreen() {
                   >
                     {overdue ? "Was due" : "Due"}{" "}
                     <Text style={styles.dueSummaryDate}>
-                      {new Date(keySet.due_back_at).toLocaleDateString(
-                        "en-AU",
-                        {
-                          weekday: "short",
-                          day: "numeric",
-                          month: "short",
-                        },
-                      )}{" "}
-                      {formatTime(keySet.due_back_at)}
+                      {formatDueAt(keySet.due_back_at)}
                     </Text>
                   </Text>
                 </View>
               )}
+
             {/* Admin: Mark returned */}
             {showAdminReturn && (
               <ActionButton
@@ -585,12 +426,12 @@ export default function KeySetDetailScreen() {
             )}
 
             {/* Agent: Report lost */}
-            {showAgentExtend && (
+            {showAgentReportLost && (
               <ActionButton
                 label="Report Lost"
                 variant="dangerOutline"
                 disabled={isBusy}
-                onPress={handleReportLost}
+                onPress={actions.reportLost}
               />
             )}
 
@@ -604,13 +445,15 @@ export default function KeySetDetailScreen() {
               />
             )}
 
-            {/* Agent: Undo report lost */}
+            {/* Undo report lost */}
             {showUndoLost && (
               <ActionButton
-                label={undoLostMut.isPending ? "Undoing…" : "Undo Lost Report"}
+                label={
+                  actions.isUndoLostPending ? "Undoing…" : "Undo Lost Report"
+                }
                 variant="successOutline"
                 disabled={isBusy}
-                onPress={handleUndoLost}
+                onPress={actions.undoLost}
               />
             )}
           </View>
@@ -618,30 +461,34 @@ export default function KeySetDetailScreen() {
       </ScrollView>
 
       {/* Checkout modal */}
-      <DurationModal
+      <KeySetDurationModal
         visible={showCheckoutModal}
         title="Checkout keyset"
         subtitle="Select how long you need the keyset."
         durationDays={checkoutDays}
         baseIso={undefined}
-        isPending={checkout.isPending}
+        isPending={actions.isCheckoutPending}
         onDurationChange={setCheckoutDays}
         onCancel={() => setShowCheckoutModal(false)}
-        onConfirm={handleCheckout}
+        onConfirm={() =>
+          actions.checkout(checkoutDays, () => setShowCheckoutModal(false))
+        }
         confirmLabel="Confirm Checkout"
       />
 
       {/* Extend modal */}
-      <DurationModal
+      <KeySetDurationModal
         visible={showExtendModal}
         title="Extend checkout"
         subtitle="Add more days from the current due date."
         durationDays={extendDays}
         baseIso={keySet.due_back_at ?? undefined}
-        isPending={extendMut.isPending}
+        isPending={actions.isExtendPending}
         onDurationChange={setExtendDays}
         onCancel={() => setShowExtendModal(false)}
-        onConfirm={handleExtend}
+        onConfirm={() =>
+          actions.extend(extendDays, () => setShowExtendModal(false))
+        }
         confirmLabel="Extend"
         confirmColor={theme.colors.primary}
       />
@@ -665,9 +512,9 @@ export default function KeySetDetailScreen() {
         holderName={keySet.current_holder?.full_name ?? null}
         returningKeys={keySet.keys ?? []}
         dueBackAt={keySet.due_back_at ?? null}
-        isPending={returnMut.isPending}
+        isPending={actions.isReturnPending}
         onCancel={() => setShowReturnModal(false)}
-        onConfirm={handleAdminReturn}
+        onConfirm={() => actions.adminReturn(() => setShowReturnModal(false))}
       />
 
       {/* Agent: transfer confirm modal */}
@@ -675,15 +522,17 @@ export default function KeySetDetailScreen() {
         visible={showTransferModal}
         currentHolderName={keySet.current_holder?.full_name ?? null}
         dueBackAt={keySet.due_back_at ?? null}
-        isPending={transferMut.isPending}
+        isPending={actions.isTransferPending}
         onCancel={() => setShowTransferModal(false)}
-        onConfirm={handleTransfer}
+        onConfirm={() => actions.transfer(() => setShowTransferModal(false))}
       />
     </>
   );
 }
 
-// ── Activity preview row ──────────────────────────────────────────────────────
+// ── Local sub-components ─────────────────────────────────────────────────────
+// Both are tightly coupled to this screen's layout; keeping them local
+// avoids fragmenting the file system for ~30-line presentational pieces.
 
 function ActivityPreviewRow({
   item,
@@ -719,7 +568,31 @@ function ActivityPreviewRow({
   );
 }
 
-// ── Action button ─────────────────────────────────────────────────────────────
+type ActionVariant =
+  | "success"
+  | "successOutline"
+  | "danger"
+  | "dangerOutline"
+  | "primary"
+  | "secondary";
+
+const ACTION_BG: Record<ActionVariant, string> = {
+  success: theme.colors.success,
+  successOutline: theme.colors.surface,
+  danger: theme.colors.danger,
+  dangerOutline: theme.colors.surface,
+  primary: theme.colors.primary,
+  secondary: theme.colors.surface,
+};
+
+const ACTION_TEXT: Record<ActionVariant, string> = {
+  success: "#fff",
+  successOutline: theme.colors.success,
+  danger: "#fff",
+  dangerOutline: theme.colors.danger,
+  primary: "#fff",
+  secondary: theme.colors.textMuted,
+};
 
 function ActionButton({
   label,
@@ -728,34 +601,10 @@ function ActionButton({
   onPress,
 }: {
   label: string;
-  variant:
-    | "success"
-    | "successOutline"
-    | "danger"
-    | "dangerOutline"
-    | "primary"
-    | "secondary";
+  variant: ActionVariant;
   disabled: boolean;
   onPress: () => void;
 }) {
-  const bg =
-    variant === "success"
-      ? theme.colors.success
-      : variant === "danger"
-        ? theme.colors.danger
-        : variant === "primary"
-          ? theme.colors.primary
-          : theme.colors.surface;
-
-  const textColor =
-    variant === "secondary"
-      ? theme.colors.textMuted
-      : variant === "successOutline"
-        ? theme.colors.success
-        : variant === "dangerOutline"
-          ? theme.colors.danger
-          : "#fff";
-
   const borderStyle =
     variant === "secondary"
       ? { borderWidth: 1, borderColor: theme.colors.border }
@@ -763,13 +612,13 @@ function ActionButton({
         ? { borderWidth: 1.5, borderColor: theme.colors.success }
         : variant === "dangerOutline"
           ? { borderWidth: 1.5, borderColor: theme.colors.danger }
-          : {};
+          : null;
 
   return (
     <Pressable
       style={({ pressed }) => [
         styles.actionBtn,
-        { backgroundColor: bg },
+        { backgroundColor: ACTION_BG[variant] },
         borderStyle,
         pressed && { opacity: 0.75 },
         disabled && { opacity: 0.55 },
@@ -778,136 +627,10 @@ function ActionButton({
       disabled={disabled}
       accessibilityRole="button"
     >
-      <Text style={[styles.actionBtnLabel, { color: textColor }]}>{label}</Text>
+      <Text style={[styles.actionBtnLabel, { color: ACTION_TEXT[variant] }]}>
+        {label}
+      </Text>
     </Pressable>
-  );
-}
-
-// ── Duration modal (checkout / extend) ───────────────────────────────────────
-
-function DurationModal({
-  visible,
-  title,
-  subtitle,
-  durationDays,
-  baseIso,
-  isPending,
-  onDurationChange,
-  onCancel,
-  onConfirm,
-  confirmLabel,
-  confirmColor = theme.colors.success,
-}: {
-  visible: boolean;
-  title: string;
-  subtitle: string;
-  durationDays: number;
-  baseIso?: string;
-  isPending: boolean;
-  onDurationChange: (days: number) => void;
-  onCancel: () => void;
-  onConfirm: () => void;
-  confirmLabel: string;
-  confirmColor?: string;
-}) {
-  const DAY_MS = 24 * 60 * 60 * 1000;
-  const base = baseIso ? new Date(baseIso).getTime() : Date.now();
-  const newDue = new Date(base + durationDays * DAY_MS).toISOString();
-
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      statusBarTranslucent
-      onRequestClose={isPending ? undefined : onCancel}
-    >
-      <View style={styles.modalOverlay}>
-        <Pressable
-          style={styles.modalBackdrop}
-          onPress={isPending ? undefined : onCancel}
-        />
-        <View style={styles.modalCard}>
-          <Text style={styles.modalTitle}>{title}</Text>
-          <Text style={styles.modalSubtitle}>{subtitle}</Text>
-
-          <View style={styles.durationGrid}>
-            {DURATION_DAYS.map((days) => {
-              const selected = days === durationDays;
-              return (
-                <Pressable
-                  key={days}
-                  style={({ pressed }) => [
-                    styles.durationChip,
-                    selected && styles.durationChipSelected,
-                    pressed && { opacity: 0.72 },
-                  ]}
-                  onPress={() => onDurationChange(days)}
-                  disabled={isPending}
-                >
-                  <Text
-                    style={[
-                      styles.durationChipText,
-                      selected && styles.durationChipTextSelected,
-                    ]}
-                  >
-                    {days === 1 ? "1 day" : `${days} days`}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          <View style={styles.dueRow}>
-            <CalendarClock
-              size={14}
-              color={theme.colors.primary}
-              strokeWidth={2}
-            />
-            <Text style={styles.dueRowText}>
-              {baseIso ? "New due date:" : "Return by"}{" "}
-              <Text style={styles.dueRowDate}>
-                {new Date(newDue).toLocaleDateString("en-AU", {
-                  weekday: "short",
-                  day: "numeric",
-                  month: "short",
-                })}{" "}
-                {formatTime(newDue)}
-              </Text>
-            </Text>
-          </View>
-
-          <View style={styles.modalActions}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.modalBtn,
-                styles.modalBtnCancel,
-                pressed && { opacity: 0.72 },
-              ]}
-              onPress={onCancel}
-              disabled={isPending}
-            >
-              <Text style={styles.modalBtnCancelText}>Cancel</Text>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [
-                styles.modalBtn,
-                styles.modalBtnConfirm,
-                { backgroundColor: confirmColor },
-                pressed && { opacity: 0.75 },
-                isPending && { opacity: 0.55 },
-              ]}
-              onPress={onConfirm}
-              disabled={isPending}
-            >
-              <Text style={styles.modalBtnConfirmText}>
-                {isPending ? "Processing…" : confirmLabel}
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-      </View>
-    </Modal>
   );
 }
 
@@ -967,7 +690,6 @@ const styles = StyleSheet.create({
     padding: 6,
   },
 
-  // ── Top info row (mirrors PropertyHeader top) ─────────────────────────────
   identityTop: {
     flexDirection: "row",
     gap: theme.spacing.md,
@@ -1004,7 +726,6 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
   },
   identityName: { fontSize: 17, fontWeight: "700", color: theme.colors.text },
-  identityCodeRow: { flexDirection: "row", alignItems: "center", gap: 3 },
   identityCode: { fontSize: 13, color: theme.colors.textMuted },
   editBtn: {
     width: 32,
@@ -1017,7 +738,6 @@ const styles = StyleSheet.create({
   },
   editBtnPressed: { opacity: 0.6 },
 
-  // ── Holder meta row (mirrors PropertyHeader metaRow) ──────────────────────
   identityMeta: {
     paddingHorizontal: theme.spacing.md,
     paddingBottom: theme.spacing.md,
@@ -1167,23 +887,6 @@ const styles = StyleSheet.create({
     color: theme.colors.primaryDark,
   },
 
-  notesBlock: {
-    backgroundColor: theme.colors.surfaceWarm,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.md,
-    gap: 6,
-  },
-  notesLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: theme.colors.textMuted,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  notesText: { fontSize: 14, color: theme.colors.text, lineHeight: 20 },
-
   actionsSection: { gap: theme.spacing.sm },
   dueSummaryRow: {
     flexDirection: "row",
@@ -1207,98 +910,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
   },
   actionBtnLabel: { fontSize: 16, fontWeight: "700" },
-
-  // ── Duration modal ──────────────────────────────────────────────────────────
-  modalOverlay: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: theme.spacing.md,
-  },
-  modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(38,38,38,0.46)",
-  },
-  modalCard: {
-    width: "100%",
-    maxWidth: 420,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.card,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    padding: theme.spacing.lg,
-    gap: theme.spacing.md,
-    shadowColor: theme.colors.charcoal,
-    shadowOffset: { width: 0, height: 18 },
-    shadowOpacity: 0.2,
-    shadowRadius: 28,
-    elevation: 10,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: theme.colors.text,
-    textAlign: "center",
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: theme.colors.textMuted,
-    textAlign: "center",
-    lineHeight: 20,
-  },
-  durationGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    justifyContent: "center",
-  },
-  durationChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.neutralSoft,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  durationChipSelected: {
-    backgroundColor: theme.colors.primarySoft,
-    borderColor: theme.colors.primary,
-  },
-  durationChipText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: theme.colors.textMuted,
-  },
-  durationChipTextSelected: { color: theme.colors.primary, fontWeight: "700" },
-  dueRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: theme.colors.primarySoft,
-    borderRadius: theme.radius.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  dueRowText: { fontSize: 13, color: theme.colors.textMuted, flex: 1 },
-  dueRowDate: { fontWeight: "700", color: theme.colors.text },
-  modalActions: { flexDirection: "row", gap: theme.spacing.sm },
-  modalBtn: {
-    flex: 1,
-    minHeight: 46,
-    borderRadius: theme.radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  modalBtnCancel: {
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  modalBtnConfirm: { backgroundColor: theme.colors.success },
-  modalBtnCancelText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: theme.colors.textMuted,
-  },
-  modalBtnConfirmText: { fontSize: 15, fontWeight: "700", color: "#fff" },
 });

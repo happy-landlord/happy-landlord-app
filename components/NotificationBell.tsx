@@ -3,7 +3,7 @@ import { Bell } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
 import { theme } from "@/constants/theme";
-import { useUnreadNotificationCount } from "@/hooks/useNotifications";
+import { useUnreadNotificationCount } from "@/lib/hooks/useNotifications";
 
 type NotificationBellProps = {
   size?: number;
@@ -32,7 +32,9 @@ export function NotificationBell({ size = 38 }: NotificationBellProps) {
       <Bell size={21} color={theme.colors.text} strokeWidth={1.8} />
       {unreadCount > 0 ? (
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>{unreadCount > 99 ? "99+" : unreadCount}</Text>
+          <Text style={styles.badgeText}>
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </Text>
         </View>
       ) : null}
     </Pressable>

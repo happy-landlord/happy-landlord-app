@@ -1,12 +1,19 @@
 import { memo } from "react";
-import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { Calendar, KeyRound, UserCheck } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
 import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
 import { theme } from "@/constants/theme";
-import { formatDateTime } from "@/lib/format";
-import type { KeyInSet } from "@/services/keySets.service";
+import { formatDateTime } from "@/lib/utils/format";
+import type { KeyInSet } from "@/lib/services/keySets.service";
 
 export type TransferConfirmModalProps = {
   visible: boolean;
@@ -52,8 +59,8 @@ export const TransferConfirmModal = memo(function TransferConfirmModal({
         <View style={styles.card}>
           <Text style={styles.title}>Transfer keys?</Text>
           <Text style={styles.subtitle}>
-            Confirm these keys are being transferred into your custody. You will be
-            responsible for returning them when done.
+            Confirm these keys are being transferred into your custody. You will
+            be responsible for returning them when done.
           </Text>
 
           <View style={styles.summary}>
@@ -87,7 +94,9 @@ export const TransferConfirmModal = memo(function TransferConfirmModal({
                 />
               }
               label="Return by"
-              value={returnBy ? formatDateTime(returnBy) : "Return time not set"}
+              value={
+                returnBy ? formatDateTime(returnBy) : "Return time not set"
+              }
             />
           </View>
 
@@ -104,7 +113,9 @@ export const TransferConfirmModal = memo(function TransferConfirmModal({
               loading={isPending}
               disabled={isPending}
               onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(
+                  () => {},
+                );
                 onConfirm();
               }}
             />
@@ -117,11 +128,7 @@ export const TransferConfirmModal = memo(function TransferConfirmModal({
 
 // ─── Sub-components ────────────────────────────────────────────────────────
 
-function SelectedKeysSummary({
-  selectedKeys,
-}: {
-  selectedKeys: KeyInSet[];
-}) {
+function SelectedKeysSummary({ selectedKeys }: { selectedKeys: KeyInSet[] }) {
   return (
     <View style={styles.keysSection}>
       <Text style={styles.keysLabel}>Keys</Text>
@@ -135,7 +142,11 @@ function SelectedKeysSummary({
           return (
             <View key={k.id} style={styles.keyRow}>
               <View style={styles.keyIconCircle}>
-                <Icon size={12} color={theme.colors.primaryDark} strokeWidth={1.8} />
+                <Icon
+                  size={12}
+                  color={theme.colors.primaryDark}
+                  strokeWidth={1.8}
+                />
               </View>
               <Text style={styles.keyRowLabel} numberOfLines={1}>
                 {label}
@@ -186,7 +197,13 @@ type ActionButtonProps = {
   onPress: () => void;
 };
 
-function ActionButton({ label, variant, disabled, loading, onPress }: ActionButtonProps) {
+function ActionButton({
+  label,
+  variant,
+  disabled,
+  loading,
+  onPress,
+}: ActionButtonProps) {
   const isCancel = variant === "cancel";
   return (
     <Pressable

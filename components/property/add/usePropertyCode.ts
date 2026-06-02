@@ -4,9 +4,9 @@ import {
   fetchNextPropertyCodeSeq,
   makePropertyCode,
   PROPERTY_TYPE_LETTERS,
-} from "@/services/properties.service";
+} from "@/lib/services/properties.service";
 import type { PlaceResult } from "@/components/ui/AddressSearch";
-import type { PropertyType } from "./types";
+import type { PropertyType } from "@/types/database";
 
 type UsePropertyCodeResult = {
   /** Whether we're currently fetching the next sequence number. */
@@ -69,4 +69,3 @@ export function usePropertyCode(
 
   return { loading, code, generate, reset };
 }
-

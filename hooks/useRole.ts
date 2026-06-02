@@ -1,5 +1,5 @@
-import { useProfile } from "@/hooks/useProfile";
-import { useCurrentUserId } from "@/hooks/useSession";
+import { useProfile } from "@/lib/hooks/useProfile";
+import { useCurrentUserId } from "@/lib/hooks/useSession";
 import type { UserRole } from "@/constants/roles";
 
 export type UseRoleResult = {
@@ -50,7 +50,7 @@ export type QueryScope = {
 export function useQueryScope(): QueryScope {
   const userId = useCurrentUserId();
   const { isAdmin, isLoading } = useRole();
-  const scope = isAdmin ? "admin" : userId ?? "none";
+  const scope = isAdmin ? "admin" : (userId ?? "none");
 
   return {
     userId,

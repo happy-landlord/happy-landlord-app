@@ -1,14 +1,14 @@
- import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { QUERY_KEYS } from "@/constants/queryKeys";
-import type { RegistrationRequest } from "@/services/requests.service";
+import { QUERY_KEYS } from "@/lib/query/keys";
+import type { RegistrationRequest } from "@/lib/services/requests.service";
 import {
   approveRequest,
   fetchRegistrationRequests,
   fetchMyLatestRequest,
   rejectRequest,
   resubmitRequest,
-} from "@/services/requests.service";
+} from "@/lib/services/requests.service";
 
 /** Returns all registration requests for the admin view. */
 export function useRegistrationRequests() {
@@ -45,9 +45,17 @@ export function useMyLatestRequest() {
   });
 }
 
-type ApproveVars = { requestId: string; role?: "agent" | "admin"; adminNote?: string | null };
-type RejectVars  = { requestId: string; adminNote?: string | null };
-type ResubmitVars = { message?: string | null; fullName?: string | null; phone?: string | null };
+type ApproveVars = {
+  requestId: string;
+  role?: "agent" | "admin";
+  adminNote?: string | null;
+};
+type RejectVars = { requestId: string; adminNote?: string | null };
+type ResubmitVars = {
+  message?: string | null;
+  fullName?: string | null;
+  phone?: string | null;
+};
 
 /** Approve / reject mutations (admin). */
 export function useReviewRequest() {
@@ -64,7 +72,8 @@ export function useReviewRequest() {
   });
 
   const reject = useMutation<void, Error, RejectVars>({
-    mutationFn: ({ requestId, adminNote }) => rejectRequest(requestId, adminNote),
+    mutationFn: ({ requestId, adminNote }) =>
+      rejectRequest(requestId, adminNote),
     onSuccess: invalidate,
   });
 

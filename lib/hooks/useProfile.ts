@@ -1,20 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { QUERY_KEYS } from "@/constants/queryKeys";
+import { QUERY_KEYS } from "@/lib/query/keys";
 import {
   fetchProfile,
   fetchSignedProfileImageUrl,
   updateProfile,
   type ProfileEdits,
-} from "@/services/profile.service";
-import { useSession } from "@/hooks/useSession";
+} from "@/lib/services/profile.service";
+import { useSession } from "@/lib/hooks/useSession";
 
 export function useProfile() {
   const { session } = useSession();
   const userId = session?.user.id;
 
   return useQuery({
-    queryKey: userId ? QUERY_KEYS.auth.profile(userId) : ["auth", "profile", "none"],
+    queryKey: userId
+      ? QUERY_KEYS.auth.profile(userId)
+      : ["auth", "profile", "none"],
     queryFn: () => fetchProfile(userId!),
     enabled: Boolean(userId),
     staleTime: 1000 * 60 * 5,
@@ -46,4 +48,3 @@ export function useProfileImageUrl(path: string | null | undefined) {
     gcTime: 1000 * 60 * 65,
   });
 }
-

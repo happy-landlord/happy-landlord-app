@@ -1,9 +1,7 @@
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase/client";
+import type { DbRegistrationRequest } from "@/types/database";
 
-import type { Database } from "@/types/database";
-
-export type RegistrationRequest =
-  Database["public"]["Tables"]["registration_requests"]["Row"];
+export type RegistrationRequest = DbRegistrationRequest;
 
 /** Fetch all registration requests (admin only). */
 export async function fetchRegistrationRequests(): Promise<RegistrationRequest[]> {

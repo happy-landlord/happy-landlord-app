@@ -1,14 +1,12 @@
 import { StyleSheet, Text, View } from "react-native";
-import type { KeyType, KeySetStatus } from "@/types/database";
+import type { KeySetStatus } from "@/types/database";
 import { theme } from "@/constants/theme";
 
 // ── Status display config ─────────────────────────────────────────────────────
 
 type ChipConfig = { label: string; bg: string; color: string };
 
-export type KeyChipStatus = KeySetStatus;
-
-const STATUS_CONFIG: Record<KeyChipStatus, ChipConfig> = {
+const STATUS_CONFIG: Record<KeySetStatus, ChipConfig> = {
   available: {
     label: "Available",
     bg: theme.colors.successSoft,
@@ -46,35 +44,9 @@ const STATUS_CONFIG: Record<KeyChipStatus, ChipConfig> = {
   },
 };
 
-export const KEY_TYPE_LABEL: Record<KeyType, string> = {
-  main_door: "Main Door",
-  swipe_fob: "Swipe Fob",
-  mailbox: "Mailbox",
-  window: "Window",
-  garage_remote: "Garage Remote",
-  key_card: "Key Card",
-  storage_cage: "Storage Cage",
-  common_area: "Common Area",
-  security: "Security",
-  balcony: "Balcony",
-  other: "Other",
-};
-
-/** Labels for key-set `set_type` values. Falls back to raw value in callers. */
-export const SET_TYPE_LABEL: Record<string, string> = {
-  standard: "Standard",
-  full: "Full Access",
-  partial: "Partial",
-  ...KEY_TYPE_LABEL,
-};
-
 // ── Component ─────────────────────────────────────────────────────────────────
 
-type KeyStatusChipProps = {
-  status: KeyChipStatus;
-};
-
-export function KeyStatusChip({ status }: KeyStatusChipProps) {
+export function KeyStatusChip({ status }: { status: KeySetStatus }) {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.inactive;
   return (
     <View style={[styles.chip, { backgroundColor: cfg.bg }]}>

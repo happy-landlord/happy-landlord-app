@@ -1,15 +1,14 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { QUERY_KEYS } from "@/constants/queryKeys";
+import { QUERY_KEYS } from "@/lib/query/keys";
+import { ACTIVITY_PAGE_SIZE, STALE_TIME } from "@/lib/query/query";
 import { useQueryScope } from "@/hooks/useRole";
 import {
   fetchMyActivity,
   fetchAllActivity,
   fetchActivity,
-} from "@/services/transactions.service";
+} from "@/lib/services/transactions.service";
 import type { ActivityTransaction } from "@/types/database";
 export type { ActivityTransaction };
-
-const ACTIVITY_PAGE_SIZE = 25;
 
 export function useMyActivity() {
   const { userId, isAdmin, ready } = useQueryScope();
@@ -21,7 +20,7 @@ export function useMyActivity() {
         : ["activity", "none"],
     queryFn: isAdmin ? fetchAllActivity : () => fetchMyActivity(userId!),
     enabled: ready,
-    staleTime: 1000 * 30,
+    staleTime: STALE_TIME.short,
   });
 }
 
@@ -56,6 +55,6 @@ export function useInfiniteActivity({
     getNextPageParam: (lastPage, allPages) =>
       lastPage.length === ACTIVITY_PAGE_SIZE ? allPages.length : undefined,
     enabled: ready && enabledOverride,
-    staleTime: 1000 * 30,
+    staleTime: STALE_TIME.short,
   });
 }

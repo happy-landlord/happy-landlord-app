@@ -5,7 +5,8 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
-import { QUERY_KEYS } from "@/constants/queryKeys";
+import { QUERY_KEYS } from "@/lib/query/keys";
+import { invalidateProperties, PAGE_SIZE } from "@/lib/query/query";
 import { useRole } from "@/hooks/useRole";
 import {
   createProperty,
@@ -13,16 +14,19 @@ import {
   fetchPropertyById,
   fetchPropertyByIdForAgent,
   updateProperty,
-} from "@/services/properties.service";
-import type { DbProperty, DbPropertyInsert, DbPropertyUpdate, PropertyKeyStatus } from "@/types/database";
-
-const PAGE_SIZE = 20;
+} from "@/lib/services/properties.service";
+import type {
+  DbProperty,
+  DbPropertyInsert,
+  DbPropertyUpdate,
+  PropertyKeyStatus,
+} from "@/types/database";
 
 export function useInfiniteProperties({
   search = "",
   keyStatus,
 }: { search?: string; keyStatus?: PropertyKeyStatus } = {}) {
-  return useInfiniteQuery({
+  const query = useInfiniteQuery({
     queryKey: QUERY_KEYS.properties.infinite(search, keyStatus ?? ""),
     queryFn: ({ pageParam }: { pageParam: number }) =>
       fetchProperties({
@@ -34,7 +38,17 @@ export function useInfiniteProperties({
     initialPageParam: 0,
     getNextPageParam: (lastPage: DbProperty[], allPages: DbProperty[][]) =>
       lastPage.length === PAGE_SIZE ? allPages.length : undefined,
+    // Flatten pages so consumers don't have to memoise this themselves.
+    select: (data) => ({
+      ...data,
+      properties: data.pages.flat() as DbProperty[],
+    }),
   });
+
+  return {
+    ...query,
+    properties: query.data?.properties ?? [],
+  };
 }
 
 export function useProperty(id: string) {
@@ -51,9 +65,7 @@ export function useCreateProperty() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: DbPropertyInsert) => createProperty(input),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.properties.all });
-    },
+    onSuccess: () => invalidateProperties(queryClient),
   });
 }
 
@@ -61,12 +73,6 @@ export function useUpdateProperty(propertyId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (patch: DbPropertyUpdate) => updateProperty(propertyId, patch),
-    onSuccess: () => {
-      // Re-fetch the detail (with landlord join) and mark list stale
-      queryClient.invalidateQueries({
-        queryKey: [...QUERY_KEYS.properties.detail(propertyId)],
-      });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.properties.all });
-    },
+    onSuccess: () => invalidateProperties(queryClient, propertyId),
   });
 }

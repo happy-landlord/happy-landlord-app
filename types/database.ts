@@ -610,42 +610,9 @@ export type Database = {
   };
 };
 
-// ── Transaction type ─────────────────────────────────────────────────────────
-/** Derived from the DB enum — single source of truth via transactions.transaction_type */
-export type KeyTransactionType = DbTransaction["transaction_type"];
-
-export type KeySetStatus = DbKeySet["status"];
-
-export type NotificationNavigationData = {
-  route?: string;
-  path?: string;
-  related_property_id?: string;
-  relatedPropertyId?: string;
-  property_id?: string;
-  propertyId?: string;
-  related_key_set_id?: string;
-  relatedKeySetId?: string;
-  key_set_id?: string;
-  keySetId?: string;
-  related_checkout_id?: string;
-  relatedCheckoutId?: string;
-  checkout_id?: string;
-  checkoutId?: string;
-  transaction_id?: string;
-  transactionId?: string;
-  key_id?: string;
-  keyId?: string;
-  [key: string]: unknown;
-};
-
-export type NotificationType =
-  | "KEY_CHECKOUT_CREATED"
-  | "KEY_DUE_SOON"
-  | "KEY_OVERDUE"
-  | "KEY_RETURNED"
-  | "KEY_LOST_REPORTED"
-  | "USER_REGISTRATION_REQUESTED"
-  | "KEY_RECALL_REQUESTED";
+// ─────────────────────────────────────────────────────────────────────────────
+// Generic table-row helpers
+// ─────────────────────────────────────────────────────────────────────────────
 
 export type Tables<T extends keyof Database["public"]["Tables"]> =
   Database["public"]["Tables"][T]["Row"];
@@ -654,31 +621,67 @@ export type TablesInsert<T extends keyof Database["public"]["Tables"]> =
 export type TablesUpdate<T extends keyof Database["public"]["Tables"]> =
   Database["public"]["Tables"][T]["Update"];
 
-// ── Convenience row types (use these in services/components) ────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Convenience row types — prefer these over `Tables<"...">` in callers
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Profiles ───────────────────────────────────────────────────────────────────
 export type DbProfile = Tables<"profiles">;
 export type DbProfileUpdate = TablesUpdate<"profiles">;
+
+// Properties ─────────────────────────────────────────────────────────────────
 export type DbProperty = Tables<"properties">;
 export type DbPropertyInsert = TablesInsert<"properties">;
 export type DbPropertyUpdate = TablesUpdate<"properties">;
 export type PropertyType = DbProperty["property_type"];
 export type PropertyKeyStatus = DbProperty["key_status"];
+
+// Keys ───────────────────────────────────────────────────────────────────────
 export type DbKey = Tables<"keys">;
 export type DbKeyInsert = TablesInsert<"keys">;
 export type DbKeyUpdate = TablesUpdate<"keys">;
 export type KeyType = DbKey["key_type"];
+
+// Key holders ────────────────────────────────────────────────────────────────
 export type DbKeyHolder = Tables<"key_holders">;
 export type DbKeyHolderInsert = TablesInsert<"key_holders">;
+export type KeyHolderType = DbKeyHolder["holder_type"];
+
+// Key sets ───────────────────────────────────────────────────────────────────
 export type DbKeySet = Tables<"key_sets">;
 export type DbKeySetInsert = TablesInsert<"key_sets">;
 export type DbKeySetUpdate = TablesUpdate<"key_sets">;
+export type KeySetStatus = DbKeySet["status"];
+
+// Transactions ───────────────────────────────────────────────────────────────
 export type DbTransaction = Tables<"transactions">;
 export type DbTransactionInsert = TablesInsert<"transactions">;
-export type KeyHolderType = DbKeyHolder["holder_type"];
+export type KeyTransactionType = DbTransaction["transaction_type"];
+
+// Other ──────────────────────────────────────────────────────────────────────
 export type DbRegistrationRequest = Tables<"registration_requests">;
 export type DbNotification = Tables<"notifications">;
 export type DbUserPushToken = Tables<"user_push_tokens">;
 
-// ── Activity transaction — transaction row joined with property + holders ─────
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared shapes (used by multiple tables)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Single image entry stored in any `images` jsonb column
+ * (`properties.images`, `key_sets.images`).
+ */
+export type StoredImage = {
+  path: string;
+  sort_order: number;
+  is_hidden: boolean;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Joined / view types — DB rows enriched with related data
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Transaction row joined with property, holders, and key-set summary. */
 export type ActivityTransaction = DbTransaction & {
   property: {
     address: string;
@@ -690,3 +693,5 @@ export type ActivityTransaction = DbTransaction & {
   to_holder: Pick<DbKeyHolder, "full_name" | "holder_type" | "profile_id"> | null;
   key_set: Pick<DbKeySet, "code" | "name"> | null;
 };
+
+

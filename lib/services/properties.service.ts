@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase/client";
 import type {
   DbKeyHolder,
   DbKeyHolderInsert,
@@ -7,16 +7,9 @@ import type {
   DbPropertyUpdate,
   PropertyType,
   PropertyKeyStatus,
+  StoredImage,
 } from "@/types/database";
 import { COUNCIL_CODES } from "@/constants/places";
-
-
-/** Single image entry stored in the `images` jsonb column. */
-export type PropertyImage = {
-  path: string;
-  sort_order: number;
-  is_hidden: boolean;
-};
 
 /** Signed-URL expiry — 1 hour matches the Supabase default. */
 const SIGNED_URL_TTL_SECONDS = 3600;
@@ -84,7 +77,7 @@ export async function fetchSignedPropertyImageUrls(
 /**
  * Returns the visible images for a property sorted by `sort_order`.
  */
-export function getVisibleImages(images: PropertyImage[]): PropertyImage[] {
+export function getVisibleImages(images: StoredImage[]): StoredImage[] {
   return [...images]
     .filter((img) => !img.is_hidden)
     .sort((a, b) => a.sort_order - b.sort_order);
@@ -136,7 +129,7 @@ export async function fetchProperties({
   if (search && search.trim().length > 0) {
     const term = `%${search.trim()}%`;
     query = query.or(
-      `address.ilike.${term},suburb.ilike.${term},postcode.ilike.${term},formatted_address.ilike.${term},property_code.ilike.${term}`
+      `address.ilike.${term},suburb.ilike.${term},postcode.ilike.${term},formatted_address.ilike.${term},property_code.ilike.${term}`,
     );
   }
 
@@ -145,7 +138,9 @@ export async function fetchProperties({
   return data;
 }
 
-export async function fetchPropertyByCode(code: string): Promise<DbProperty | null> {
+export async function fetchPropertyByCode(
+  code: string,
+): Promise<DbProperty | null> {
   const { data, error } = await supabase
     .from("properties")
     .select("*")
@@ -157,7 +152,9 @@ export async function fetchPropertyByCode(code: string): Promise<DbProperty | nu
 }
 
 /** Admin — fetches all columns including joined landlord holder */
-export async function fetchPropertyById(id: string): Promise<PropertyWithLandlord | null> {
+export async function fetchPropertyById(
+  id: string,
+): Promise<PropertyWithLandlord | null> {
   const { data, error } = await supabase
     .from("properties")
     .select(LANDLORD_SELECT)
@@ -169,10 +166,14 @@ export async function fetchPropertyById(id: string): Promise<PropertyWithLandlor
 }
 
 /** Agent — fetches only non-sensitive columns + landlord holder */
-export async function fetchPropertyByIdForAgent(id: string): Promise<PropertyWithLandlord | null> {
+export async function fetchPropertyByIdForAgent(
+  id: string,
+): Promise<PropertyWithLandlord | null> {
   const { data, error } = await supabase
     .from("properties")
-    .select(`${AGENT_SELECT}, landlord:landlord_holder_id(id, full_name, phone, email)`)
+    .select(
+      `${AGENT_SELECT}, landlord:landlord_holder_id(id, full_name, phone, email)`,
+    )
     .eq("id", id)
     .maybeSingle();
 
@@ -256,7 +257,6 @@ export function makePropertyCode(
   return `${councilCode}-${subCode}-${typeCode}${seqPad}`;
 }
 
-
 /**
  * Queries the DB for how many properties already share the same
  * council+suburb prefix and returns the next available sequence number.
@@ -279,7 +279,9 @@ export async function fetchNextPropertyCodeSeq(
 }
 
 /** Creates a new key_holder row and returns the inserted record. */
-export async function createKeyHolder(input: DbKeyHolderInsert): Promise<DbKeyHolder> {
+export async function createKeyHolder(
+  input: DbKeyHolderInsert,
+): Promise<DbKeyHolder> {
   const { data, error } = await supabase
     .from("key_holders")
     .insert(input)
@@ -291,7 +293,9 @@ export async function createKeyHolder(input: DbKeyHolderInsert): Promise<DbKeyHo
 }
 
 /** Creates a new property row and returns the inserted record. */
-export async function createProperty(input: DbPropertyInsert): Promise<DbProperty> {
+export async function createProperty(
+  input: DbPropertyInsert,
+): Promise<DbProperty> {
   const { data, error } = await supabase
     .from("properties")
     .insert(input)
@@ -340,8 +344,8 @@ export async function uploadPropertyImagesForEdit(
   propertyId: string,
   localUris: string[],
   baseSortOrder: number,
-): Promise<PropertyImage[]> {
-  const results: PropertyImage[] = [];
+): Promise<StoredImage[]> {
+  const results: StoredImage[] = [];
   const batchTs = Date.now();
 
   for (let i = 0; i < localUris.length; i++) {
@@ -358,7 +362,8 @@ export async function uploadPropertyImagesForEdit(
       .from("properties")
       .upload(storagePath, arrayBuffer, { contentType, upsert: false });
 
-    if (error) throw new Error(`Failed to upload photo ${i + 1}: ${error.message}`);
+    if (error)
+      throw new Error(`Failed to upload photo ${i + 1}: ${error.message}`);
 
     results.push({
       path: `properties/${storagePath}`,
@@ -372,7 +377,7 @@ export async function uploadPropertyImagesForEdit(
 
 /**
  * Uploads local photo URIs to Supabase Storage under `properties/{propertyId}/`
- * and returns a `PropertyImage[]` array ready to be saved in the DB.
+ * and returns a `StoredImage[]` array ready to be saved in the DB.
  *
  * Uses `fetch` → blob so it works with both `file://` and `ph://` URIs on iOS.
  * Photos are uploaded sequentially to avoid overwhelming low-end devices.
@@ -380,8 +385,8 @@ export async function uploadPropertyImagesForEdit(
 export async function uploadPropertyImages(
   propertyId: string,
   localUris: string[],
-): Promise<PropertyImage[]> {
-  const results: PropertyImage[] = [];
+): Promise<StoredImage[]> {
+  const results: StoredImage[] = [];
 
   for (let i = 0; i < localUris.length; i++) {
     const uri = localUris[i];
@@ -421,7 +426,7 @@ export async function uploadPropertyImages(
  */
 export async function updatePropertyImages(
   propertyId: string,
-  images: PropertyImage[],
+  images: StoredImage[],
 ): Promise<void> {
   const { error } = await supabase
     .from("properties")
@@ -430,5 +435,3 @@ export async function updatePropertyImages(
 
   if (error) throw error;
 }
-
-

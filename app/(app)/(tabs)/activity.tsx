@@ -19,12 +19,16 @@ import {
   type AddressSearchRef,
   type PlaceResult,
 } from "@/components/ui/AddressSearch";
-import { useCurrentUserId } from "@/hooks/useSession";
+import { useCurrentUserId } from "@/lib/hooks/useSession";
 import { useRole } from "@/hooks/useRole";
-import { useInfiniteActivity } from "@/hooks/useTransactions";
+import { useInfiniteActivity } from "@/lib/hooks/useTransactions";
 import { theme } from "@/constants/theme";
 import { MOVEMENT_CONFIG, getMovementLabel } from "@/constants/movements";
-import { formatShortAddress, toDateLabel, formatTime } from "@/lib/format";
+import {
+  formatShortAddress,
+  toDateLabel,
+  formatTime,
+} from "@/lib/utils/format";
 import type { ActivityTransaction } from "@/types/database";
 
 // --- Section grouping ---
@@ -122,10 +126,7 @@ export default function ActivityScreen() {
     isFetchingNextPage,
   } = useInfiniteActivity({ search, propertyId, keySetId });
 
-  const allItems = useMemo(
-    () => data?.pages.flat() ?? [],
-    [data],
-  );
+  const allItems = useMemo(() => data?.pages.flat() ?? [], [data]);
 
   const sections = useMemo(() => groupByDate(allItems), [allItems]);
 
@@ -180,7 +181,9 @@ export default function ActivityScreen() {
       </View>
       {keySetId ? (
         <Pressable
-          onPress={() => router.setParams({ keySetId: undefined, keySetName: undefined })}
+          onPress={() =>
+            router.setParams({ keySetId: undefined, keySetName: undefined })
+          }
           style={styles.keySetChip}
           accessibilityRole="button"
           accessibilityLabel="Clear keyset filter"
@@ -208,7 +211,9 @@ export default function ActivityScreen() {
             onRefresh={refetch}
           />
         }
-        onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
+        onEndReached={() => {
+          if (hasNextPage) fetchNextPage();
+        }}
         onEndReachedThreshold={0.3}
         ListHeaderComponent={
           isError ? (
@@ -222,7 +227,13 @@ export default function ActivityScreen() {
           !isError ? (
             <EmptyState
               Icon={FileText}
-              title={keySetId ? "No activity" : selectedPlace ? "No results" : "No activity yet"}
+              title={
+                keySetId
+                  ? "No activity"
+                  : selectedPlace
+                    ? "No results"
+                    : "No activity yet"
+              }
               message={
                 keySetId
                   ? `No transactions recorded for ${keySetName ?? "this keyset"}.`

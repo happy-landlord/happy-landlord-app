@@ -19,3 +19,16 @@ export function normaliseSuburb(raw: string | undefined): string | undefined {
   return AU_CBD_LOCALITIES.has(raw.trim().toLowerCase()) ? "CBD" : raw;
 }
 
+/**
+ * Returns a human-readable label for a selected place — prefers the suburb,
+ * falls back to the first segment of the full description. Empty string when
+ * no place is provided.
+ */
+export function placeSearchLabel(
+  place: { suburb?: string; description?: string } | null | undefined,
+): string {
+  if (!place) return "";
+  if (place.suburb) return place.suburb;
+  return place.description?.split(",")[0]?.trim() ?? "";
+}
+

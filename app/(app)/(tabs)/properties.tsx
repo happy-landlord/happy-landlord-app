@@ -1,52 +1,42 @@
-import { useCallback, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { useCallback, useState } from "react";
+import { ActivityIndicator, FlatList, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
-import { Plus, X } from "lucide-react-native";
 
 import { PropertyCard } from "@/components/PropertyCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { type PlaceResult } from "@/components/ui/AddressSearch";
 import {
-  AddressSearch,
-  type AddressSearchRef,
-  type PlaceResult,
-} from "@/components/ui/AddressSearch";
-import { useInfiniteProperties } from "@/hooks/useProperties";
+  PropertiesFilterBar,
+  type AdminPropertyTab,
+} from "@/components/property/PropertiesFilterBar";
+import { useInfiniteProperties } from "@/lib/hooks/useProperties";
 import { useRole } from "@/hooks/useRole";
-import { RoleGate } from "@/components/RoleGate";
-import type {
-  DbProperty,
-  PropertyKeyStatus,
-} from "@/types/database";
+import { placeSearchLabel } from "@/lib/utils/places";
+import type { DbProperty, PropertyKeyStatus } from "@/types/database";
 import { theme } from "@/constants/theme";
 
-type AdminTab = "available" | "leased" | "landlord";
+const AGENT_KEY_STATUS: PropertyKeyStatus = "available";
 
-const TABS: { id: AdminTab; label: string }[] = [
-  { id: "available", label: "Active" },
-  { id: "leased", label: "Leased" },
-  { id: "landlord", label: "Inactive" },
-];
+const EMPTY_MESSAGE_BY_TAB: Record<AdminPropertyTab, string> = {
+  available: "No keysets are currently in the office.",
+  leased: "No properties are currently leased.",
+  landlord: "No keysets have been returned to landlords.",
+};
 
-export default function KeysScreen() {
+export default function PropertiesScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
-  const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
-  const [adminTab, setAdminTab] = useState<AdminTab>("available");
-  const searchRef = useRef<AddressSearchRef>(null);
-
   const { isAdmin } = useRole();
-  const keyStatus: PropertyKeyStatus = isAdmin ? adminTab : "available";
 
-  const search =
-    selectedPlace?.suburb ??
-    selectedPlace?.description.split(",")[0].trim() ??
-    "";
+  const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
+  const [adminTab, setAdminTab] = useState<AdminPropertyTab>("available");
+
+  const search = placeSearchLabel(selectedPlace);
+  const keyStatus: PropertyKeyStatus = isAdmin ? adminTab : AGENT_KEY_STATUS;
 
   const {
-    data,
+    properties,
     isLoading,
     isError,
     refetch,
@@ -54,11 +44,6 @@ export default function KeysScreen() {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteProperties({ search, keyStatus });
-
-  const properties = useMemo(
-    () => data?.pages.flat() ?? [],
-    [data],
-  );
 
   const renderItem = useCallback(
     ({ item }: { item: DbProperty }) => <PropertyCard property={item} />,
@@ -72,12 +57,8 @@ export default function KeysScreen() {
         title={selectedPlace ? "No results" : "No properties"}
         message={
           selectedPlace
-            ? `No properties found in "${selectedPlace.suburb ?? selectedPlace.description.split(",")[0].trim()}"`
-            : adminTab === "leased"
-              ? "No properties are currently leased."
-              : adminTab === "landlord"
-                ? "No keysets have been returned to landlords."
-                : "No keysets are currently in the office."
+            ? `No properties found in "${placeSearchLabel(selectedPlace)}"`
+            : EMPTY_MESSAGE_BY_TAB[adminTab]
         }
       />
     );
@@ -92,71 +73,19 @@ export default function KeysScreen() {
     );
   }, [isFetchingNextPage]);
 
+  const handleEndReached = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
   return (
     <View style={styles.screen}>
-      {/* Address search */}
-      <View style={styles.searchActionRow}>
-        <View style={styles.searchBarWrap}>
-          <AddressSearch
-            ref={searchRef}
-            placeholder="Search by address or suburb…"
-            onSelect={setSelectedPlace}
-          />
-        </View>
+      <PropertiesFilterBar
+        selectedPlace={selectedPlace}
+        onPlaceChange={setSelectedPlace}
+        adminTab={adminTab}
+        onAdminTabChange={setAdminTab}
+      />
 
-        {selectedPlace ? (
-          <Pressable
-            onPress={() => {
-              setSelectedPlace(null);
-              searchRef.current?.clear();
-            }}
-            style={styles.clearButton}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Clear filter"
-          >
-            <X size={16} color={theme.colors.textMuted} strokeWidth={2} />
-          </Pressable>
-        ) : null}
-
-        <Pressable
-          style={({ pressed }) => [
-            styles.addPropertyButton,
-            pressed && styles.addPropertyButtonPressed,
-          ]}
-          onPress={() => router.push("/(app)/properties/add")}
-          accessibilityRole="button"
-          accessibilityLabel="Add property"
-        >
-          <Plus size={20} color={theme.colors.textInverse} strokeWidth={2.4} />
-        </Pressable>
-      </View>
-
-      {/* Admin-only tab strip */}
-      <RoleGate allow="admin">
-        <View style={styles.tabStrip}>
-          {TABS.map((tab) => {
-            const active = adminTab === tab.id;
-            return (
-              <Pressable
-                key={tab.id}
-                style={[styles.tabBtn, active && styles.tabBtnActive]}
-                onPress={() => setAdminTab(tab.id)}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: active }}
-              >
-                <Text
-                  style={[styles.tabLabel, active && styles.tabLabelActive]}
-                >
-                  {tab.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      </RoleGate>
-
-      {/* Content */}
       {isError ? (
         <ErrorState
           title="Couldn't load keysets"
@@ -172,7 +101,7 @@ export default function KeysScreen() {
           renderItem={renderItem}
           ListEmptyComponent={renderEmpty}
           ListFooterComponent={renderFooter}
-          onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
+          onEndReached={handleEndReached}
           onEndReachedThreshold={0.3}
           contentContainerStyle={[
             styles.list,
@@ -193,73 +122,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-
-  searchActionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.screen,
-    paddingTop: theme.spacing.md,
-    paddingBottom: theme.spacing.sm,
-    backgroundColor: theme.colors.background,
-  },
-  searchBarWrap: {
-    flex: 1,
-  },
-  clearButton: {
-    width: 40,
-    height: 40,
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.neutralSoft,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  addPropertyButton: {
-    alignItems: "center",
-    justifyContent: "center",
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: theme.colors.primary,
-    flexShrink: 0,
-  },
-  addPropertyButtonPressed: {
-    opacity: 0.75,
-  },
-
-  // ── Admin tabs ────────────────────────────────────────────────────────────
-  tabStrip: {
-    flexDirection: "row",
-    paddingHorizontal: theme.spacing.screen,
-    paddingVertical: theme.spacing.sm,
-    gap: theme.spacing.sm,
-    backgroundColor: theme.colors.background,
-  },
-  tabBtn: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.radius.lg,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  tabBtnActive: {
-    backgroundColor: theme.colors.primarySoft,
-    borderColor: theme.colors.primary,
-  },
-  tabLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: theme.colors.textMuted,
-  },
-  tabLabelActive: {
-    color: theme.colors.primary,
-  },
-
-  // ── List ──────────────────────────────────────────────────────────────────
   list: {
     paddingHorizontal: theme.spacing.screen,
     paddingTop: theme.spacing.screen,

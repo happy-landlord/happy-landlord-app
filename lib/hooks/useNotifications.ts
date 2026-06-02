@@ -3,10 +3,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
 
-import { QUERY_KEYS } from "@/constants/queryKeys";
-import { supabase } from "@/lib/supabase";
-import { useLockStore } from "@/lib/lockStore";
-import { useCurrentUserId } from "@/hooks/useSession";
+import type { DbNotification } from "@/types/database";
+import { QUERY_KEYS } from "@/lib/query/keys";
+import { invalidateNotifications } from "@/lib/query/query";
+import { supabase } from "@/lib/supabase/client";
+import { useLockStore } from "@/lib/state/lockStore";
+import { useCurrentUserId } from "@/lib/hooks/useSession";
 import {
   createNotification,
   deactivateAllPushTokens,
@@ -19,16 +21,17 @@ import {
   requestExpoPushToken,
   saveUserPushToken,
   sendPushNotification,
-  type AppNotification,
   type PushStatus,
-} from "@/services/notifications.service";
+} from "@/lib/services/notifications.service";
 
 // ── Notifications list / unread count ────────────────────────────────────────
 
 export function useNotifications() {
   const userId = useCurrentUserId();
-  return useQuery<AppNotification[], Error>({
-    queryKey: userId ? QUERY_KEYS.notifications.all(userId) : ["notifications", "none"],
+  return useQuery<DbNotification[], Error>({
+    queryKey: userId
+      ? QUERY_KEYS.notifications.all(userId)
+      : ["notifications", "none"],
     queryFn: () => fetchNotifications(userId!),
     enabled: Boolean(userId),
   });
@@ -58,29 +61,33 @@ export function useMarkNotificationRead() {
       if (!userId) return;
 
       // Cancel any in-flight refetches so they don't overwrite the optimistic data
-      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.notifications.all(userId) });
+      await queryClient.cancelQueries({
+        queryKey: QUERY_KEYS.notifications.all(userId),
+      });
 
       // Snapshot for rollback
-      const previousList = queryClient.getQueryData<AppNotification[]>(
-        QUERY_KEYS.notifications.all(userId)
+      const previousList = queryClient.getQueryData<DbNotification[]>(
+        QUERY_KEYS.notifications.all(userId),
       );
       const previousCount = queryClient.getQueryData<number>(
-        QUERY_KEYS.notifications.unreadCount(userId)
+        QUERY_KEYS.notifications.unreadCount(userId),
       );
 
       // Patch the notification list: mark the tapped item read
-      queryClient.setQueryData<AppNotification[]>(
+      queryClient.setQueryData<DbNotification[]>(
         QUERY_KEYS.notifications.all(userId),
         (old) =>
           old?.map((n) =>
-            n.id === notificationId ? { ...n, read_at: new Date().toISOString() } : n
-          ) ?? []
+            n.id === notificationId
+              ? { ...n, read_at: new Date().toISOString() }
+              : n,
+          ) ?? [],
       );
 
       // Decrement unread count
       queryClient.setQueryData<number>(
         QUERY_KEYS.notifications.unreadCount(userId),
-        (old) => Math.max(0, (old ?? 1) - 1)
+        (old) => Math.max(0, (old ?? 1) - 1),
       );
 
       return { previousList, previousCount };
@@ -90,16 +97,19 @@ export function useMarkNotificationRead() {
     onError: (_err, _id, context) => {
       if (!userId) return;
       const ctx = context as
-        | { previousList?: AppNotification[]; previousCount?: number }
+        | { previousList?: DbNotification[]; previousCount?: number }
         | undefined;
 
       if (ctx?.previousList !== undefined) {
-        queryClient.setQueryData(QUERY_KEYS.notifications.all(userId), ctx.previousList);
+        queryClient.setQueryData(
+          QUERY_KEYS.notifications.all(userId),
+          ctx.previousList,
+        );
       }
       if (ctx?.previousCount !== undefined) {
         queryClient.setQueryData(
           QUERY_KEYS.notifications.unreadCount(userId),
-          ctx.previousCount
+          ctx.previousCount,
         );
       }
     },
@@ -107,8 +117,7 @@ export function useMarkNotificationRead() {
     // ── Sync with server after settle (success or error)
     onSettled: () => {
       if (!userId) return;
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notifications.all(userId) });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notifications.unreadCount(userId) });
+      invalidateNotifications(queryClient, userId);
     },
   });
 }
@@ -146,10 +155,7 @@ export function useNotificationRealtime() {
   useEffect(() => {
     if (!userId) return;
 
-    const invalidate = () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notifications.all(userId) });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notifications.unreadCount(userId) });
-    };
+    const invalidate = () => invalidateNotifications(queryClient, userId);
 
     const channel = supabase
       .channel(`notifications:${userId}`)
@@ -161,7 +167,7 @@ export function useNotificationRealtime() {
           table: "notifications",
           filter: `recipient_user_id=eq.${userId}`,
         },
-        invalidate
+        invalidate,
       )
       .subscribe();
 
@@ -176,20 +182,22 @@ export function useNotificationResponseNavigation() {
   const isLocked = useLockStore((state) => state.isLocked);
 
   useEffect(() => {
-    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-      // Never navigate into the app while the biometric lock screen is showing
-      if (isLocked) return;
+    const subscription = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        // Never navigate into the app while the biometric lock screen is showing
+        if (isLocked) return;
 
-      const path = getNotificationTargetPath(
-        response.notification.request.content.data ?? null
-      );
+        const path = getNotificationTargetPath(
+          response.notification.request.content.data ?? null,
+        );
 
-      if (path) {
-        router.push(path as never);
-      } else {
-        router.push("/(app)/notifications" as never);
-      }
-    });
+        if (path) {
+          router.push(path as never);
+        } else {
+          router.push("/(app)/notifications" as never);
+        }
+      },
+    );
 
     return () => subscription.remove();
   }, [router, isLocked]);
@@ -207,8 +215,7 @@ export function useForegroundNotificationListener() {
     if (!userId) return;
 
     const subscription = Notifications.addNotificationReceivedListener(() => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notifications.all(userId) });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notifications.unreadCount(userId) });
+      invalidateNotifications(queryClient, userId);
     });
 
     return () => subscription.remove();
@@ -241,7 +248,10 @@ export function useAdminSendTestNotification() {
       try {
         await sendPushNotification(notificationId);
       } catch (pushError) {
-        console.warn("Push dispatch failed (notification row was created):", pushError);
+        console.warn(
+          "Push dispatch failed (notification row was created):",
+          pushError,
+        );
       }
       return notificationId;
     },
@@ -303,10 +313,7 @@ export function useMarkAllNotificationsRead() {
     },
     onSuccess: () => {
       if (!userId) return;
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notifications.all(userId) });
-      queryClient.invalidateQueries({
-        queryKey: QUERY_KEYS.notifications.unreadCount(userId),
-      });
+      invalidateNotifications(queryClient, userId);
     },
   });
 }

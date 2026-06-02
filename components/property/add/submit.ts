@@ -1,18 +1,27 @@
-import {
-  createKeyHolder,
-} from "@/services/properties.service";
-import { createKeys } from "@/services/keys.service";
+import { createKeyHolder } from "@/lib/services/properties.service";
+import { createKeys } from "@/lib/services/keys.service";
 import {
   createKeySet,
   uploadKeySetImages,
   updateKeySetImages,
-} from "@/services/keySets.service";
-import type { DbKeyInsert, DbProperty, DbPropertyInsert } from "@/types/database";
+} from "@/lib/services/keySets.service";
+import type {
+  DbKeyInsert,
+  DbProperty,
+  DbPropertyInsert,
+} from "@/types/database";
 import { KEY_TYPE_LABEL } from "@/components/key/keyLabels";
-import { formatDate, type KeyEntry, type KeySetDraft, type PropertyStep } from "./types";
+import {
+  buildKeySetCode,
+  formatDate,
+  type KeyEntry,
+  type KeySetDraft,
+  type PropertyStep,
+} from "./types";
 
 export type CreatePropertyArgs = {
   property: PropertyStep;
+  propertyCode: string;
   keys: KeyEntry[];
   keySets: KeySetDraft[];
   /** Inserts a property row and returns the saved record. */
@@ -27,11 +36,12 @@ export type CreatePropertyArgs = {
  */
 export async function submitNewProperty({
   property,
+  propertyCode,
   keys,
   keySets,
   createProperty,
 }: CreatePropertyArgs): Promise<DbProperty> {
-  const { selectedPlace: place, propertyCode } = property;
+  const { selectedPlace: place } = property;
   if (!place || !propertyCode) {
     throw new Error("Address and property code are required.");
   }
@@ -65,6 +75,10 @@ export async function submitNewProperty({
   for (let i = 0; i < keySets.length; i++) {
     const draft = keySets[i];
     const code = buildKeySetCode(propertyCode, i, keySets.length);
+    if (!code) {
+      // Defensive: we validated propertyCode above, so this should not happen.
+      throw new Error("Failed to generate keyset code.");
+    }
 
     const keySet = await createKeySet({
       property_id: created.id,
@@ -74,7 +88,11 @@ export async function submitNewProperty({
     });
 
     if (draft.photoUris.length > 0) {
-      const images = await uploadKeySetImages(created.id, keySet.id, draft.photoUris);
+      const images = await uploadKeySetImages(
+        created.id,
+        keySet.id,
+        draft.photoUris,
+      );
       await updateKeySetImages(keySet.id, images);
     }
 
@@ -109,11 +127,6 @@ export async function submitNewProperty({
 
 // ── Internals ────────────────────────────────────────────────────────────────
 
-function buildKeySetCode(propertyCode: string, index: number, total: number): string {
-  if (total === 1) return propertyCode.toUpperCase();
-  return `${propertyCode.toUpperCase()}-${index + 1}`;
-}
-
 function buildStreetAddress(place: PropertyStep["selectedPlace"]): string {
   if (!place) return "";
   return (
@@ -143,7 +156,9 @@ function buildKeyInserts(
   keys: KeyEntry[],
   quantity: number,
 ): DbKeyInsert[] {
-  return keys.map((entry) => buildKeyInsert(propertyId, keySetId, entry, quantity));
+  return keys.map((entry) =>
+    buildKeyInsert(propertyId, keySetId, entry, quantity),
+  );
 }
 
 function buildKeyInsert(
@@ -156,9 +171,10 @@ function buildKeyInsert(
     property_id: propertyId,
     key_set_id: keySetId,
     key_type: entry.type,
-    label: entry.type === "other" && entry.otherLabel
-      ? entry.otherLabel
-      : KEY_TYPE_LABEL[entry.type] ?? entry.type,
+    label:
+      entry.type === "other" && entry.otherLabel
+        ? entry.otherLabel
+        : (KEY_TYPE_LABEL[entry.type] ?? entry.type),
     quantity,
     code: entry.code ?? null,
     notes: null,

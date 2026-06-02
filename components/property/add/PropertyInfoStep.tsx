@@ -25,13 +25,13 @@ import {
   PROPERTY_TYPES,
   formatDate,
   type KeyEntry,
-  type KeyItemType,
   type PropertyStep,
 } from "./types";
+import type { KeyType } from "@/types/database";
 
 // ── Key type options ──────────────────────────────────────────────────────────
 
-const KEY_TYPE_OPTIONS = (Object.keys(KEY_TYPE_LABEL) as KeyItemType[]).map(
+const KEY_TYPE_OPTIONS = (Object.keys(KEY_TYPE_LABEL) as KeyType[]).map(
   (type) => {
     const Icon = KEY_TYPE_ICON[type] ?? KeyRound;
     return {
@@ -62,7 +62,7 @@ export function PropertyInfoStep({
 }: Props) {
   const [showTypePicker, setShowTypePicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [pendingType, setPendingType] = useState<KeyItemType>(
+  const [pendingType, setPendingType] = useState<KeyType>(
     KEY_TYPE_OPTIONS[0].value,
   );
   const [pendingCount, setPendingCount] = useState(1);
@@ -124,7 +124,7 @@ export function PropertyInfoStep({
         <AddressSearch
           placeholder="Search address…"
           onSelect={(place) => {
-            onChange({ selectedPlace: place, propertyCode: null });
+            onChange({ selectedPlace: place });
             onAddressSelect(place);
           }}
           borderless
@@ -328,7 +328,7 @@ export function PropertyInfoStep({
         title="Key Type"
         options={KEY_TYPE_OPTIONS}
         value={pendingType}
-        onSelect={(v) => setPendingType(v as KeyItemType)}
+        onSelect={(v) => setPendingType(v as KeyType)}
         onClose={() => setKeyPickerOpen(false)}
       />
     </View>
@@ -483,15 +483,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
   },
   addKeyBtnText: { fontSize: 14, fontWeight: "700", color: "#fff" },
-  allAddedRow: {
-    alignItems: "center",
-    paddingVertical: theme.spacing.sm,
-  },
-  allAddedText: {
-    fontSize: 13,
-    color: theme.colors.textLight,
-    fontStyle: "italic",
-  },
   codeRow: {
     flexDirection: "row",
     gap: theme.spacing.sm,

@@ -1,23 +1,23 @@
-import { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
-import { Redirect, Stack, useRouter, useSegments } from 'expo-router';
+import { useEffect } from "react";
+import { ActivityIndicator, View } from "react-native";
+import { Redirect, Stack, useRouter, useSegments } from "expo-router";
 
-import { AppHeader } from '@/components/AppHeader';
-import { BiometricEnablePrompt } from '@/components/BiometricEnablePrompt';
-import { LockScreen } from '@/components/LockScreen';
-import { useSession } from '@/hooks/useSession';
-import { useProfile } from '@/hooks/useProfile';
-import { FEATURES } from '@/constants/features';
+import { AppHeader } from "@/components/AppHeader";
+import { BiometricEnablePrompt } from "@/components/BiometricEnablePrompt";
+import { LockScreen } from "@/components/LockScreen";
+import { useSession } from "@/lib/hooks/useSession";
+import { useProfile } from "@/lib/hooks/useProfile";
+import { FEATURES } from "@/constants/features";
 import {
   useNotificationRealtime,
   useNotificationResponseNavigation,
   useRegisterPushToken,
   useForegroundNotificationListener,
-} from '@/hooks/useNotifications';
-import { useBiometricEnrolmentPrompt } from '@/hooks/useBiometric';
-import { theme } from '@/constants/theme';
-import { useLockStore } from '@/lib/lockStore';
-import { isBiometricEnabled } from '@/services/biometric.service';
+} from "@/lib/hooks/useNotifications";
+import { useBiometricEnrolmentPrompt } from "@/lib/hooks/useBiometric";
+import { theme } from "@/constants/theme";
+import { useLockStore } from "@/lib/state/lockStore";
+import { isBiometricEnabled } from "@/lib/services/biometric.service";
 
 export default function AppLayout() {
   const { isLoading: sessionLoading, isAuthenticated, session } = useSession();
@@ -63,40 +63,48 @@ export default function AppLayout() {
   // Only block on lock initialisation when biometrics is actually enabled.
   const isLockCheckPending =
     FEATURES.BIOMETRIC_LOCK &&
-    isAuthenticated && Boolean(userId) && !lockStore.initialized;
+    isAuthenticated &&
+    Boolean(userId) &&
+    !lockStore.initialized;
 
   const isLoading =
-    sessionLoading ||
-    (isAuthenticated && profileLoading) ||
-    isLockCheckPending;
+    sessionLoading || (isAuthenticated && profileLoading) || isLockCheckPending;
 
   const currentScreen = segments[segments.length - 1] as string | undefined;
-  const isOnStatusScreen = currentScreen === 'pending' || currentScreen === 'rejected';
+  const isOnStatusScreen =
+    currentScreen === "pending" || currentScreen === "rejected";
 
   useEffect(() => {
     if (isLoading || !isAuthenticated || !profile) return;
 
-    const isAdmin = profile.role === 'admin';
+    const isAdmin = profile.role === "admin";
     const needsStatusScreen =
       !isAdmin &&
-      (profile.status === 'pending' ||
-        profile.status === 'rejected' ||
-        profile.status === 'inactive');
+      (profile.status === "pending" ||
+        profile.status === "rejected" ||
+        profile.status === "inactive");
 
     if (isOnStatusScreen) {
-      if (!needsStatusScreen) router.replace('/(app)/(tabs)');
+      if (!needsStatusScreen) router.replace("/(app)/(tabs)");
       return;
     }
 
     if (needsStatusScreen) {
-      if (profile.status === 'pending') router.replace('/(app)/pending');
-      else router.replace('/(app)/rejected');
+      if (profile.status === "pending") router.replace("/(app)/pending");
+      else router.replace("/(app)/rejected");
     }
   }, [isLoading, isAuthenticated, profile, isOnStatusScreen, router]);
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.background }}>
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: theme.colors.background,
+        }}
+      >
         <ActivityIndicator color={theme.colors.primary} />
       </View>
     );
@@ -120,15 +128,21 @@ export default function AppLayout() {
     <>
       <Stack screenOptions={{ header: () => <AppHeader /> }}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="scan" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
+        <Stack.Screen
+          name="scan"
+          options={{ headerShown: false, presentation: "fullScreenModal" }}
+        />
         <Stack.Screen name="properties/add" options={{ headerShown: false }} />
         <Stack.Screen name="properties/[id]" />
         <Stack.Screen name="properties/[id]/keysets/[keysetId]" />
         <Stack.Screen name="checkouts/[id]" />
-        <Stack.Screen name="requests" options={{ title: 'Agent Requests' }} />
-        <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
-        <Stack.Screen name="settings" options={{ title: 'Settings' }} />
-        <Stack.Screen name="help" options={{ title: 'Help' }} />
+        <Stack.Screen name="requests" options={{ title: "Agent Requests" }} />
+        <Stack.Screen
+          name="notifications"
+          options={{ title: "Notifications" }}
+        />
+        <Stack.Screen name="settings" options={{ title: "Settings" }} />
+        <Stack.Screen name="help" options={{ title: "Help" }} />
         <Stack.Screen name="pending" options={{ headerShown: false }} />
         <Stack.Screen name="rejected" options={{ headerShown: false }} />
       </Stack>

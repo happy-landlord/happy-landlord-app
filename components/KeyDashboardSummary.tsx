@@ -2,8 +2,8 @@ import { StyleSheet, Text, View } from "react-native";
 import Svg, { Path, Text as SvgText } from "react-native-svg";
 
 import { theme } from "@/constants/theme";
-import { useAdminDashboardSummary } from "@/hooks/useKeySets";
-import type { AdminDashboardSummary } from "@/services/keys.service";
+import { useAdminDashboardSummary } from "@/lib/hooks/useKeySets";
+import type { AdminDashboardSummary } from "@/lib/services/keys.service";
 
 // ── Donut chart ───────────────────────────────────────────────────────────────
 
@@ -40,7 +40,13 @@ function arcPath(startDeg: number, endDeg: number): string {
 
 type Segment = { label: string; value: number; color: string };
 
-function DonutChart({ segments, total }: { segments: Segment[]; total: number }) {
+function DonutChart({
+  segments,
+  total,
+}: {
+  segments: Segment[];
+  total: number;
+}) {
   const nonZero = segments.filter((s) => s.value > 0);
   const useGap = nonZero.length > 1;
   let cursor = 0;
@@ -58,16 +64,24 @@ function DonutChart({ segments, total }: { segments: Segment[]; total: number })
         <Path key={i} d={p.path} fill={p.color} />
       ))}
       <SvgText
-        x={CX} y={CY - 7}
-        textAnchor="middle" alignmentBaseline="middle"
-        fontSize={22} fontWeight="800" fill={theme.colors.text}
+        x={CX}
+        y={CY - 7}
+        textAnchor="middle"
+        alignmentBaseline="middle"
+        fontSize={22}
+        fontWeight="800"
+        fill={theme.colors.text}
       >
         {total}
       </SvgText>
       <SvgText
-        x={CX} y={CY + 12}
-        textAnchor="middle" alignmentBaseline="middle"
-        fontSize={11} fontWeight="600" fill={theme.colors.textLight}
+        x={CX}
+        y={CY + 12}
+        textAnchor="middle"
+        alignmentBaseline="middle"
+        fontSize={11}
+        fontWeight="600"
+        fill={theme.colors.textLight}
       >
         Keysets
       </SvgText>
@@ -79,10 +93,22 @@ function DonutChart({ segments, total }: { segments: Segment[]; total: number })
 
 function buildSegments(d: AdminDashboardSummary): Segment[] {
   return [
-    { label: "Available",     value: d.available_keysets,    color: theme.colors.success },
-    { label: "Checked out",   value: d.checked_out_keysets,  color: theme.colors.warning },
-    { label: "Overdue",       value: d.overdue_keysets,      color: theme.colors.danger },
-    { label: "Lost/Damaged",  value: d.lost_keysets,         color: theme.colors.textLight },
+    {
+      label: "Available",
+      value: d.available_keysets,
+      color: theme.colors.success,
+    },
+    {
+      label: "Checked out",
+      value: d.checked_out_keysets,
+      color: theme.colors.warning,
+    },
+    { label: "Overdue", value: d.overdue_keysets, color: theme.colors.danger },
+    {
+      label: "Lost/Damaged",
+      value: d.lost_keysets,
+      color: theme.colors.textLight,
+    },
   ];
 }
 
@@ -92,11 +118,19 @@ export function KeyDashboardSummary() {
   const { data, isLoading, isError } = useAdminDashboardSummary();
 
   if (isLoading) {
-    return <View style={styles.card}><Text style={styles.placeholder}>Loading…</Text></View>;
+    return (
+      <View style={styles.card}>
+        <Text style={styles.placeholder}>Loading…</Text>
+      </View>
+    );
   }
 
   if (isError || !data) {
-    return <View style={styles.card}><Text style={styles.placeholder}>Could not load summary.</Text></View>;
+    return (
+      <View style={styles.card}>
+        <Text style={styles.placeholder}>Could not load summary.</Text>
+      </View>
+    );
   }
 
   const segments = buildSegments(data);
@@ -113,8 +147,12 @@ export function KeyDashboardSummary() {
           {segments.map((s) => (
             <View key={s.label} style={styles.legendRow}>
               <View style={[styles.legendDot, { backgroundColor: s.color }]} />
-              <Text style={[styles.legendCount, { color: s.color }]}>{s.value}</Text>
-              <Text style={styles.legendLabel} numberOfLines={1}>{s.label}</Text>
+              <Text style={[styles.legendCount, { color: s.color }]}>
+                {s.value}
+              </Text>
+              <Text style={styles.legendLabel} numberOfLines={1}>
+                {s.label}
+              </Text>
             </View>
           ))}
         </View>

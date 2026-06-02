@@ -30,12 +30,12 @@ import {
   usePushStatus,
   useTogglePush,
   useUnreadNotificationCount,
-} from "@/hooks/useNotifications";
+} from "@/lib/hooks/useNotifications";
 import {
   useBiometricSettings,
   useToggleBiometric,
-} from "@/hooks/useBiometric";
-import { getBiometricLabel } from "@/services/biometric.service";
+} from "@/lib/hooks/useBiometric";
+import { getBiometricLabel } from "@/lib/services/biometric.service";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 

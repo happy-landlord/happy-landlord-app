@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { Clock } from "lucide-react-native";
 
 import { theme } from "@/constants/theme";
-import { formatCountdown, formatDateTime, getRemainingTime } from "@/lib/format";
+import { formatCountdown, formatDateTime, getRemainingTime } from "@/lib/utils/format";
 
 export type CountdownTimerProps = {
   /** ISO timestamp the timer counts down to. */

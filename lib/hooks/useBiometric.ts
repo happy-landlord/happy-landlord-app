@@ -13,8 +13,8 @@ import { Alert } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { FEATURES } from "@/constants/features";
-import { useLockStore } from "@/lib/lockStore";
-import { useCurrentUserId } from "@/hooks/useSession";
+import { useLockStore } from "@/lib/state/lockStore";
+import { useCurrentUserId } from "@/lib/hooks/useSession";
 import {
   authenticateWithBiometrics,
   getBiometricCapability,
@@ -23,7 +23,7 @@ import {
   isBiometricEnabled,
   setBiometricEnabled,
   type BiometricCapability,
-} from "@/services/biometric.service";
+} from "@/lib/services/biometric.service";
 
 // ── Query keys ───────────────────────────────────────────────────────────────
 
@@ -166,4 +166,3 @@ export function useBiometricEnrolmentPrompt(): EnrolmentPrompt {
 
   return { visible, biometricLabel, onEnable, onDismiss };
 }
-

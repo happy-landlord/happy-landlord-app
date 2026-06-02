@@ -20,8 +20,8 @@ import {
 
 import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
 import { theme } from "@/constants/theme";
-import { formatDateTime } from "@/lib/format";
-import type { KeyInSet } from "@/services/keySets.service";
+import { formatDateTime } from "@/lib/utils/format";
+import type { KeyInSet } from "@/lib/services/keySets.service";
 
 const PICKER_SHEET_HIDDEN_Y = 360;
 const PICKER_ANIMATION_MS = 220;
@@ -158,7 +158,9 @@ export const CheckoutConfirmModal = memo(function CheckoutConfirmModal({
             <DurationSelector
               value={durationDays}
               disabled={isPending || !onDurationDaysChange}
-              onToggle={durationPickerOpen ? closeDurationPicker : openDurationPicker}
+              onToggle={
+                durationPickerOpen ? closeDurationPicker : openDurationPicker
+              }
             />
             <View style={styles.divider} />
             <SummaryRow
@@ -199,7 +201,10 @@ export const CheckoutConfirmModal = memo(function CheckoutConfirmModal({
               pointerEvents={durationPickerOpen ? "auto" : "none"}
               style={[styles.pickerScrim, { opacity: pickerScrimOpacity }]}
             >
-              <Pressable style={StyleSheet.absoluteFill} onPress={closeDurationPicker} />
+              <Pressable
+                style={StyleSheet.absoluteFill}
+                onPress={closeDurationPicker}
+              />
             </Animated.View>
             <Animated.View
               style={[
@@ -237,12 +242,19 @@ export const CheckoutConfirmModal = memo(function CheckoutConfirmModal({
                       {label}
                     </Text>
                     {selected && (
-                      <Check size={16} color={theme.colors.primary} strokeWidth={2.5} />
+                      <Check
+                        size={16}
+                        color={theme.colors.primary}
+                        strokeWidth={2.5}
+                      />
                     )}
                   </Pressable>
                 );
               })}
-              <Pressable style={styles.pickerCancel} onPress={closeDurationPicker}>
+              <Pressable
+                style={styles.pickerCancel}
+                onPress={closeDurationPicker}
+              >
                 <Text style={styles.pickerCancelText}>Cancel</Text>
               </Pressable>
             </Animated.View>
@@ -255,11 +267,7 @@ export const CheckoutConfirmModal = memo(function CheckoutConfirmModal({
 
 // ─── Sub-components ────────────────────────────────────────────────────────
 
-function SelectedKeysSummary({
-  selectedKeys,
-}: {
-  selectedKeys: KeyInSet[];
-}) {
+function SelectedKeysSummary({ selectedKeys }: { selectedKeys: KeyInSet[] }) {
   return (
     <View style={styles.keysSection}>
       <View style={styles.keysHeaderRow}>
@@ -276,7 +284,11 @@ function SelectedKeysSummary({
           return (
             <View key={k.id} style={styles.keyRow}>
               <View style={styles.keyIconCircle}>
-                <Icon size={13} color={theme.colors.primary} strokeWidth={1.8} />
+                <Icon
+                  size={13}
+                  color={theme.colors.primary}
+                  strokeWidth={1.8}
+                />
               </View>
               <Text style={styles.keyRowLabel} numberOfLines={1}>
                 {label}

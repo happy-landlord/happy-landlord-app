@@ -26,24 +26,28 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { theme } from "@/constants/theme";
-import { formatNotificationTimestamp } from "@/lib/format";
-import { useCurrentUserId } from "@/hooks/useSession";
+import { formatNotificationTimestamp } from "@/lib/utils/format";
+import { useCurrentUserId } from "@/lib/hooks/useSession";
 import {
   useAdminSendTestNotification,
   useMarkNotificationRead,
   useNotifications,
-} from "@/hooks/useNotifications";
+} from "@/lib/hooks/useNotifications";
 import { useRole } from "@/hooks/useRole";
 import {
   getNotificationRowTargetPath,
   NOTIFICATION_TYPES,
-  type AppNotification,
-} from "@/services/notifications.service";
-import type { NotificationType } from "@/types/database";
+  type DbNotification,
+  type NotificationType,
+} from "@/lib/services/notifications.service";
 
 type NotificationVisual = {
   label: string;
-  Icon: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
+  Icon: React.ComponentType<{
+    size?: number;
+    color?: string;
+    strokeWidth?: number;
+  }>;
   color: string;
   bg: string;
 };
@@ -118,7 +122,7 @@ export default function NotificationsScreen() {
   const markRead = useMarkNotificationRead();
 
   const handlePress = useCallback(
-    (notification: AppNotification) => {
+    (notification: DbNotification) => {
       // Fire-and-forget — optimistic update patches the cache instantly so the
       // card flips to "read" without any server-round-trip re-render.
       if (!notification.read_at) {
@@ -130,14 +134,14 @@ export default function NotificationsScreen() {
         router.push(target as never);
       }
     },
-    [markRead, router]
+    [markRead, router],
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: AppNotification }) => (
+    ({ item }: { item: DbNotification }) => (
       <NotificationCard notification={item} onPress={() => handlePress(item)} />
     ),
-    [handlePress]
+    [handlePress],
   );
 
   if (isLoading) {
@@ -172,12 +176,13 @@ export default function NotificationsScreen() {
           (!data || data.length === 0) && !isAdmin && styles.listEmpty,
         ]}
         refreshControl={
-          <RefreshControl refreshing={isFetching && !isLoading} onRefresh={refetch} />
+          <RefreshControl
+            refreshing={isFetching && !isLoading}
+            onRefresh={refetch}
+          />
         }
         ListHeaderComponent={
-          isAdmin && userId ? (
-            <AdminTestPanel userId={userId} />
-          ) : null
+          isAdmin && userId ? <AdminTestPanel userId={userId} /> : null
         }
         ListEmptyComponent={
           <EmptyState
@@ -199,8 +204,12 @@ const TEST_TYPES = Object.values(NOTIFICATION_TYPES) as NotificationType[];
 function AdminTestPanel({ userId }: { userId: string }) {
   const [expanded, setExpanded] = useState(false);
   const [title, setTitle] = useState("Test push notification");
-  const [body, setBody] = useState("This is a test push — sent from the admin panel.");
-  const [selectedType, setSelectedType] = useState<NotificationType>("KEY_CHECKOUT_CREATED");
+  const [body, setBody] = useState(
+    "This is a test push — sent from the admin panel.",
+  );
+  const [selectedType, setSelectedType] = useState<NotificationType>(
+    "KEY_CHECKOUT_CREATED",
+  );
 
   const sendTest = useAdminSendTestNotification();
 
@@ -212,7 +221,10 @@ function AdminTestPanel({ userId }: { userId: string }) {
         body: body.trim() || "Test body",
         type: selectedType,
       });
-      Alert.alert("✅ Test sent", "Notification created and push dispatched to your device.");
+      Alert.alert(
+        "✅ Test sent",
+        "Notification created and push dispatched to your device.",
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       Alert.alert("Error", message);
@@ -223,12 +235,21 @@ function AdminTestPanel({ userId }: { userId: string }) {
     <View style={testStyles.container}>
       <Pressable
         onPress={() => setExpanded((v) => !v)}
-        style={({ pressed }) => [testStyles.header, pressed && { opacity: 0.7 }]}
+        style={({ pressed }) => [
+          testStyles.header,
+          pressed && { opacity: 0.7 },
+        ]}
         accessibilityRole="button"
-        accessibilityLabel={expanded ? "Collapse admin test panel" : "Expand admin test panel"}
+        accessibilityLabel={
+          expanded ? "Collapse admin test panel" : "Expand admin test panel"
+        }
       >
         <View style={testStyles.headerLeft}>
-          <FlaskConical size={16} color={theme.colors.warning} strokeWidth={2} />
+          <FlaskConical
+            size={16}
+            color={theme.colors.warning}
+            strokeWidth={2}
+          />
           <Text style={testStyles.headerTitle}>Admin — Push Test</Text>
         </View>
         <Text style={testStyles.toggle}>{expanded ? "▲" : "▼"}</Text>
@@ -294,14 +315,18 @@ function AdminTestPanel({ userId }: { userId: string }) {
             accessibilityLabel="Send test push notification"
           >
             {sendTest.isPending ? (
-              <ActivityIndicator size="small" color={theme.colors.textInverse} />
+              <ActivityIndicator
+                size="small"
+                color={theme.colors.textInverse}
+              />
             ) : (
               <Text style={testStyles.sendBtnText}>Send test push →</Text>
             )}
           </Pressable>
 
           <Text style={testStyles.note}>
-            ⚠️ Sends to your own device only. Push payload omits full property addresses.
+            ⚠️ Sends to your own device only. Push payload omits full property
+            addresses.
           </Text>
         </View>
       ) : null}
@@ -423,7 +448,7 @@ function NotificationCard({
   notification,
   onPress,
 }: {
-  notification: AppNotification;
+  notification: DbNotification;
   onPress: () => void;
 }) {
   const unread = !notification.read_at;
@@ -452,7 +477,9 @@ function NotificationCard({
               {visual.label}
             </Text>
           </View>
-          <Text style={styles.timeText}>{formatNotificationTimestamp(notification.created_at)}</Text>
+          <Text style={styles.timeText}>
+            {formatNotificationTimestamp(notification.created_at)}
+          </Text>
         </View>
 
         <Text style={styles.titleText} numberOfLines={2}>
@@ -588,4 +615,3 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 });
-

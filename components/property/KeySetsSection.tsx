@@ -1,4 +1,4 @@
-﻿import { memo, useState, useCallback, type ReactNode } from "react";
+import { memo, useState, useCallback, type ReactNode } from "react";
 import { Alert, LayoutAnimation, Platform, Pressable, StyleSheet, Text, UIManager, View } from "react-native";
 import {
   ArrowRightCircle,
@@ -14,14 +14,18 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { useRole } from "@/hooks/useRole";
-import { useTransferKeySet } from "@/hooks/useKeySets";
+import {
+  useKeySets,
+  useTransferKeySet,
+  useUnassignedKeys,
+} from "@/lib/hooks/useKeySets";
 import { theme } from "@/constants/theme";
-import { formatDate, formatDateTime } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/utils/format";
 import type {
   KeySetWithDetails,
   UnassignedKey,
-} from "@/services/keySets.service";
-// ── Helpers ───────────────────────────────────────────────────────────────────
+} from "@/lib/services/keySets.service";
+// -- Helpers -------------------------------------------------------------------
 type KeySetCardTone = "available" | "warning" | "danger" | "info";
 const getTotalKeyQuantity = (keySet: KeySetWithDetails) =>
   (keySet.keys ?? []).reduce((sum, item) => sum + (item.quantity ?? 0), 0);
@@ -36,46 +40,56 @@ const getKeySetTone = (keySet: KeySetWithDetails): KeySetCardTone => {
     return "info";
   return "warning";
 };
-// ── Types ─────────────────────────────────────────────────────────────────────
+// -- Types ---------------------------------------------------------------------
 export type KeySetsSectionProps = {
   propertyId: string;
-  keySets: KeySetWithDetails[] | undefined;
-  unassignedKeys: UnassignedKey[] | undefined;
-  isLoading: boolean;
-  isError: boolean;
-  onRetry: () => void;
 };
-// ── Main component ────────────────────────────────────────────────────────────
+// -- Main component ------------------------------------------------------------
 export const KeySetsSection = memo(function KeySetsSection({
   propertyId,
-  keySets,
-  unassignedKeys,
-  isLoading,
-  isError,
-  onRetry,
 }: KeySetsSectionProps) {
   const { isAdmin } = useRole();
-  if (isError) {
+
+  // Owned-by-section queries: TanStack dedupes across the tree, so other
+  // consumers (e.g. edit sheets) get the same cached data for free.
+  const {
+    data: keySets,
+    isPending: keySetsPending,
+    isError: keySetsError,
+    refetch: refetchKeySets,
+  } = useKeySets(propertyId);
+
+  const {
+    data: unassignedKeys,
+    isPending: unassignedPending,
+    refetch: refetchUnassigned,
+  } = useUnassignedKeys(propertyId);
+
+  if (keySetsError) {
     return (
       <ErrorState
         title="Couldn't load keys"
         message="Check your connection and try again."
-        onRetry={onRetry}
+        onRetry={() => {
+          refetchKeySets();
+          refetchUnassigned();
+        }}
       />
     );
   }
-  if (isLoading) return <LoadingState message="Loading keys..." />;
+  if (keySetsPending || (isAdmin && unassignedPending)) {
+    return <LoadingState message="Loading keys..." />;
+  }
   return isAdmin ? (
     <AdminKeysView
-      propertyId={propertyId}
       keySets={keySets ?? []}
       unassignedKeys={unassignedKeys ?? []}
     />
   ) : (
-    <AgentKeysView propertyId={propertyId} keySets={keySets ?? []} />
+    <AgentKeysView keySets={keySets ?? []} />
   );
 });
-// ── Admin view ────────────────────────────────────────────────────────────────
+// -- Admin view ----------------------------------------------------------------
 if (
   Platform.OS === "android" &&
   UIManager.setLayoutAnimationEnabledExperimental
@@ -87,7 +101,6 @@ function AdminKeysView({
   keySets,
   unassignedKeys,
 }: {
-  propertyId: string;
   keySets: KeySetWithDetails[];
   unassignedKeys: UnassignedKey[];
 }) {
@@ -153,14 +166,13 @@ function AdminKeysView({
     </View>
   );
 }
-// ── Agent view ────────────────────────────────────────────────────────────────
+// -- Agent view ----------------------------------------------------------------
 function AgentKeysView({
   keySets,
 }: {
-  propertyId: string;
   keySets: KeySetWithDetails[];
 }) {
-  // Agents never need to see missing/damaged keysets — hide them entirely
+  // Agents never need to see missing/damaged keysets � hide them entirely
   const visibleKeySets = keySets.filter(
     (ks) => ks.status !== "missing_damaged",
   );
@@ -189,7 +201,7 @@ function AgentKeysView({
     </View>
   );
 }
-// ── Admin key set card ────────────────────────────────────────────────────────
+// -- Admin key set card --------------------------------------------------------
 function AdminKeySetCard({
   keySet,
   onPress,
@@ -222,7 +234,7 @@ function AdminKeySetCard({
     />
   );
 }
-// ── Agent key set card ────────────────────────────────────────────────────────
+// -- Agent key set card --------------------------------------------------------
 function AgentKeySetCard({ keySet }: { keySet: KeySetWithDetails }) {
   const [showTransferModal, setShowTransferModal] = useState(false);
   const transferMut = useTransferKeySet(keySet.property_id);
@@ -311,7 +323,7 @@ function AgentKeySetCard({ keySet }: { keySet: KeySetWithDetails }) {
                       {k.quantity > 1 && (
                         <View style={agentCardStyles.keyPillQty}>
                           <Text style={agentCardStyles.keyPillQtyText}>
-                            ×{k.quantity}
+                            �{k.quantity}
                           </Text>
                         </View>
                       )}
@@ -323,7 +335,7 @@ function AgentKeySetCard({ keySet }: { keySet: KeySetWithDetails }) {
           </View>
         </View>
 
-        {/* Holder meta — shown when checked out / overdue / handover */}
+        {/* Holder meta � shown when checked out / overdue / handover */}
         {(isCheckedOut || isHandover) && holderName && (
           <View style={agentCardStyles.meta}>
             <View style={agentCardStyles.metaDivider} />
@@ -339,7 +351,7 @@ function AgentKeySetCard({ keySet }: { keySet: KeySetWithDetails }) {
                 >
                   {holderName}
                   {holderType && holderType !== "agent"
-                    ? ` · ${holderType}`
+                    ? ` � ${holderType}`
                     : ""}
                 </Text>
               </View>
@@ -386,7 +398,7 @@ function AgentKeySetCard({ keySet }: { keySet: KeySetWithDetails }) {
           >
             <ArrowRightCircle size={16} color="#fff" strokeWidth={2} />
             <Text style={agentCardStyles.transferButtonText}>
-              {transferMut.isPending ? "Transferring…" : "Transfer to Me"}
+              {transferMut.isPending ? "Transferring�" : "Transfer to Me"}
             </Text>
           </Pressable>
         </View>
@@ -404,7 +416,7 @@ function AgentKeySetCard({ keySet }: { keySet: KeySetWithDetails }) {
     </>
   );
 }
-// ── Shared key set list card ──────────────────────────────────────────────────
+// -- Shared key set list card --------------------------------------------------
 function KeySetListCard({
   keySet,
   tone,
@@ -513,7 +525,7 @@ function KeySetHolderMeta({
             numberOfLines={1}
           >
             {overdue
-              ? `Overdue · ${formatDateTime(dueBackAt)}`
+              ? `Overdue � ${formatDateTime(dueBackAt)}`
               : formatDateTime(dueBackAt)}
           </Text>
         </View>
@@ -551,7 +563,7 @@ const toneColor: Record<KeySetCardTone, string> = {
   danger: theme.colors.danger,
   info: theme.colors.info,
 };
-// ── Unassigned key chip ───────────────────────────────────────────────────────
+// -- Unassigned key chip -------------------------------------------------------
 function UnassignedKeyChip({ keyItem }: { keyItem: UnassignedKey }) {
   const Icon = KEY_TYPE_ICON[keyItem.key_type] ?? KeyRound;
   const label =
@@ -574,7 +586,7 @@ function UnassignedKeyChip({ keyItem }: { keyItem: UnassignedKey }) {
     </View>
   );
 }
-// ── Styles ────────────────────────────────────────────────────────────────────
+// -- Styles --------------------------------------------------------------------
 const styles = StyleSheet.create({
   root: { gap: theme.spacing.md },
   section: { gap: theme.spacing.sm },
@@ -770,7 +782,7 @@ const styles = StyleSheet.create({
   },
 });
 
-// ── Agent card styles ─────────────────────────────────────────────────────────
+// -- Agent card styles ---------------------------------------------------------
 const agentCardStyles = StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surface,

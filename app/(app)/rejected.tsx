@@ -7,8 +7,11 @@ import { theme } from "@/constants/theme";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Logo } from "@/components/ui/Logo";
-import { useMyLatestRequest, useResubmitRequest } from "@/hooks/useAgentRequests";
-import { useSignOut } from "@/hooks/useSession";
+import {
+  useMyLatestRequest,
+  useResubmitRequest,
+} from "@/lib/hooks/useAgentRequests";
+import { useSignOut } from "@/lib/hooks/useSession";
 
 export default function RejectedScreen() {
   const insets = useSafeAreaInsets();
@@ -18,7 +21,6 @@ export default function RejectedScreen() {
 
   const [showForm, setShowForm] = useState(false);
   const [message, setMessage] = useState("");
-
 
   const handleResubmit = () => {
     resubmit.mutate({ message: message.trim() || null });
@@ -30,7 +32,10 @@ export default function RejectedScreen() {
     <View
       style={[
         styles.screen,
-        { paddingTop: insets.top + theme.spacing.lg, paddingBottom: insets.bottom + theme.spacing.lg },
+        {
+          paddingTop: insets.top + theme.spacing.lg,
+          paddingBottom: insets.bottom + theme.spacing.lg,
+        },
       ]}
     >
       <View style={styles.logoWrap}>
@@ -51,18 +56,25 @@ export default function RejectedScreen() {
         </View>
       ) : (
         <Text style={styles.message}>
-          Your registration request was not approved. You can request access again
-          or contact your agency administrator for more information.
+          Your registration request was not approved. You can request access
+          again or contact your agency administrator for more information.
         </Text>
       )}
 
       {/* Resubmit section */}
       {!showForm ? (
         <Pressable
-          style={({ pressed }) => [styles.resubmitBtn, pressed && styles.btnPressed]}
+          style={({ pressed }) => [
+            styles.resubmitBtn,
+            pressed && styles.btnPressed,
+          ]}
           onPress={() => setShowForm(true)}
         >
-          <MessageSquare size={16} color={theme.colors.primary} strokeWidth={2} />
+          <MessageSquare
+            size={16}
+            color={theme.colors.primary}
+            strokeWidth={2}
+          />
           <Text style={styles.resubmitBtnLabel}>Request access again</Text>
         </Pressable>
       ) : (
@@ -82,8 +94,15 @@ export default function RejectedScreen() {
 
           <View style={styles.formActions}>
             <Pressable
-              style={({ pressed }) => [styles.cancelBtn, pressed && styles.btnPressed]}
-              onPress={() => { setShowForm(false); setMessage(""); resubmit.reset(); }}
+              style={({ pressed }) => [
+                styles.cancelBtn,
+                pressed && styles.btnPressed,
+              ]}
+              onPress={() => {
+                setShowForm(false);
+                setMessage("");
+                resubmit.reset();
+              }}
             >
               <Text style={styles.cancelBtnLabel}>Cancel</Text>
             </Pressable>
@@ -101,7 +120,10 @@ export default function RejectedScreen() {
       )}
 
       <Pressable
-        style={({ pressed }) => [styles.signOutBtn, pressed && styles.btnPressed]}
+        style={({ pressed }) => [
+          styles.signOutBtn,
+          pressed && styles.btnPressed,
+        ]}
         onPress={() => signOut.mutate()}
         disabled={signOut.isPending}
       >

@@ -5,17 +5,20 @@ import { useRouter } from "expo-router";
 import {
   useMyActivity,
   type ActivityTransaction,
-} from "@/hooks/useTransactions";
-import { useCheckedOutKeySets, useKeySetsNeedingAttention } from "@/hooks/useKeySets";
-import { useCurrentUserId } from "@/hooks/useSession";
+} from "@/lib/hooks/useTransactions";
+import {
+  useCheckedOutKeySets,
+  useKeySetsNeedingAttention,
+} from "@/lib/hooks/useKeySets";
+import { useCurrentUserId } from "@/lib/hooks/useSession";
 import { useRole } from "@/hooks/useRole";
 import { theme } from "@/constants/theme";
 import { MOVEMENT_CONFIG, getMovementLabel } from "@/constants/movements";
 import {
   formatShortAddress,
   formatActivityTimestamp,
-} from "@/lib/format";
-import type { CheckedOutKeySet } from "@/services/keySets.service";
+} from "@/lib/utils/format";
+import type { CheckedOutKeySet } from "@/lib/services/keySets.service";
 import { KeyDashboardSummary } from "@/components/KeyDashboardSummary";
 import { PropertiesNeedingAttention } from "@/components/PropertiesNeedingAttention";
 
@@ -84,7 +87,9 @@ export default function HomeScreen() {
                   keySet={keySet}
                   isAdmin={isAdmin}
                   onPress={() =>
-                    router.push(`/(app)/properties/keyset/${keySet.id}` as never)
+                    router.push(
+                      `/(app)/properties/keyset/${keySet.id}` as never,
+                    )
                   }
                 />
               ))}
@@ -96,7 +101,10 @@ export default function HomeScreen() {
       {/* Properties needing attention — admin only, hidden when empty */}
       {isAdmin && (attentionLoading || needsAttention.length > 0) && (
         <DashboardSection title="Needs Attention">
-          <PropertiesNeedingAttention data={needsAttention} isLoading={attentionLoading} />
+          <PropertiesNeedingAttention
+            data={needsAttention}
+            isLoading={attentionLoading}
+          />
         </DashboardSection>
       )}
 
@@ -174,13 +182,18 @@ function CheckedOutRow({
   isAdmin: boolean;
   onPress: () => void;
 }) {
-  const address = keySet.property?.address ?? keySet.property?.formatted_address ?? "Property";
+  const address =
+    keySet.property?.address ??
+    keySet.property?.formatted_address ??
+    "Property";
   const suburb = keySet.property?.suburb;
   const holderName = keySet.current_holder?.full_name ?? "Unknown";
   const holderType = keySet.current_holder?.holder_type;
   const holderPhone = keySet.current_holder?.phone ?? null;
   const keyLabels = keySet.keys.map((key) => key.label);
-  const isOverdue = keySet.due_back_at ? new Date(keySet.due_back_at) < new Date() : false;
+  const isOverdue = keySet.due_back_at
+    ? new Date(keySet.due_back_at) < new Date()
+    : false;
 
   const iconBg = isOverdue ? theme.colors.dangerSoft : theme.colors.warningSoft;
   const iconColor = isOverdue ? theme.colors.danger : theme.colors.warning;
@@ -189,7 +202,11 @@ function CheckedOutRow({
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [coStyles.card, { borderColor: cardBorderColor }, pressed && coStyles.cardPressed]}
+      style={({ pressed }) => [
+        coStyles.card,
+        { borderColor: cardBorderColor },
+        pressed && coStyles.cardPressed,
+      ]}
       accessibilityRole="button"
     >
       {/* Top row: icon + name + key pills */}
@@ -199,7 +216,9 @@ function CheckedOutRow({
         </View>
         <View style={coStyles.info}>
           <View style={coStyles.titleRow}>
-            <Text style={coStyles.name} numberOfLines={1}>{keySet.name}</Text>
+            <Text style={coStyles.name} numberOfLines={1}>
+              {keySet.name}
+            </Text>
             {keyLabels.length > 0 && (
               <View style={coStyles.countPill}>
                 <Text style={coStyles.countText}>
@@ -208,15 +227,21 @@ function CheckedOutRow({
               </View>
             )}
           </View>
-          <Text style={coStyles.suburb} numberOfLines={1}>{address}</Text>
+          <Text style={coStyles.suburb} numberOfLines={1}>
+            {address}
+          </Text>
           {suburb ? (
-            <Text style={coStyles.suburb} numberOfLines={1}>{suburb}</Text>
+            <Text style={coStyles.suburb} numberOfLines={1}>
+              {suburb}
+            </Text>
           ) : null}
           {keyLabels.length > 0 && (
             <View style={coStyles.keyPillsWrap}>
               {keyLabels.map((label, i) => (
                 <View key={i} style={coStyles.keyPill}>
-                  <Text style={coStyles.keyPillText} numberOfLines={1}>{label}</Text>
+                  <Text style={coStyles.keyPillText} numberOfLines={1}>
+                    {label}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -231,23 +256,46 @@ function CheckedOutRow({
           <View style={coStyles.metaContent}>
             <View style={coStyles.metaItem}>
               <Text style={coStyles.metaLabel}>With</Text>
-              <Text style={[coStyles.metaValue, isOverdue && coStyles.metaValueDanger]} numberOfLines={1}>
-                {holderName}{holderType && holderType !== "agent" ? ` · ${holderType}` : ""}
+              <Text
+                style={[
+                  coStyles.metaValue,
+                  isOverdue && coStyles.metaValueDanger,
+                ]}
+                numberOfLines={1}
+              >
+                {holderName}
+                {holderType && holderType !== "agent" ? ` · ${holderType}` : ""}
               </Text>
             </View>
             {holderPhone ? (
               <View style={coStyles.metaItem}>
                 <Text style={coStyles.metaLabel}>Contact</Text>
-                <Text style={[coStyles.metaValue, isOverdue && coStyles.metaValueDanger]} numberOfLines={1}>
+                <Text
+                  style={[
+                    coStyles.metaValue,
+                    isOverdue && coStyles.metaValueDanger,
+                  ]}
+                  numberOfLines={1}
+                >
                   {holderPhone}
                 </Text>
               </View>
             ) : keySet.due_back_at ? (
               <View style={coStyles.metaItem}>
-                <Text style={coStyles.metaLabel}>{isOverdue ? "Was due" : "Due"}</Text>
-                <Text style={[coStyles.metaValue, isOverdue && coStyles.metaValueDanger]} numberOfLines={1}>
+                <Text style={coStyles.metaLabel}>
+                  {isOverdue ? "Was due" : "Due"}
+                </Text>
+                <Text
+                  style={[
+                    coStyles.metaValue,
+                    isOverdue && coStyles.metaValueDanger,
+                  ]}
+                  numberOfLines={1}
+                >
                   {new Date(keySet.due_back_at).toLocaleDateString("en-AU", {
-                    weekday: "short", day: "numeric", month: "short",
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
                   })}
                 </Text>
               </View>
@@ -259,7 +307,9 @@ function CheckedOutRow({
   );
 }
 
-function formatPropertyLocation(property: CheckedOutKeySet["property"]): string {
+function formatPropertyLocation(
+  property: CheckedOutKeySet["property"],
+): string {
   if (!property) return "";
   return [property.suburb, property.city, property.postcode]
     .filter((part, index, parts) => {
@@ -376,7 +426,8 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     backgroundColor: theme.colors.warningSoft,
-  },  rowContent: {
+  },
+  rowContent: {
     flex: 1,
     gap: 3,
     minWidth: 0,
@@ -396,7 +447,8 @@ const styles = StyleSheet.create({
     color: theme.colors.textLight,
     letterSpacing: 0.2,
     textTransform: "uppercase",
-  },  rowSubtitle: {
+  },
+  rowSubtitle: {
     fontSize: 12,
     fontWeight: "500",
     color: theme.colors.textMuted,

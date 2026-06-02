@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase/client";
 import type { ActivityTransaction } from "@/types/database";
 
 // ── Shared select for activity / history queries ─────────────────────────────

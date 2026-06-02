@@ -54,6 +54,20 @@ export function formatDateTime(iso: string): string {
   });
 }
 
+/**
+ * Compact due-date label used on key checkout/return UI:
+ * "Mon, 3 Jun 9:30 am" — date and time separated by a single space
+ * (cleaner than the comma-heavy `formatDateTime` for inline labels).
+ */
+export function formatDueAt(iso: string): string {
+  const date = new Date(iso).toLocaleDateString(LOCALE, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+  return `${date} ${formatTime(iso)}`;
+}
+
 export type Remaining = {
   /** Milliseconds remaining; negative when past due. */
   total: number;

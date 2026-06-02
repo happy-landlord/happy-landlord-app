@@ -4,16 +4,21 @@ import { ChevronRight, KeyRound } from "lucide-react-native";
 
 import { KeyStatusChip } from "@/components/KeyStatusChip";
 import { theme } from "@/constants/theme";
-import { useFirstKeySetImageUrl } from "@/hooks/useKeySetImages";
-import { getVisibleKeySetImages } from "@/services/keySets.service";
-import type { KeySetWithDetails } from "@/services/keySets.service";
+import { useFirstKeySetImageUrl } from "@/lib/hooks/useKeySetImages";
+import {
+  type KeySetWithDetails,
+  getVisibleKeySetImages,
+} from "@/lib/services/keySets.service";
 
 export type KeySetCardProps = {
   keySet: KeySetWithDetails;
   onPress?: () => void;
 };
 
-export const KeySetCard = memo(function KeySetCard({ keySet, onPress }: KeySetCardProps) {
+export const KeySetCard = memo(function KeySetCard({
+  keySet,
+  onPress,
+}: KeySetCardProps) {
   const totalKeys = (keySet.keys ?? []).reduce(
     (sum: number, item: { quantity: number }) => sum + (item.quantity ?? 0),
     0,
@@ -33,7 +38,11 @@ export const KeySetCard = memo(function KeySetCard({ keySet, onPress }: KeySetCa
       {/* Thumbnail if available, otherwise icon */}
       {hasImages && thumbnailUrl ? (
         <View style={styles.thumbnail}>
-          <Image source={{ uri: thumbnailUrl }} style={styles.thumbnailImage} resizeMode="cover" />
+          <Image
+            source={{ uri: thumbnailUrl }}
+            style={styles.thumbnailImage}
+            resizeMode="cover"
+          />
         </View>
       ) : (
         <View style={styles.iconWrap}>
@@ -51,7 +60,11 @@ export const KeySetCard = memo(function KeySetCard({ keySet, onPress }: KeySetCa
 
       <View style={styles.right}>
         <KeyStatusChip status={keySet.status} />
-        <ChevronRight size={16} color={theme.colors.textLight} strokeWidth={1.8} />
+        <ChevronRight
+          size={16}
+          color={theme.colors.textLight}
+          strokeWidth={1.8}
+        />
       </View>
     </Pressable>
   );

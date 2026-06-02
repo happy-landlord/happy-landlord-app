@@ -13,8 +13,8 @@ import { Input } from "@/components/ui/Input";
 import { Logo } from "@/components/ui/Logo";
 import { theme } from "@/constants/theme";
 import { FEATURES } from "@/constants/features";
-import { supabase } from "@/lib/supabase";
-import { useLockStore } from "@/lib/lockStore";
+import { supabase } from "@/lib/supabase/client";
+import { useLockStore } from "@/lib/state/lockStore";
 
 // ── Validation schema ─────────────────────────────────────────────────────────
 

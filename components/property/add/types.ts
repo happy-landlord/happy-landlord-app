@@ -1,10 +1,6 @@
 import type { PlaceResult } from "@/components/ui/AddressSearch";
 import type { KeyType, PropertyType } from "@/types/database";
 
-export type { PropertyType };
-/** Key item type in the wizard draft — mirrors the DB `key_type` column. */
-export type KeyItemType = KeyType;
-
 // ── Wizard draft shapes ──────────────────────────────────────────────────────
 
 export type PropertyStep = {
@@ -13,14 +9,12 @@ export type PropertyStep = {
   landlordName: string;
   landlordContact: string;
   dateReceived: Date;
-  /** Generated as soon as an address is selected; used on save. */
-  propertyCode: string | null;
 };
 
 /** A single key line-item in the wizard draft. Maps to one row in `keys`. */
 export type KeyEntry = {
   id: string;
-  type: KeyItemType;
+  type: KeyType;
   count: number;
   /** Optional code / tag number printed on the key (e.g. "K-01"). */
   code: string | null;
@@ -62,7 +56,6 @@ export const DEFAULT_PROPERTY: PropertyStep = {
   landlordName: "",
   landlordContact: "",
   dateReceived: new Date(),
-  propertyCode: null,
 };
 
 export const STEP_LABELS = ["Property", "Keysets", "Review"] as const;
@@ -76,4 +69,20 @@ export function formatDate(date: Date): string {
     month: "long",
     year: "numeric",
   });
+}
+
+/**
+ * Returns the per-keyset code derived from the property code.
+ * - Single keyset → the property code itself.
+ * - Multiple keysets → `${propertyCode}-${i+1}`.
+ * - Returns `null` when no property code has been generated yet.
+ */
+export function buildKeySetCode(
+  propertyCode: string | null,
+  index: number,
+  total: number,
+): string | null {
+  if (!propertyCode) return null;
+  const upper = propertyCode.toUpperCase();
+  return total === 1 ? upper : `${upper}-${index + 1}`;
 }

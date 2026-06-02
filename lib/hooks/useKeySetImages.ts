@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 
+import type { StoredImage } from "@/types/database";
 import {
   fetchSignedKeySetImageUrl,
   getVisibleKeySetImages,
-  type KeySetImage,
-} from "@/services/keySets.service";
+} from "@/lib/services/keySets.service";
 
 const SIGNED_URL_STALE_MS = 1000 * 60 * 55;
 const SIGNED_URL_GC_MS = 1000 * 60 * 65;
@@ -12,7 +12,9 @@ const SIGNED_URL_GC_MS = 1000 * 60 * 65;
 /**
  * Returns a signed URL for the first visible keyset image.
  */
-export function useFirstKeySetImageUrl(images: KeySetImage[] | null | undefined) {
+export function useFirstKeySetImageUrl(
+  images: StoredImage[] | null | undefined,
+) {
   const firstPath = getVisibleKeySetImages(images ?? [])[0]?.path ?? null;
 
   return useQuery({
@@ -23,4 +25,3 @@ export function useFirstKeySetImageUrl(images: KeySetImage[] | null | undefined)
     gcTime: SIGNED_URL_GC_MS,
   });
 }
-

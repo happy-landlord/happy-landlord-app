@@ -11,7 +11,7 @@ import {
 import { Printer } from "lucide-react-native";
 
 import { theme } from "@/constants/theme";
-import { printHtml } from "@/lib/print";
+import { printHtml } from "@/lib/utils/print";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

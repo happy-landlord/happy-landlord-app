@@ -473,43 +473,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: theme.colors.textMuted,
   },
-  keyPillGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: theme.spacing.sm,
-  },
-  keyPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 6,
-    borderRadius: theme.radius.pill,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
-  },
-  keyPillLabel: {
-    maxWidth: 110,
-    fontSize: 12,
-    fontWeight: "700",
-    color: theme.colors.text,
-  },
-  keyPillCode: {
-    maxWidth: 78,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.neutralSoft,
-    fontSize: 10,
-    fontWeight: "800",
-    color: theme.colors.textMuted,
-  },
-  keyPillCount: {
-    fontSize: 12,
-    fontWeight: "900",
-    color: theme.colors.primary,
-  },
 
   // ── Unassigned keys ───────────────────────────────────────────────────────
   unassignedList: { gap: 8 },

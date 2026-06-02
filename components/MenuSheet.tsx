@@ -10,8 +10,8 @@ import {
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { RoleGate } from "@/components/RoleGate";
 import { theme } from "@/constants/theme";
-import { usePendingRequests } from "@/hooks/useAgentRequests";
-import { useSignOut } from "@/hooks/useSession";
+import { usePendingRequests } from "@/lib/hooks/useAgentRequests";
+import { useSignOut } from "@/lib/hooks/useSession";
 
 type MenuSheetProps = {
   visible: boolean;
@@ -74,7 +74,11 @@ export function MenuSheet({ visible, onClose }: MenuSheetProps) {
 }
 
 type MenuItemProps = {
-  Icon: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
+  Icon: React.ComponentType<{
+    size?: number;
+    color?: string;
+    strokeWidth?: number;
+  }>;
   label: string;
   onPress: () => void;
   danger?: boolean;

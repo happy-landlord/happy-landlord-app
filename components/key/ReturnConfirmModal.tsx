@@ -12,8 +12,8 @@ import * as Haptics from "expo-haptics";
 
 import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
 import { theme } from "@/constants/theme";
-import { formatDateTime } from "@/lib/format";
-import type { KeyInSet } from "@/services/keySets.service";
+import { formatDateTime } from "@/lib/utils/format";
+import type { KeyInSet } from "@/lib/services/keySets.service";
 
 export type ReturnConfirmModalProps = {
   visible: boolean;
@@ -63,8 +63,8 @@ export const ReturnConfirmModal = memo(function ReturnConfirmModal({
         <View style={styles.card}>
           <Text style={styles.title}>Return keys?</Text>
           <Text style={styles.subtitle}>
-            Confirm these keys are going back into the cabinet. Place them on the hook
-            for this property before confirming.
+            Confirm these keys are going back into the cabinet. Place them on
+            the hook for this property before confirming.
           </Text>
 
           <View style={styles.summary}>
@@ -78,7 +78,13 @@ export const ReturnConfirmModal = memo(function ReturnConfirmModal({
             {holderName ? (
               <>
                 <SummaryRow
-                  icon={<UserRound size={15} color={theme.colors.primary} strokeWidth={1.8} />}
+                  icon={
+                    <UserRound
+                      size={15}
+                      color={theme.colors.primary}
+                      strokeWidth={1.8}
+                    />
+                  }
                   label="Return by"
                   value={holderName}
                 />
@@ -90,12 +96,16 @@ export const ReturnConfirmModal = memo(function ReturnConfirmModal({
               icon={
                 <Calendar
                   size={15}
-                  color={hasOverdue ? theme.colors.danger : theme.colors.primary}
+                  color={
+                    hasOverdue ? theme.colors.danger : theme.colors.primary
+                  }
                   strokeWidth={1.8}
                 />
               }
               label="Due date"
-              value={returnBy ? formatDateTime(returnBy) : "Return time not set"}
+              value={
+                returnBy ? formatDateTime(returnBy) : "Return time not set"
+              }
               danger={hasOverdue}
             />
 
@@ -115,7 +125,6 @@ export const ReturnConfirmModal = memo(function ReturnConfirmModal({
             />
           </View>
 
-
           <View style={styles.actions}>
             <ActionButton
               variant="cancel"
@@ -129,7 +138,9 @@ export const ReturnConfirmModal = memo(function ReturnConfirmModal({
               loading={isPending}
               disabled={isPending}
               onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(
+                  () => {},
+                );
                 onConfirm();
               }}
             />
@@ -142,11 +153,7 @@ export const ReturnConfirmModal = memo(function ReturnConfirmModal({
 
 // ─── Sub-components ────────────────────────────────────────────────────────
 
-function SelectedKeysSummary({
-  selectedKeys,
-}: {
-  selectedKeys: KeyInSet[];
-}) {
+function SelectedKeysSummary({ selectedKeys }: { selectedKeys: KeyInSet[] }) {
   return (
     <View style={styles.keysSection}>
       <Text style={styles.keysLabel}>Keys</Text>
@@ -160,7 +167,11 @@ function SelectedKeysSummary({
           return (
             <View key={k.id} style={styles.keyRow}>
               <View style={styles.keyIconCircle}>
-                <Icon size={12} color={theme.colors.primaryDark} strokeWidth={1.8} />
+                <Icon
+                  size={12}
+                  color={theme.colors.primaryDark}
+                  strokeWidth={1.8}
+                />
               </View>
               <Text style={styles.keyRowLabel} numberOfLines={1}>
                 {label}
@@ -196,7 +207,9 @@ function SummaryRow({
 }) {
   return (
     <View style={styles.summaryRow}>
-      <View style={[styles.summaryIcon, danger && styles.summaryIconDanger]}>{icon}</View>
+      <View style={[styles.summaryIcon, danger && styles.summaryIconDanger]}>
+        {icon}
+      </View>
       <View style={styles.summaryTextBlock}>
         <Text style={styles.summaryLabel}>{label}</Text>
         <Text
@@ -213,7 +226,6 @@ function SummaryRow({
     </View>
   );
 }
-
 
 type ActionButtonProps = {
   label: string;
@@ -419,7 +431,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: theme.colors.primaryDark,
   },
-
 
   // ── Buttons ────────────────────────────────────────────────────
   actions: {
