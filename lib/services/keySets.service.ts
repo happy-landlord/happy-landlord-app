@@ -440,22 +440,64 @@ export async function uploadKeySetImages(
 /**
  * Marks specific keysets as handed over to the tenant and sets the property
  * status to "leased" so it appears in the leased filter.
+ * Creates a key_holder record for the tenant and links it to each key_set.
  */
 export async function handoverKeysetsToTenant(
   propertyId: string,
   keySetIds: string[],
+  tenantName: string,
+  tenantPhone: string,
 ): Promise<void> {
   if (keySetIds.length === 0) return;
 
+  // Create a key_holder record for the tenant
+  const { data: holder, error: holderErr } = await supabase
+    .from("key_holders")
+    .insert({ holder_type: "tenant", full_name: tenantName.trim(), phone: tenantPhone.trim() || null })
+    .select("id")
+    .single();
+  if (holderErr) throw holderErr;
+
   const { error: ksErr } = await supabase
     .from("key_sets")
-    .update({ status: "handover_tenant" })
+    .update({ status: "handover_tenant", current_holder_id: holder.id })
     .in("id", keySetIds);
   if (ksErr) throw ksErr;
 
   const { error: propErr } = await supabase
     .from("properties")
     .update({ status: "leased" })
+    .eq("id", propertyId);
+  if (propErr) throw propErr;
+}
+
+/**
+ * Collects keysets back from the tenant: clears holder, sets keysets to
+ * "available", and sets the property back to "active".
+ */
+export async function collectKeysetsFromTenant(
+  propertyId: string,
+): Promise<void> {
+  // Find all handover_tenant keysets for this property
+  const { data: keySets, error: fetchErr } = await supabase
+    .from("key_sets")
+    .select("id")
+    .eq("property_id", propertyId)
+    .eq("status", "handover_tenant");
+  if (fetchErr) throw fetchErr;
+
+  if (keySets && keySets.length > 0) {
+    const ids = keySets.map((ks) => ks.id);
+    const { error: ksErr } = await supabase
+      .from("key_sets")
+      .update({ status: "available", current_holder_id: null })
+      .in("id", ids);
+    if (ksErr) throw ksErr;
+  }
+
+  const { error: propErr } = await supabase
+    .from("properties")
+    .update({ status: "active" })
     .eq("id", propertyId);
   if (propErr) throw propErr;
 }

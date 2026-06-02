@@ -18,6 +18,7 @@ import {
   Trash2,
   X,
 } from "lucide-react-native";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BottomSheet, PickerModal } from "@/components/ui";
 import { KEY_TYPE_ICON, KEY_TYPE_LABEL, PROPERTY_TYPES, theme } from "@/constants";
 import { useDebouncedValue } from "@/hooks";
@@ -28,7 +29,9 @@ import {
   useDeleteKey,
   useUpdateKey,
   useUpdatePropertyDetails,
+  usePropertyTenant,
 } from "@/lib/hooks";
+import { updateKeyHolder } from "@/lib/services";
 import type { EnrichedKey } from "@/lib/hooks";
 import type { PropertyWithLandlord } from "@/lib/services";
 import type { DbKeyInsert, KeyType, PropertyType } from "@/types";
@@ -349,8 +352,11 @@ type Props = {
   onClose: () => void;
 };
 export function PropertyEditSheet({ property, visible, onClose }: Props) {
+  const queryClient = useQueryClient();
   const { allKeys } = useAllPropertyKeys(property.id);
   const updateDetailsMut = useUpdatePropertyDetails(property.id);
+  const isLeased = property.status === "leased";
+
   const [propertyType, setPropertyType] = useState<PropertyType>(
     property.property_type,
   );
@@ -361,6 +367,29 @@ export function PropertyEditSheet({ property, visible, onClose }: Props) {
     property.landlord?.phone ?? "",
   );
   const [showTypePicker, setShowTypePicker] = useState(false);
+
+  // ── Tenant state ────────────────────────────────────────────────────────
+  const { data: tenant } = usePropertyTenant(property.id, isLeased);
+  const [tenantName, setTenantName] = useState(tenant?.full_name ?? "");
+  const [tenantPhone, setTenantPhone] = useState(tenant?.phone ?? "");
+  const tenantUpdateMut = useMutation({
+    mutationFn: ({ name, phone }: { name: string; phone: string }) => {
+      if (!tenant?.id) return Promise.resolve();
+      return updateKeyHolder(tenant.id, {
+        full_name: name || null,
+        phone: phone || null,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["propertyTenant", property.id] });
+    },
+    onError: (err) => alertError("Error", err, "Failed to save tenant details."),
+  });
+
+  const lastSavedTenantRef = useRef({
+    name: (tenant?.full_name ?? "").trim(),
+    phone: (tenant?.phone ?? "").trim(),
+  });
 
   // Track last-saved snapshot so the debounced auto-save effect only fires
   // when the user actually changes something (not on every re-render or after
@@ -384,13 +413,24 @@ export function PropertyEditSheet({ property, visible, onClose }: Props) {
     }
   }, [visible, property]);
 
+  // Sync tenant fields when tenant data loads or sheet opens
+  useEffect(() => {
+    if (visible) {
+      setTenantName(tenant?.full_name ?? "");
+      setTenantPhone(tenant?.phone ?? "");
+      lastSavedTenantRef.current = {
+        name: (tenant?.full_name ?? "").trim(),
+        phone: (tenant?.phone ?? "").trim(),
+      };
+    }
+  }, [visible, tenant]);
+
   // ── Debounced auto-save ─────────────────────────────────────────────────
-  // Coalesce typing into a single mutation 600 ms after the last keystroke.
-  // PropertyType changes via a picker so they're effectively instant, but the
-  // same effect handles them too.
   const debouncedType = useDebouncedValue(propertyType, 600);
   const debouncedName = useDebouncedValue(landlordName, 600);
   const debouncedPhone = useDebouncedValue(landlordContact, 600);
+  const debouncedTenantName = useDebouncedValue(tenantName, 600);
+  const debouncedTenantPhone = useDebouncedValue(tenantPhone, 600);
 
   useEffect(() => {
     if (!visible) return;
@@ -425,6 +465,24 @@ export function PropertyEditSheet({ property, visible, onClose }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedType, debouncedName, debouncedPhone, visible]);
 
+  // Auto-save tenant changes
+  useEffect(() => {
+    if (!visible || !isLeased || !tenant?.id) return;
+    const next = {
+      name: debouncedTenantName.trim(),
+      phone: debouncedTenantPhone.trim(),
+    };
+    const last = lastSavedTenantRef.current;
+    if (next.name === last.name && next.phone === last.phone) return;
+    tenantUpdateMut.mutate(
+      { name: debouncedTenantName, phone: debouncedTenantPhone },
+      { onSuccess: () => { lastSavedTenantRef.current = next; } },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedTenantName, debouncedTenantPhone, visible]);
+
+  const isPending = updateDetailsMut.isPending || tenantUpdateMut.isPending;
+
   const selectedTypeLabel =
     PROPERTY_TYPES.find((t) => t.value === propertyType)?.label ?? "Select…";
 
@@ -437,7 +495,7 @@ export function PropertyEditSheet({ property, visible, onClose }: Props) {
       >
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Edit Property</Text>
-          {updateDetailsMut.isPending && (
+          {isPending && (
             <ActivityIndicator size="small" color={theme.colors.primary} />
           )}
           <Pressable
@@ -502,6 +560,33 @@ export function PropertyEditSheet({ property, visible, onClose }: Props) {
               />
             </View>
           </View>
+          {/* Tenant — only shown for leased properties */}
+          {isLeased && (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Tenant</Text>
+              <View style={styles.inputGroup}>
+                <TextInput
+                  style={styles.input}
+                  value={tenantName}
+                  onChangeText={setTenantName}
+                  placeholder="Full name"
+                  placeholderTextColor={theme.colors.textLight}
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                />
+                <View style={styles.inputDivider} />
+                <TextInput
+                  style={styles.input}
+                  value={tenantPhone}
+                  onChangeText={setTenantPhone}
+                  placeholder="Phone number"
+                  placeholderTextColor={theme.colors.textLight}
+                  keyboardType="phone-pad"
+                  textContentType="telephoneNumber"
+                />
+              </View>
+            </View>
+          )}
           {/* Keys */}
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Keys</Text>

@@ -93,6 +93,31 @@ export type PropertyWithLandlord = DbProperty & {
   } | null;
 };
 
+/** Tenant holder info fetched from key_sets for a leased property. */
+export type TenantHolder = {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+} | null;
+
+/** Fetches the tenant key_holder linked to any handover_tenant keyset for the property. */
+export async function fetchTenantHolderForProperty(
+  propertyId: string,
+): Promise<TenantHolder> {
+  const { data, error } = await supabase
+    .from("key_sets")
+    .select("current_holder:current_holder_id(id, full_name, phone)")
+    .eq("property_id", propertyId)
+    .eq("status", "handover_tenant")
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+  const row = data as unknown as { current_holder: TenantHolder };
+  return row.current_holder ?? null;
+}
+
 const LANDLORD_SELECT =
   "*, landlord:landlord_holder_id(id, full_name, phone, email)" as const;
 

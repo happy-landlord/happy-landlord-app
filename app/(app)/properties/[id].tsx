@@ -11,6 +11,7 @@ import { Building2, Users } from "lucide-react-native";
 import { useState } from "react";
 
 import {
+  CollectFromTenantSheet,
   HandoverLandlordSheet,
   HandoverTenantSheet,
   KeySetsSection,
@@ -18,7 +19,7 @@ import {
 } from "@/components/property";
 import { ErrorState, LoadingState } from "@/components/ui";
 import { theme } from "@/constants";
-import { useProperty } from "@/lib/hooks";
+import { useProperty, usePropertyTenant } from "@/lib/hooks";
 import { useRole } from "@/hooks";
 
 export default function PropertyDetailScreen() {
@@ -27,7 +28,9 @@ export default function PropertyDetailScreen() {
   const { isAdmin } = useRole();
 
   const { data: property, isPending, isError, refetch } = useProperty(id);
+  const { data: tenant } = usePropertyTenant(id, property?.status === "leased");
   const [tenantSheetOpen, setTenantSheetOpen] = useState(false);
+  const [collectSheetOpen, setCollectSheetOpen] = useState(false);
   const [landlordSheetOpen, setLandlordSheetOpen] = useState(false);
 
   if (isPending) return <LoadingState message="Loading property…" />;
@@ -52,9 +55,9 @@ export default function PropertyDetailScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <PropertyHeader property={property} />
+        <PropertyHeader property={property} tenant={tenant} />
 
-        {isAdmin && (
+        {isAdmin && property.status === "active" && (
           <View style={styles.handoverRow}>
             <Pressable
               style={({ pressed }) => [
@@ -82,6 +85,23 @@ export default function PropertyDetailScreen() {
           </View>
         )}
 
+        {isAdmin && property.status === "leased" && (
+          <View style={styles.handoverRow}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.handoverBtn,
+                styles.handoverTenantBtn,
+                styles.handoverBtnCentered,
+                pressed && { opacity: 0.78 },
+              ]}
+              onPress={() => setCollectSheetOpen(true)}
+            >
+              <Users size={15} color="#fff" strokeWidth={2} />
+              <Text style={styles.handoverBtnText}>Collect from Tenant</Text>
+            </Pressable>
+          </View>
+        )}
+
         <KeySetsSection propertyId={id} />
       </ScrollView>
 
@@ -90,6 +110,11 @@ export default function PropertyDetailScreen() {
           <HandoverTenantSheet
             visible={tenantSheetOpen}
             onClose={() => setTenantSheetOpen(false)}
+            propertyId={id}
+          />
+          <CollectFromTenantSheet
+            visible={collectSheetOpen}
+            onClose={() => setCollectSheetOpen(false)}
             propertyId={id}
           />
           <HandoverLandlordSheet
@@ -109,6 +134,7 @@ const styles = StyleSheet.create({
   handoverRow: {
     flexDirection: "row",
     gap: theme.spacing.sm,
+    justifyContent: "center",
   },
   handoverBtn: {
     flex: 1,
@@ -122,6 +148,11 @@ const styles = StyleSheet.create({
   },
   handoverTenantBtn: {
     backgroundColor: theme.colors.primary,
+  },
+  handoverBtnCentered: {
+    flex: 0,
+    alignSelf: "center",
+    paddingHorizontal: theme.spacing.lg,
   },
   handoverLandlordBtn: {
     backgroundColor: theme.colors.neutralSoft,

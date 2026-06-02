@@ -5,11 +5,12 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { Check, KeyRound } from "lucide-react-native";
 
-import { BottomSheet } from "@/components/ui";
+import { BottomSheet, OutlinedField } from "@/components/ui";
 import { KEY_TYPE_ICON, theme } from "@/constants";
 import { useHandoverToTenant, useKeySets } from "@/lib/hooks";
 import { alertError } from "@/lib/utils";
@@ -25,6 +26,10 @@ export function HandoverTenantSheet({ visible, onClose, propertyId }: Props) {
   const { data: keySets = [] } = useKeySets(propertyId);
   const handoverMut = useHandoverToTenant(propertyId);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [tenantName, setTenantName] = useState("");
+  const [tenantPhone, setTenantPhone] = useState("");
+  const [nameFocused, setNameFocused] = useState(false);
+  const [phoneFocused, setPhoneFocused] = useState(false);
 
   // Reset selection whenever the sheet opens
   const eligibleSets = keySets.filter(
@@ -45,10 +50,12 @@ export function HandoverTenantSheet({ visible, onClose, propertyId }: Props) {
 
   function handleComplete() {
     const ids = [...selected];
-    if (ids.length === 0) return;
-    handoverMut.mutate(ids, {
+    if (ids.length === 0 || !tenantName.trim()) return;
+    handoverMut.mutate({ keySetIds: ids, tenantName, tenantPhone }, {
       onSuccess: () => {
         setSelected(new Set());
+        setTenantName("");
+        setTenantPhone("");
         onClose();
       },
       onError: (err) => alertError("Error", err, "Failed to complete handover."),
@@ -58,11 +65,38 @@ export function HandoverTenantSheet({ visible, onClose, propertyId }: Props) {
   return (
     <BottomSheet visible={visible} onClose={onClose}>
       <Text style={styles.title}>Handover to Tenant</Text>
-      <Text style={styles.subtitle}>
-        Select the keysets to hand over to the tenant.
-      </Text>
+
+      <View style={styles.tenantFields}>
+        <OutlinedField label="Tenant Name" required focused={nameFocused}>
+          <TextInput
+            style={styles.fieldInput}
+            value={tenantName}
+            onChangeText={setTenantName}
+            placeholder="Full name"
+            placeholderTextColor={theme.colors.textLight}
+            onFocus={() => setNameFocused(true)}
+            onBlur={() => setNameFocused(false)}
+            returnKeyType="next"
+          />
+        </OutlinedField>
+        <OutlinedField label="Phone Number" focused={phoneFocused}>
+          <TextInput
+            style={styles.fieldInput}
+            value={tenantPhone}
+            onChangeText={setTenantPhone}
+            placeholder="e.g. 04xx xxx xxx"
+            placeholderTextColor={theme.colors.textLight}
+            keyboardType="phone-pad"
+            onFocus={() => setPhoneFocused(true)}
+            onBlur={() => setPhoneFocused(false)}
+            returnKeyType="done"
+          />
+        </OutlinedField>
+      </View>
 
       <View style={styles.divider} />
+
+      <Text style={styles.subtitle}>Select keysets to hand over:</Text>
 
       {eligibleSets.length === 0 ? (
         <Text style={styles.emptyText}>No keysets available to hand over.</Text>
@@ -121,11 +155,11 @@ export function HandoverTenantSheet({ visible, onClose, propertyId }: Props) {
         <Pressable
           style={({ pressed }) => [
             styles.confirmBtn,
-            selected.size === 0 && styles.confirmBtnDisabled,
-            pressed && selected.size > 0 && { opacity: 0.82 },
+            (selected.size === 0 || !tenantName.trim()) && styles.confirmBtnDisabled,
+            pressed && selected.size > 0 && tenantName.trim() && { opacity: 0.82 },
           ]}
           onPress={handleComplete}
-          disabled={selected.size === 0 || handoverMut.isPending}
+          disabled={selected.size === 0 || !tenantName.trim() || handoverMut.isPending}
         >
           {handoverMut.isPending ? (
             <ActivityIndicator size="small" color="#fff" />
@@ -156,6 +190,16 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: theme.colors.border,
     marginVertical: theme.spacing.sm,
+  },
+  tenantFields: {
+    gap: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+  },
+  fieldInput: {
+    fontSize: 15,
+    color: theme.colors.text,
+    height: 46,
+    paddingHorizontal: 0,
   },
   scroll: { maxHeight: 280 },
   scrollContent: { gap: 6 },

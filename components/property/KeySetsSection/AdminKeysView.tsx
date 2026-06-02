@@ -136,7 +136,6 @@ function AdminKeySetCard({
   const hasHolderMeta =
     keySet.status === "checked_out" ||
     keySet.status === "overdue" ||
-    keySet.status === "handover_tenant" ||
     keySet.status === "handover_landlord";
   const holderName = keySet.current_holder?.full_name;
 

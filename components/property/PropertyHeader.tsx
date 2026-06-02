@@ -1,19 +1,21 @@
 import { memo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Building2, MapPin, Pencil } from "lucide-react-native";
+import { Building2, MapPin, Pencil, Users } from "lucide-react-native";
 
 import { useRole } from "@/hooks";
 import { theme, PROPERTY_TYPE_LABEL } from "@/constants";
-import type { PropertyWithLandlord } from "@/lib/services";
+import type { PropertyWithLandlord, TenantHolder } from "@/lib/services";
 import { PropertyEditSheet } from "./PropertyEditSheet";
 import { Card, IconBadge, MetaRow, Pill } from "@/components/ui";
 
 export type PropertyHeaderProps = {
   property: PropertyWithLandlord;
+  tenant?: TenantHolder;
 };
 
 export const PropertyHeader = memo(function PropertyHeader({
   property,
+  tenant,
 }: PropertyHeaderProps) {
   const { isAdmin } = useRole();
   const [editOpen, setEditOpen] = useState(false);
@@ -34,6 +36,14 @@ export const PropertyHeader = memo(function PropertyHeader({
         ...(landlord.phone || landlord.email
           ? [{ label: "Contact", value: landlord.phone ?? landlord.email ?? "—" }]
           : []),
+      ]
+    : [];
+
+  const showTenant = Boolean(isAdmin && tenant);
+  const tenantMeta = showTenant && tenant
+    ? [
+        { label: "Tenant", value: tenant.full_name || "—" },
+        ...(tenant.phone ? [{ label: "Contact", value: tenant.phone }] : []),
       ]
     : [];
 
@@ -77,6 +87,18 @@ export const PropertyHeader = memo(function PropertyHeader({
       {landlordMeta.length > 0 ? (
         <View style={styles.metaWrap}>
           <MetaRow items={landlordMeta} />
+        </View>
+      ) : null}
+
+      {/* ── Tenant meta ───────────────────────────────────────────────────── */}
+      {tenantMeta.length > 0 ? (
+        <View style={styles.tenantMetaWrap}>
+          <View style={styles.tenantDivider} />
+          <View style={styles.tenantHeader}>
+            <Users size={11} color={theme.colors.primary} strokeWidth={2} />
+            <Text style={styles.tenantLabel}>Current Tenant</Text>
+          </View>
+          <MetaRow items={tenantMeta} divider={false} />
         </View>
       ) : null}
 
@@ -128,5 +150,30 @@ const styles = StyleSheet.create({
   metaWrap: {
     paddingHorizontal: theme.spacing.md,
     paddingBottom: theme.spacing.md,
+  },
+  tenantMetaWrap: {
+    paddingHorizontal: theme.spacing.md,
+    paddingBottom: theme.spacing.md,
+    backgroundColor: theme.colors.primarySoft,
+    borderBottomLeftRadius: theme.radius.lg,
+    borderBottomRightRadius: theme.radius.lg,
+  },
+  tenantDivider: {
+    height: 1,
+    backgroundColor: theme.colors.border,
+    marginBottom: theme.spacing.sm,
+  },
+  tenantHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginBottom: 6,
+  },
+  tenantLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: theme.colors.primary,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
   },
 });

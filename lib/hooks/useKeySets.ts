@@ -17,6 +17,7 @@ import {
   updateKeySet,
   handoverKeysetsToTenant,
   handoverPropertyToLandlord,
+  collectKeysetsFromTenant,
   type CheckoutKeySetParams,
   type ReturnKeySetParams,
   type TransferKeySetParams,
@@ -190,8 +191,8 @@ export function useUndoReportKeySetLost(propertyId: string) {
 export function useHandoverToTenant(propertyId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (keySetIds: string[]) =>
-      handoverKeysetsToTenant(propertyId, keySetIds),
+    mutationFn: ({ keySetIds, tenantName, tenantPhone }: { keySetIds: string[]; tenantName: string; tenantPhone: string }) =>
+      handoverKeysetsToTenant(propertyId, keySetIds, tenantName, tenantPhone),
     onSuccess: () => {
       invalidateKeySets(queryClient, propertyId);
       queryClient.invalidateQueries({ queryKey: ["properties"] });
@@ -206,6 +207,18 @@ export function useHandoverToLandlord(propertyId: string) {
     onSuccess: () => {
       invalidateKeySets(queryClient, propertyId);
       queryClient.invalidateQueries({ queryKey: ["properties"] });
+    },
+  });
+}
+
+export function useCollectFromTenant(propertyId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => collectKeysetsFromTenant(propertyId),
+    onSuccess: () => {
+      invalidateKeySets(queryClient, propertyId);
+      queryClient.invalidateQueries({ queryKey: ["properties"] });
+      queryClient.invalidateQueries({ queryKey: ["propertyTenant", propertyId] });
     },
   });
 }

@@ -13,6 +13,7 @@ import {
   fetchProperties,
   fetchPropertyById,
   fetchPropertyByIdForAgent,
+  fetchTenantHolderForProperty,
   updateKeyHolder,
   updateProperty,
 } from "@/lib/services";
@@ -59,6 +60,14 @@ export function useProperty(id: string) {
     queryFn: () =>
       isAdmin ? fetchPropertyById(id) : fetchPropertyByIdForAgent(id),
     enabled: !!id,
+  });
+}
+
+export function usePropertyTenant(propertyId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["propertyTenant", propertyId],
+    queryFn: () => fetchTenantHolderForProperty(propertyId),
+    enabled: !!propertyId && enabled,
   });
 }
 
