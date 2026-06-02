@@ -58,7 +58,6 @@ export async function submitProperty({
     longitude: place.lng ?? null,
     property_type: property.propertyType,
     landlord_holder_id: landlordHolderId,
-    key_status: "available",
     status: "active",
     images: [],
   });

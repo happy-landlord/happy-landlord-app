@@ -79,7 +79,12 @@ export function AdminKeysView({
         )}
       </View>
 
-      {unassignedKeys.length > 0 && (
+      {unassignedKeys.length > 0 && (() => {
+        const unassignedQty = unassignedKeys.reduce(
+          (sum, k) => sum + (k.quantity ?? 1),
+          0,
+        );
+        return (
         <View style={styles.section}>
           <Pressable
             style={styles.accordionHeader}
@@ -88,8 +93,8 @@ export function AdminKeysView({
             accessibilityLabel="Toggle unassigned keys"
           >
             <Text style={styles.sectionTitle}>
-              {unassignedKeys.length} Unassigned{" "}
-              {unassignedKeys.length === 1 ? "Key" : "Keys"}
+              {unassignedQty} Unassigned{" "}
+              {unassignedQty === 1 ? "Key" : "Keys"}
             </Text>
             {unassignedOpen ? (
               <ChevronDown
@@ -113,7 +118,8 @@ export function AdminKeysView({
             </View>
           )}
         </View>
-      )}
+        );
+      })()}
     </View>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -20,6 +20,7 @@ import {
 } from "lucide-react-native";
 import { BottomSheet, PickerModal } from "@/components/ui";
 import { KEY_TYPE_ICON, KEY_TYPE_LABEL, PROPERTY_TYPES, theme } from "@/constants";
+import { useDebouncedValue } from "@/hooks";
 import { alertError, getKeyName, getKeySignature } from "@/lib/utils";
 import {
   useAllPropertyKeys,
@@ -59,10 +60,13 @@ function PropertyKeysSection({
   const [pendingQty, setPendingQty] = useState(1);
   const [pendingCode, setPendingCode] = useState("");
   const [typePickerOpen, setTypePickerOpen] = useState(false);
+  // `adding` is local to the Add-key flow so the Add button's spinner is NOT
+  // triggered by per-row stepper updates (which share the same updateMut).
+  const [adding, setAdding] = useState(false);
   const createMut = useCreateKeys(propertyId);
   const deleteMut = useDeleteKey(propertyId);
   const updateMut = useUpdateKey(propertyId);
-  const addBusy = createMut.isPending || updateMut.isPending;
+  const addBusy = adding;
 
   function resetPendingKey() {
     setPendingQty(1);
@@ -83,6 +87,7 @@ function PropertyKeysSection({
         !key.keySetName && getKeySignature(key) === getKeySignature(pendingKey),
     );
 
+    setAdding(true);
     if (matchingKey) {
       updateMut.mutate(
         {
@@ -93,6 +98,7 @@ function PropertyKeysSection({
           onSuccess: resetPendingKey,
           onError: (err: unknown) =>
             alertError("Error", err, "Failed to update key."),
+          onSettled: () => setAdding(false),
         },
       );
       return;
@@ -110,6 +116,7 @@ function PropertyKeysSection({
       onSuccess: resetPendingKey,
       onError: (err) =>
         alertError("Error", err, "Failed to add key."),
+      onSettled: () => setAdding(false),
     });
   }
   function handleQtyChange(key: EnrichedKey, delta: number) {
@@ -354,41 +361,73 @@ export function PropertyEditSheet({ property, visible, onClose }: Props) {
     property.landlord?.phone ?? "",
   );
   const [showTypePicker, setShowTypePicker] = useState(false);
+
+  // Track last-saved snapshot so the debounced auto-save effect only fires
+  // when the user actually changes something (not on every re-render or after
+  // the parent re-emits the same prop values).
+  const lastSavedRef = useRef({
+    type: property.property_type,
+    name: (property.landlord?.full_name ?? "").trim(),
+    phone: (property.landlord?.phone ?? "").trim(),
+  });
+
   useEffect(() => {
     if (visible) {
       setPropertyType(property.property_type);
       setLandlordName(property.landlord?.full_name ?? "");
       setLandlordContact(property.landlord?.phone ?? "");
+      lastSavedRef.current = {
+        type: property.property_type,
+        name: (property.landlord?.full_name ?? "").trim(),
+        phone: (property.landlord?.phone ?? "").trim(),
+      };
     }
   }, [visible, property]);
 
-  const isDirty =
-    propertyType !== property.property_type ||
-    landlordName.trim() !== (property.landlord?.full_name ?? "").trim() ||
-    landlordContact.trim() !== (property.landlord?.phone ?? "").trim();
+  // ── Debounced auto-save ─────────────────────────────────────────────────
+  // Coalesce typing into a single mutation 600 ms after the last keystroke.
+  // PropertyType changes via a picker so they're effectively instant, but the
+  // same effect handles them too.
+  const debouncedType = useDebouncedValue(propertyType, 600);
+  const debouncedName = useDebouncedValue(landlordName, 600);
+  const debouncedPhone = useDebouncedValue(landlordContact, 600);
 
-  function handleSave() {
+  useEffect(() => {
+    if (!visible) return;
+    const next = {
+      type: debouncedType,
+      name: debouncedName.trim(),
+      phone: debouncedPhone.trim(),
+    };
+    const last = lastSavedRef.current;
+    if (
+      next.type === last.type &&
+      next.name === last.name &&
+      next.phone === last.phone
+    ) {
+      return;
+    }
     updateDetailsMut.mutate(
       {
         patch:
-          propertyType !== property.property_type
-            ? { property_type: propertyType }
-            : {},
+          next.type !== last.type ? { property_type: next.type } : {},
         landlord: {
           holderId: property.landlord?.id ?? null,
-          name: landlordName,
-          phone: landlordContact,
+          name: debouncedName,
+          phone: debouncedPhone,
         },
       },
       {
-        onSuccess: onClose,
+        onSuccess: () => { lastSavedRef.current = next; },
         onError: (err) => alertError("Error", err, "Failed to save changes."),
       },
     );
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedType, debouncedName, debouncedPhone, visible]);
 
   const selectedTypeLabel =
     PROPERTY_TYPES.find((t) => t.value === propertyType)?.label ?? "Select…";
+
   return (
     <>
       <BottomSheet
@@ -398,6 +437,9 @@ export function PropertyEditSheet({ property, visible, onClose }: Props) {
       >
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Edit Property</Text>
+          {updateDetailsMut.isPending && (
+            <ActivityIndicator size="small" color={theme.colors.primary} />
+          )}
           <Pressable
             onPress={onClose}
             hitSlop={8}
@@ -466,27 +508,6 @@ export function PropertyEditSheet({ property, visible, onClose }: Props) {
             <PropertyKeysSection propertyId={property.id} allKeys={allKeys} />
           </View>
         </ScrollView>
-
-        {/* Save footer */}
-        <View style={styles.footer}>
-          <Pressable
-            onPress={handleSave}
-            disabled={!isDirty || updateDetailsMut.isPending}
-            style={({ pressed }) => [
-              styles.saveBtn,
-              (!isDirty || updateDetailsMut.isPending) && styles.saveBtnDisabled,
-              pressed && isDirty && { opacity: 0.85 },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Save property changes"
-          >
-            {updateDetailsMut.isPending ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.saveBtnText}>Save changes</Text>
-            )}
-          </Pressable>
-        </View>
       </BottomSheet>
       <PickerModal
         visible={showTypePicker}
@@ -506,10 +527,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: theme.spacing.sm,
     paddingHorizontal: theme.spacing.screen,
     paddingBottom: theme.spacing.sm,
   },
-  headerTitle: { fontSize: 17, fontWeight: "700", color: theme.colors.text },
+  headerTitle: { flex: 1, fontSize: 17, fontWeight: "700", color: theme.colors.text },
   closeBtn: {
     width: 32,
     height: 32,
@@ -544,23 +566,6 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
   },
   selectText: { fontSize: 15, color: theme.colors.text, fontWeight: "500" },
-  footer: {
-    paddingHorizontal: theme.spacing.screen,
-    paddingTop: theme.spacing.sm,
-    paddingBottom: theme.spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
-  },
-  saveBtn: {
-    height: 48,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.primary,
-  },
-  saveBtnDisabled: { opacity: 0.45 },
-  saveBtnText: { fontSize: 15, fontWeight: "700", color: "#fff" },
   inputGroup: {
     backgroundColor: theme.colors.surface,
     borderWidth: 1,

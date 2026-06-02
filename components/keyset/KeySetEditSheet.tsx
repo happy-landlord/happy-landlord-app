@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,7 +8,8 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { KeyRound, Minus, Plus, X } from "lucide-react-native";
+import { KeyRound, Plus, X } from "lucide-react-native";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { KEY_TYPE_ICON, theme } from "@/constants";
 import { BottomSheet } from "@/components/ui";
@@ -21,6 +21,11 @@ import {
   useUpdateKey,
   useUpdateKeySet,
 } from "@/lib/hooks";
+import { QUERY_KEYS } from "@/lib/query";
+import {
+  fetchKeySetById,
+  fetchUnassignedKeysForProperty,
+} from "@/lib/services";
 import { alertError, getKeyName, getKeySignature } from "@/lib/utils";
 import type { KeyType } from "@/types";
 import type { KeyInSet, UnassignedKey } from "@/lib/services";
@@ -46,12 +51,17 @@ export function KeySetEditSheet({
 }: KeySetEditSheetProps) {
   const [pendingName, setPendingName] = useState(keySetName ?? "");
   const { data: unassignedKeys = [] } = useUnassignedKeys(propertyId);
+  const queryClient = useQueryClient();
 
-  // ── Mutations (shared TanStack hooks → consistent invalidation) ──────────
   const updateKeySetMut = useUpdateKeySet(propertyId, keySetId);
   const createKeysMut = useCreateKeys(propertyId);
   const updateKeyMut = useUpdateKey(propertyId);
   const deleteKeyMut = useDeleteKey(propertyId);
+
+  // Single in-flight gate — prevents fast double-taps from operating on
+  // stale snapshots between sequential awaits.
+  const actingRef = useRef(false);
+  const [acting, setActing] = useState(false);
 
   const lastSavedNameRef = useRef(keySetName ?? "");
 
@@ -63,8 +73,6 @@ export function KeySetEditSheet({
   }, [visible, keySetName]);
 
   // ── Debounced name save ──────────────────────────────────────────────────
-  // Drive the save off a debounced *value* (600 ms) so the user can keep
-  // typing freely. The mutation fires exactly once per settled value.
   const debouncedName = useDebouncedValue(pendingName, 600);
 
   useEffect(() => {
@@ -74,166 +82,134 @@ export function KeySetEditSheet({
     updateKeySetMut.mutate(
       { name: trimmed },
       {
-        onSuccess: () => {
-          lastSavedNameRef.current = trimmed;
-        },
+        onSuccess: () => { lastSavedNameRef.current = trimmed; },
         onError: (err) => alertError("Error", err, "Failed to save name."),
       },
     );
-    // updateKeySetMut intentionally omitted — mutate is stable and re-running
-    // on every render here would trigger a feedback loop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedName, visible]);
 
-  function handleNameChange(value: string) {
-    setPendingName(value);
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  // Re-read from the cache (forcing a fetch if stale) so multi-step handlers
+  // never operate on a snapshot the previous step already mutated.
+  async function freshUnassigned(): Promise<UnassignedKey[]> {
+    return queryClient.fetchQuery({
+      queryKey: QUERY_KEYS.keySets.unassigned(propertyId),
+      queryFn: () => fetchUnassignedKeysForProperty(propertyId),
+    });
+  }
+  async function freshAssigned(): Promise<KeyInSet[]> {
+    const ks = await queryClient.fetchQuery({
+      queryKey: QUERY_KEYS.keySets.detail(keySetId),
+      queryFn: () => fetchKeySetById(keySetId),
+    });
+    return (ks?.keys ?? []) as KeyInSet[];
   }
 
-  // ── Pool helpers ─────────────────────────────────────────────────────────
-  function findMatchingUnassigned(target: {
-    key_type: string;
-    label?: string | null;
-    code?: string | null;
-  }) {
-    return unassignedKeys.find(
-      (u) => getKeySignature(u) === getKeySignature(target),
-    );
+  function matchBySig<T extends { key_type: string; label?: string | null; code?: string | null }>(
+    list: T[],
+    target: { key_type: string; label?: string | null; code?: string | null },
+  ): T | undefined {
+    const sig = getKeySignature(target);
+    return list.find((x) => getKeySignature(x) === sig);
   }
 
-  function findMatchingAssigned(target: {
-    key_type: string;
-    label?: string | null;
-    code?: string | null;
-  }) {
-    return keys.find((k) => getKeySignature(k) === getKeySignature(target));
-  }
 
-  // ── Assign: move 1 unit from unassigned pool into this keyset ────────────
-  // - Same key already assigned? bump its qty, decrement (or delete) pool item.
-  // - Pool qty > 1?              decrement pool + create new assigned (qty 1).
-  // - Pool qty = 1?              just reparent the existing record.
-  async function handleAssign(k: UnassignedKey) {
-    try {
-      const matching = findMatchingAssigned(k);
-      if (matching) {
-        if (k.quantity > 1) {
-          await updateKeyMut.mutateAsync({
-            keyId: k.id,
-            patch: { quantity: k.quantity - 1 },
-          });
-        } else {
-          await deleteKeyMut.mutateAsync(k.id);
-        }
+  /**
+   * Move ONE unit of `source` into `destKeySetId` (null = unassigned pool).
+   * Strategy:
+   *   - source qty > 1  → decrement source by 1 and either bump a matching
+   *                       dest row or insert a new dest row (qty 1).
+   *   - source qty == 1 → if a matching dest row exists, merge (bump dest,
+   *                       delete source); otherwise just reparent source.
+   */
+  async function moveOne(
+    source: KeyInSet | UnassignedKey,
+    destList: (KeyInSet | UnassignedKey)[],
+    destKeySetId: string | null,
+  ) {
+    const dest = matchBySig(destList, source);
+    const srcQty = source.quantity ?? 1;
+
+    if (srcQty > 1) {
+      await updateKeyMut.mutateAsync({
+        keyId: source.id,
+        patch: { quantity: srcQty - 1 },
+      });
+      if (dest) {
         await updateKeyMut.mutateAsync({
-          keyId: matching.id,
-          patch: { quantity: (matching.quantity ?? 1) + 1 },
+          keyId: dest.id,
+          patch: { quantity: (dest.quantity ?? 1) + 1 },
         });
-        return;
-      }
-      if (k.quantity > 1) {
-        await updateKeyMut.mutateAsync({
-          keyId: k.id,
-          patch: { quantity: k.quantity - 1 },
-        });
+      } else {
         await createKeysMut.mutateAsync([
           {
             property_id: propertyId,
-            key_set_id: keySetId,
-            key_type: k.key_type,
-            label: k.label,
-            code: k.code ?? null,
+            key_set_id: destKeySetId,
+            key_type: source.key_type,
+            label: source.label,
+            code: source.code ?? null,
             quantity: 1,
             notes: null,
           },
         ]);
-      } else {
-        await updateKeyMut.mutateAsync({
-          keyId: k.id,
-          patch: { key_set_id: keySetId },
-        });
       }
-    } catch (err) {
-      alertError("Error", err, "Failed to assign key.");
-    }
-  }
-
-  // ── Unassign: send the FULL assigned qty back to the pool ────────────────
-  async function handleUnassign(k: KeyInSet) {
-    try {
-      const matching = findMatchingUnassigned(k);
-      if (matching) {
-        await updateKeyMut.mutateAsync({
-          keyId: matching.id,
-          patch: { quantity: matching.quantity + (k.quantity ?? 1) },
-        });
-        await deleteKeyMut.mutateAsync(k.id);
-      } else {
-        await updateKeyMut.mutateAsync({
-          keyId: k.id,
-          patch: { key_set_id: null },
-        });
-      }
-    } catch (err) {
-      alertError("Error", err, "Failed to unassign key.");
-    }
-  }
-
-  // ── Stepper: ±1 between this keyset and the unassigned pool ──────────────
-  async function handleQuantityChange(key: KeyInSet, delta: 1 | -1) {
-    const matching = findMatchingUnassigned(key);
-    if (delta === 1 && !matching) {
-      Alert.alert(
-        "None available",
-        "There are no unassigned keys of this type to add.",
-      );
       return;
     }
-    if (delta === -1 && (key.quantity ?? 1) <= 1) return;
 
-    try {
-      if (delta === 1 && matching) {
-        if (matching.quantity > 1) {
-          await updateKeyMut.mutateAsync({
-            keyId: matching.id,
-            patch: { quantity: matching.quantity - 1 },
-          });
-        } else {
-          await deleteKeyMut.mutateAsync(matching.id);
-        }
-        await updateKeyMut.mutateAsync({
-          keyId: key.id,
-          patch: { quantity: (key.quantity ?? 1) + 1 },
-        });
-      } else if (delta === -1) {
-        await updateKeyMut.mutateAsync({
-          keyId: key.id,
-          patch: { quantity: (key.quantity ?? 1) - 1 },
-        });
-        if (matching) {
-          await updateKeyMut.mutateAsync({
-            keyId: matching.id,
-            patch: { quantity: matching.quantity + 1 },
-          });
-        } else {
-          await createKeysMut.mutateAsync([
-            {
-              property_id: propertyId,
-              key_set_id: null,
-              key_type: key.key_type,
-              label: key.label ?? null,
-              code: key.code ?? null,
-              quantity: 1,
-              notes: null,
-            },
-          ]);
-        }
-      }
-    } catch (err) {
-      alertError("Error", err, "Failed to update quantity.");
+    // srcQty === 1
+    if (dest) {
+      await updateKeyMut.mutateAsync({
+        keyId: dest.id,
+        patch: { quantity: (dest.quantity ?? 1) + 1 },
+      });
+      await deleteKeyMut.mutateAsync(source.id);
+    } else {
+      await updateKeyMut.mutateAsync({
+        keyId: source.id,
+        patch: { key_set_id: destKeySetId },
+      });
     }
   }
 
+  async function runLocked(fn: () => Promise<void>, errMsg: string) {
+    if (actingRef.current) return;
+    actingRef.current = true;
+    setActing(true);
+    try {
+      await fn();
+    } catch (err) {
+      alertError("Error", err, errMsg);
+    } finally {
+      actingRef.current = false;
+      setActing(false);
+    }
+  }
+
+  // ── Handlers (each moves exactly 1 unit) ────────────────────────────────
+  function handleAssign(initial: UnassignedKey) {
+    void runLocked(async () => {
+      const pool = await freshUnassigned();
+      const src = matchBySig(pool, initial);
+      if (!src) return;
+      const assigned = await freshAssigned();
+      await moveOne(src, assigned, keySetId);
+    }, "Failed to assign key.");
+  }
+
+  function handleUnassign(initial: KeyInSet) {
+    void runLocked(async () => {
+      const assigned = await freshAssigned();
+      const src = assigned.find((x) => x.id === initial.id);
+      if (!src) return;
+      const pool = await freshUnassigned();
+      await moveOne(src, pool, null);
+    }, "Failed to unassign key.");
+  }
+
+
   const busy =
+    acting ||
     createKeysMut.isPending ||
     updateKeyMut.isPending ||
     deleteKeyMut.isPending ||
@@ -248,7 +224,7 @@ export function KeySetEditSheet({
         <TextInput
           style={styles.nameInput}
           value={pendingName}
-          onChangeText={handleNameChange}
+          onChangeText={setPendingName}
           placeholder="Keyset name"
           placeholderTextColor={theme.colors.textLight}
           autoCorrect={false}
@@ -275,9 +251,7 @@ export function KeySetEditSheet({
         >
           {keys.map((k) => {
             const Icon = KEY_TYPE_ICON[k.key_type as KeyType] ?? KeyRound;
-            const label = getKeyName(k);
             const qty = k.quantity ?? 1;
-            const hasMatchingUnassigned = !!findMatchingUnassigned(k);
             return (
               <View key={k.id} style={styles.keyRow}>
                 <View style={styles.keyIconCircle}>
@@ -285,44 +259,19 @@ export function KeySetEditSheet({
                 </View>
                 <View style={styles.keyInfo}>
                   <Text style={styles.keyLabel} numberOfLines={1}>
-                    {label}
+                    {getKeyName(k)}
                   </Text>
-                  {k.code && <Text style={styles.keyCode}>{k.code}</Text>}
+                  {k.code ? (
+                    <View style={styles.codeChip}>
+                      <Text style={styles.codeChipText}>{k.code}</Text>
+                    </View>
+                  ) : null}
                 </View>
-                <View style={styles.stepper}>
-                  <Pressable
-                    onPress={() => handleQuantityChange(k, -1)}
-                    disabled={busy || qty <= 1}
-                    hitSlop={6}
-                    style={[styles.stepBtn, qty <= 1 && styles.stepBtnDisabled]}
-                  >
-                    <Minus
-                      size={12}
-                      color={qty <= 1 ? theme.colors.textLight : theme.colors.text}
-                      strokeWidth={2.5}
-                    />
-                  </Pressable>
-                  <Text style={styles.stepVal}>{qty}</Text>
-                  <Pressable
-                    onPress={() => handleQuantityChange(k, 1)}
-                    disabled={busy || !hasMatchingUnassigned}
-                    hitSlop={6}
-                    style={[
-                      styles.stepBtn,
-                      !hasMatchingUnassigned && styles.stepBtnDisabled,
-                    ]}
-                  >
-                    <Plus
-                      size={12}
-                      color={
-                        !hasMatchingUnassigned
-                          ? theme.colors.textLight
-                          : theme.colors.text
-                      }
-                      strokeWidth={2.5}
-                    />
-                  </Pressable>
-                </View>
+                {qty > 1 && (
+                  <View style={styles.qtyChip}>
+                    <Text style={styles.qtyChipText}>{qty}</Text>
+                  </View>
+                )}
                 <Pressable
                   onPress={() => handleUnassign(k)}
                   disabled={busy}
@@ -332,11 +281,7 @@ export function KeySetEditSheet({
                     pressed && { opacity: 0.65 },
                   ]}
                 >
-                  {deleteKeyMut.isPending ? (
-                    <ActivityIndicator size={13} color={theme.colors.danger} />
-                  ) : (
-                    <X size={14} color={theme.colors.danger} strokeWidth={2.5} />
-                  )}
+                  <X size={14} color={theme.colors.danger} strokeWidth={2.5} />
                 </Pressable>
               </View>
             );
@@ -350,39 +295,45 @@ export function KeySetEditSheet({
       {unassignedKeys.length > 0 && (
         <>
           <View style={styles.divider} />
-          <View style={styles.availableSection}>
-            <Text style={styles.sectionLabel}>Available to assign</Text>
-            <View style={styles.availablePillGrid}>
-              {unassignedKeys.map((k) => {
-                const Icon = KEY_TYPE_ICON[k.key_type as KeyType] ?? KeyRound;
-                const label = getKeyName(k);
-                return (
+          <Text style={styles.sectionLabel}>Available to assign</Text>
+          <View style={styles.availableList}>
+            {unassignedKeys.map((k) => {
+              const Icon = KEY_TYPE_ICON[k.key_type as KeyType] ?? KeyRound;
+              const qty = k.quantity ?? 1;
+              return (
+                <View key={k.id} style={styles.keyRow}>
+                  <View style={styles.keyIconCircle}>
+                    <Icon size={14} color={theme.colors.primary} strokeWidth={1.8} />
+                  </View>
+                  <View style={styles.keyInfo}>
+                    <Text style={styles.keyLabel} numberOfLines={1}>
+                      {getKeyName(k)}
+                    </Text>
+                    {k.code ? (
+                      <View style={styles.codeChip}>
+                        <Text style={styles.codeChipText}>{k.code}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                  {qty > 1 && (
+                    <View style={styles.qtyChip}>
+                      <Text style={styles.qtyChipText}>{qty}</Text>
+                    </View>
+                  )}
                   <Pressable
-                    key={k.id}
-                    style={[styles.availablePill, busy && { opacity: 0.5 }]}
                     onPress={() => handleAssign(k)}
                     disabled={busy}
+                    hitSlop={8}
+                    style={({ pressed }) => [
+                      styles.addBtn,
+                      pressed && { opacity: 0.65 },
+                    ]}
                   >
-                    <Icon size={13} color={theme.colors.textMuted} strokeWidth={1.8} />
-                    <View style={styles.availablePillTextWrap}>
-                      <Text style={styles.availablePillLabel} numberOfLines={1}>
-                        {label}
-                      </Text>
-                      {k.code ? (
-                        <Text style={styles.availablePillCode} numberOfLines={1}>
-                          {k.code}
-                        </Text>
-                      ) : null}
-                    </View>
-                    {k.quantity > 1 && (
-                      <View style={styles.availableCountDot}>
-                        <Text style={styles.availableCountDotText}>{k.quantity}</Text>
-                      </View>
-                    )}
+                    <Plus size={14} color={theme.colors.success} strokeWidth={2.5} />
                   </Pressable>
-                );
-              })}
-            </View>
+                </View>
+              );
+            })}
           </View>
         </>
       )}
@@ -435,38 +386,58 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexShrink: 0,
   },
-  keyInfo: { flex: 1, gap: 2, minWidth: 0 },
-  keyLabel: { fontSize: 13, fontWeight: "600", color: theme.colors.text },
-  keyCode: { fontSize: 11, color: theme.colors.textMuted },
-  stepper: {
+  keyInfo: {
+    flex: 1,
+    minWidth: 0,
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    flexShrink: 0,
+    gap: 6,
   },
-  stepBtn: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+  keyLabel: { fontSize: 13, fontWeight: "600", color: theme.colors.text, flexShrink: 1 },
+  keyCode: { fontSize: 11, color: theme.colors.textMuted },
+  codeChip: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: theme.radius.sm,
     backgroundColor: theme.colors.neutralSoft,
-    alignItems: "center",
-    justifyContent: "center",
     borderWidth: 1,
     borderColor: theme.colors.border,
+    flexShrink: 0,
   },
-  stepBtnDisabled: { opacity: 0.35 },
-  stepVal: {
-    fontSize: 14,
+  codeChipText: {
+    fontSize: 10,
     fontWeight: "700",
-    color: theme.colors.text,
-    minWidth: 20,
-    textAlign: "center",
+    color: theme.colors.textMuted,
+    letterSpacing: 0.3,
+  },
+  qtyChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.neutralSoft,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    flexShrink: 0,
+  },
+  qtyChipText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: theme.colors.textMuted,
   },
   removeBtn: {
     width: 30,
     height: 30,
     borderRadius: theme.radius.sm,
     backgroundColor: theme.colors.dangerSoft,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  addBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: theme.radius.sm,
+    backgroundColor: theme.colors.successSoft,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
@@ -483,55 +454,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.border,
     marginVertical: theme.spacing.sm,
   },
-  // -- Available to assign pill grid (matches KeysStep style) ----------------
-  availableSection: {
-    gap: theme.spacing.sm,
-    paddingTop: 2,
-  },
-  availablePillGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    columnGap: 8,
-    rowGap: 10,
-  },
-  availablePill: {
-    flexDirection: "row",
-    alignItems: "center",
+  availableList: {
     gap: 6,
-    minHeight: 34,
-    paddingHorizontal: 11,
-    paddingVertical: 8,
-    borderRadius: theme.radius.pill,
-    borderWidth: 1.5,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.background,
-  },
-  availablePillLabel: {
-    maxWidth: 110,
-    fontSize: 13,
-    fontWeight: "600",
-    color: theme.colors.textMuted,
-  },
-  availablePillTextWrap: {
-    maxWidth: 120,
-    gap: 1,
-  },
-  availablePillCode: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: theme.colors.textLight,
-  },
-  availableCountDot: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: theme.colors.neutralSoft,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  availableCountDotText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: theme.colors.textMuted,
+    paddingBottom: 4,
   },
 });

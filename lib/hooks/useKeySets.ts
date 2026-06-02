@@ -3,8 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { QUERY_KEYS } from "@/lib/query";
 import {
-  fetchKeySetsForProperty,
   fetchKeySetById,
+  fetchKeySetsForProperty,
   fetchUnassignedKeysForProperty,
   fetchCheckedOutKeySets,
   fetchKeySetsNeedingAttention,
@@ -15,6 +15,8 @@ import {
   reportKeySetLost,
   undoReportKeySetLost,
   updateKeySet,
+  handoverKeysetsToTenant,
+  handoverPropertyToLandlord,
   type CheckoutKeySetParams,
   type ReturnKeySetParams,
   type TransferKeySetParams,
@@ -115,6 +117,20 @@ export function invalidateKeySets(
     queryClient.invalidateQueries({
       queryKey: QUERY_KEYS.keySets.detail(keySetId),
     });
+  } else {
+    // Key CRUD mutations are property-scoped and don't know which keyset
+    // a key belongs to (it might be moving between keysets). Invalidate
+    // every `keySets.detail(*)` query so any open keyset detail screen
+    // refetches — otherwise the parent screen renders stale keys after an
+    // assign/unassign and the edit sheet's UI doesn't update.
+    queryClient.invalidateQueries({
+      predicate: (q) =>
+        Array.isArray(q.queryKey) &&
+        q.queryKey[0] === "keySets" &&
+        typeof q.queryKey[1] === "string" &&
+        q.queryKey[1] !== "property" &&
+        q.queryKey[1] !== "unassigned",
+    });
   }
   queryClient.invalidateQueries({ queryKey: ["activity"] });
 }
@@ -168,6 +184,29 @@ export function useUndoReportKeySetLost(propertyId: string) {
     mutationFn: (keySetId: string) => undoReportKeySetLost(keySetId),
     onSuccess: (_, keySetId) =>
       invalidateKeySets(queryClient, propertyId, keySetId),
+  });
+}
+
+export function useHandoverToTenant(propertyId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (keySetIds: string[]) =>
+      handoverKeysetsToTenant(propertyId, keySetIds),
+    onSuccess: () => {
+      invalidateKeySets(queryClient, propertyId);
+      queryClient.invalidateQueries({ queryKey: ["properties"] });
+    },
+  });
+}
+
+export function useHandoverToLandlord(propertyId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => handoverPropertyToLandlord(propertyId),
+    onSuccess: () => {
+      invalidateKeySets(queryClient, propertyId);
+      queryClient.invalidateQueries({ queryKey: ["properties"] });
+    },
   });
 }
 

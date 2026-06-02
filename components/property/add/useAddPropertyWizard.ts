@@ -164,11 +164,7 @@ export function useAddPropertyWizard() {
         keySets,
         createProperty: createProperty.mutateAsync,
       });
-      Alert.alert(
-        "Property Created",
-        "The property has been added successfully.",
-        [{ text: "OK", onPress: () => router.back() }],
-      );
+      router.back();
     } catch (err) {
       Alert.alert(
         "Error",

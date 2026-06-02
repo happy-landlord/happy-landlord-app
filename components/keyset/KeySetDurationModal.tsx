@@ -1,9 +1,11 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { CalendarClock } from "lucide-react-native";
 
-import { ConfirmModal } from "@/components/ui";
+import { ConfirmModal, type ConfirmModalTone } from "@/components/ui";
 import { DURATION_DAYS, theme } from "@/constants";
 import { formatDueAt, isoInDays } from "@/lib/utils";
+import { SelectedKeysSummary } from "./SelectedKeysSummary";
+import type { KeyInSet } from "@/lib/services";
 
 type Props = {
   visible: boolean;
@@ -22,7 +24,9 @@ type Props = {
   onCancel: () => void;
   onConfirm: () => void;
   confirmLabel: string;
-  confirmColor?: string;
+  confirmTone?: ConfirmModalTone;
+  /** Optional key summary shown above the duration picker. */
+  keys?: KeyInSet[];
 };
 
 /**
@@ -43,24 +47,36 @@ export function KeySetDurationModal({
   onCancel,
   onConfirm,
   confirmLabel,
-  confirmColor = theme.colors.success,
+  confirmTone = "success",
+  keys = [],
 }: Props) {
   const newDueIso = isoInDays(
     durationDays,
     baseIso ? new Date(baseIso) : Date.now(),
   );
+  const hasKeysSummary = keys.length > 0;
 
   return (
     <ConfirmModal
       visible={visible}
       title={title}
-      subtitle={subtitle}
+      subtitle={hasKeysSummary ? undefined : subtitle}
       confirmLabel={isPending ? "Processing…" : confirmLabel}
-      confirmColor={confirmColor}
+      confirmTone={confirmTone}
       isPending={isPending}
       onCancel={onCancel}
       onConfirm={onConfirm}
     >
+      {hasKeysSummary && (
+        <View style={styles.summary}>
+          <View style={styles.summaryPadded}>
+            <SelectedKeysSummary keys={keys} />
+          </View>
+        </View>
+      )}
+
+      {hasKeysSummary ? <Text style={styles.instruction}>{subtitle}</Text> : null}
+
       <View style={styles.grid}>
         {DURATION_DAYS.map((days) => {
           const selected = days === durationDays;
@@ -101,6 +117,25 @@ export function KeySetDurationModal({
 }
 
 const styles = StyleSheet.create({
+  summary: {
+    width: "100%",
+    backgroundColor: theme.colors.surfaceWarm,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    overflow: "hidden",
+  },
+  summaryPadded: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 12,
+  },
+  instruction: {
+    fontSize: 14,
+    color: theme.colors.textMuted,
+    textAlign: "center",
+    lineHeight: 20,
+    marginTop: -theme.spacing.xs,
+  },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -126,14 +161,22 @@ const styles = StyleSheet.create({
   },
   chipTextSelected: { color: theme.colors.primary, fontWeight: "700" },
   dueRow: {
+    maxWidth: "100%",
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "center",
     gap: 6,
     backgroundColor: theme.colors.primarySoft,
     borderRadius: theme.radius.md,
-    paddingHorizontal: 12,
+    paddingHorizontal: theme.spacing.md,
     paddingVertical: 10,
   },
-  dueText: { fontSize: 13, color: theme.colors.textMuted, flex: 1 },
+  dueText: {
+    flexShrink: 1,
+    fontSize: 13,
+    color: theme.colors.textMuted,
+    textAlign: "center",
+  },
   dueDate: { fontWeight: "700", color: theme.colors.text },
 });

@@ -16,23 +16,23 @@ import {
   updateKeyHolder,
   updateProperty,
 } from "@/lib/services";
-import type {
+import {
   DbProperty,
   DbPropertyInsert,
   DbPropertyUpdate,
-  PropertyKeyStatus,
+  PropertyStatus,
 } from "@/types";
 
 export function useInfiniteProperties({
   search = "",
-  keyStatus,
-}: { search?: string; keyStatus?: PropertyKeyStatus } = {}) {
+  status,
+}: { search?: string; status?: PropertyStatus } = {}) {
   const query = useInfiniteQuery({
-    queryKey: QUERY_KEYS.properties.infinite(search, keyStatus ?? ""),
+    queryKey: QUERY_KEYS.properties.infinite(search, status ?? ""),
     queryFn: ({ pageParam }: { pageParam: number }) =>
       fetchProperties({
         search,
-        keyStatus,
+        status,
         page: pageParam,
         pageSize: PAGE_SIZE,
       }),
@@ -66,7 +66,16 @@ export function useCreateProperty() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: DbPropertyInsert) => createProperty(input),
-    onSuccess: () => invalidateProperties(queryClient),
+    onSuccess: () => {
+      // Creating a property (and its keysets/keys in the same flow) touches
+      // far more than the properties list — refresh every dashboard-facing
+      // cache so the home screen reflects the new data immediately.
+      invalidateProperties(queryClient);
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["keys"] });
+      queryClient.invalidateQueries({ queryKey: ["keySets"] });
+      queryClient.invalidateQueries({ queryKey: ["activity"] });
+    },
   });
 }
 

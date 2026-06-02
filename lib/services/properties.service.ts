@@ -6,7 +6,7 @@ import type {
   DbPropertyInsert,
   DbPropertyUpdate,
   PropertyType,
-  PropertyKeyStatus,
+  PropertyStatus,
   StoredImage,
 } from "@/types";
 import { COUNCIL_CODES } from "@/constants";
@@ -98,11 +98,11 @@ const LANDLORD_SELECT =
 
 // Fields visible to agents — no audit/internal columns
 const AGENT_SELECT =
-  "id,property_code,address,unit_number,suburb,city,postcode,formatted_address,property_type,key_status,status,latitude,longitude" as const;
+  "id,property_code,address,unit_number,suburb,city,postcode,formatted_address,property_type,status,latitude,longitude" as const;
 
 export type FetchPropertiesOptions = {
   search?: string;
-  keyStatus?: PropertyKeyStatus;
+  status?: PropertyStatus;
   page?: number;
   pageSize?: number;
 };
@@ -111,20 +111,17 @@ const DEFAULT_PAGE_SIZE = 20;
 
 export async function fetchProperties({
   search,
-  keyStatus,
+  status = "active",
   page = 0,
   pageSize = DEFAULT_PAGE_SIZE,
 }: FetchPropertiesOptions = {}): Promise<DbProperty[]> {
   let query = supabase
     .from("properties")
     .select("*")
-    .eq("status", "active")
+    .eq("status", status)
     .order("created_at", { ascending: false })
     .range(page * pageSize, (page + 1) * pageSize - 1);
 
-  if (keyStatus) {
-    query = query.eq("key_status", keyStatus);
-  }
 
   if (search && search.trim().length > 0) {
     const term = `%${search.trim()}%`;

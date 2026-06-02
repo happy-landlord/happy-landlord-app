@@ -104,8 +104,9 @@ export default function KeySetDetailScreen() {
       {/* Checkout modal */}
       <KeySetDurationModal
         visible={showCheckoutModal}
-        title="Checkout keyset"
+        title={`Checkout ${keySet.name}`}
         subtitle="Select how long you need the keyset."
+        keys={keySet.keys ?? []}
         durationDays={checkoutDays}
         baseIso={undefined}
         isPending={actions.isCheckoutPending}
@@ -114,7 +115,7 @@ export default function KeySetDetailScreen() {
         onConfirm={() =>
           actions.checkout(checkoutDays, () => setShowCheckoutModal(false))
         }
-        confirmLabel="Confirm Checkout"
+        confirmLabel="Confirm"
       />
       {/* Extend modal */}
       <KeySetDurationModal
@@ -130,7 +131,7 @@ export default function KeySetDetailScreen() {
           actions.extend(extendDays, () => setShowExtendModal(false))
         }
         confirmLabel="Extend"
-        confirmColor={theme.colors.primary}
+        confirmTone="primary"
       />
       {/* Admin: edit keys in this keyset */}
       {isAdmin && (

@@ -13,6 +13,7 @@ import { theme } from "@/constants";
 
 type ButtonVariant =
   | "primary"
+  | "primaryOutline"
   | "accent"
   | "outline"
   | "ghost"
@@ -94,6 +95,15 @@ const variantStyles: Record<
     container: { backgroundColor: theme.colors.primary },
     label: { color: theme.colors.textInverse },
     spinner: theme.colors.textInverse,
+  },
+  primaryOutline: {
+    container: {
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1.5,
+      borderColor: theme.colors.primary,
+    },
+    label: { color: theme.colors.primary },
+    spinner: theme.colors.primary,
   },
   accent: {
     container: { backgroundColor: theme.colors.accent },

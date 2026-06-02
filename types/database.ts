@@ -188,7 +188,7 @@ export type Database = {
             | "villa"
             | "other";
           key_status: "available" | "leased" | "landlord";
-          status: "active" | "inactive" | "archived";
+          status: "active" | "leased" | "inactive";
           unit_number: string | null;
           landlord_holder_id: string | null;
           created_by: string | null;
@@ -215,8 +215,7 @@ export type Database = {
             | "duplex"
             | "villa"
             | "other";
-          key_status?: "available" | "leased" | "landlord";
-          status?: "active" | "inactive" | "archived";
+          status?: "active" | "leased" | "inactive";
           unit_number?: string | null;
           landlord_holder_id?: string | null;
           created_by?: string | null;
@@ -243,8 +242,7 @@ export type Database = {
             | "duplex"
             | "villa"
             | "other";
-          key_status?: "available" | "leased" | "landlord";
-          status?: "active" | "inactive" | "archived";
+          status?: "active" | "leased" | "inactive";
           unit_number?: string | null;
           landlord_holder_id?: string | null;
           created_by?: string | null;
@@ -635,7 +633,7 @@ export type DbProperty = Tables<"properties">;
 export type DbPropertyInsert = TablesInsert<"properties">;
 export type DbPropertyUpdate = TablesUpdate<"properties">;
 export type PropertyType = DbProperty["property_type"];
-export type PropertyKeyStatus = DbProperty["key_status"];
+export type PropertyStatus = DbProperty["status"];
 
 // Keys ───────────────────────────────────────────────────────────────────────
 export type DbKey = Tables<"keys">;

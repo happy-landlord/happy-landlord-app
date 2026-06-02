@@ -11,12 +11,12 @@ import {
 } from "@/components/ui";
 import { theme } from "@/constants";
 
-export type AdminPropertyTab = "available" | "leased" | "landlord";
+export type AdminPropertyTab = "active" | "leased" | "inactive";
 
 const ADMIN_TABS: { id: AdminPropertyTab; label: string }[] = [
-  { id: "available", label: "Active" },
+  { id: "active", label: "Active" },
   { id: "leased", label: "Leased" },
-  { id: "landlord", label: "Inactive" },
+  { id: "inactive", label: "Inactive" },
 ];
 
 type Props = {

@@ -1,11 +1,11 @@
-import { memo, type ReactNode } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { memo } from "react";
+import { View } from "react-native";
 import { Archive, Calendar, UserRound } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
-import { ConfirmModal, IconBadge } from "@/components/ui";
+import { ConfirmModal } from "@/components/ui";
 import { SelectedKeysSummary } from "./SelectedKeysSummary";
-import { theme } from "@/constants";
+import { SummaryRow, summaryStyles } from "./KeySetSummaryRow";
 import { formatDateTime } from "@/lib/utils";
 import type { KeyInSet } from "@/lib/services";
 
@@ -48,39 +48,29 @@ export const ReturnConfirmModal = memo(function ReturnConfirmModal({
         onConfirm();
       }}
     >
-      <View style={styles.summary}>
-        {returningKeys.length > 0 ? (
+      <View style={summaryStyles.card}>
+        {returningKeys.length > 0 && (
           <>
-            <View style={styles.summaryPadded}>
+            <View style={summaryStyles.cardPadded}>
               <SelectedKeysSummary keys={returningKeys} />
             </View>
-            <View style={styles.dividerFull} />
+            <View style={summaryStyles.dividerFull} />
           </>
-        ) : null}
-
-        {holderName ? (
+        )}
+        {holderName && (
           <>
-            <SummaryRow
-              icon={
-                <IconBadge icon={UserRound} tone="primary" size="sm" />
-              }
-              label="Return by"
-              value={holderName}
-            />
-            <View style={styles.divider} />
+            <SummaryRow icon={UserRound} label="Return by" value={holderName} />
+            <View style={summaryStyles.divider} />
           </>
-        ) : null}
-
+        )}
         <SummaryRow
-          icon={<IconBadge icon={Calendar} tone="primary" size="sm" />}
+          icon={Calendar}
           label="Due date"
           value={dueBackAt ? formatDateTime(dueBackAt) : "Return time not set"}
         />
-
-        <View style={styles.divider} />
-
+        <View style={summaryStyles.divider} />
         <SummaryRow
-          icon={<IconBadge icon={Archive} tone="primary" size="sm" />}
+          icon={Archive}
           label="Cabinet slot"
           value={propertyCode ?? "Property code unavailable"}
           valueTone={propertyCode ? "primary" : undefined}
@@ -88,84 +78,4 @@ export const ReturnConfirmModal = memo(function ReturnConfirmModal({
       </View>
     </ConfirmModal>
   );
-});
-
-// ── Sub-component ────────────────────────────────────────────────────────────
-
-function SummaryRow({
-  icon,
-  label,
-  value,
-  valueTone,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-  valueTone?: "primary";
-}) {
-  return (
-    <View style={styles.row}>
-      {icon}
-      <View style={styles.textBlock}>
-        <Text style={styles.label}>{label}</Text>
-        <Text
-          style={[
-            styles.value,
-            valueTone === "primary" && styles.valuePrimary,
-          ]}
-          numberOfLines={1}
-        >
-          {value}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  summary: {
-    width: "100%",
-    backgroundColor: theme.colors.surfaceWarm,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    overflow: "hidden",
-  },
-  summaryPadded: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: 12,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: 12,
-  },
-  textBlock: { flex: 1, gap: 2 },
-  label: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: theme.colors.textMuted,
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-  },
-  value: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: theme.colors.text,
-  },
-  valuePrimary: {
-    color: theme.colors.primaryDark,
-    fontWeight: "800",
-  },
-  divider: {
-    height: 1,
-    backgroundColor: theme.colors.border,
-    marginLeft: theme.spacing.md + 30 + theme.spacing.sm,
-  },
-  dividerFull: {
-    height: 1,
-    backgroundColor: theme.colors.border,
-  },
 });

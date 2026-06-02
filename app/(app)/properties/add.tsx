@@ -14,7 +14,7 @@ import { theme } from "@/constants";
 import { StepIndicator } from "@/components/ui";
 import {
   PropertyInfoStep,
-  KeysStep,
+  KeySetsStep,
   ReviewStep,
   STEP_LABELS,
   useAddPropertyWizard,
@@ -71,7 +71,7 @@ export default function AddPropertyScreen() {
           />
         )}
         {step === 2 && (
-          <KeysStep
+          <KeySetsStep
             keySets={keySets}
             keys={keys}
             propertyCode={propertyCode.code}

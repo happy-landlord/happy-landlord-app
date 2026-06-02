@@ -80,6 +80,17 @@ export default function HomeScreen() {
         </View>
       )}
 
+      {/* Keysets needing attention — admin only, hidden when empty */}
+      {isAdmin && (attentionLoading || needsAttention.length > 0) && (
+        <View style={styles.section}>
+          <SectionHeader title="Needs Attention" />
+          <KeySetAttentionList
+            data={needsAttention}
+            isLoading={attentionLoading}
+          />
+        </View>
+      )}
+
       {/* Currently checked out */}
       {(checkedOutLoading || checkedOutKeySets.length > 0) && (
         <View style={styles.section}>
@@ -100,17 +111,6 @@ export default function HomeScreen() {
               ))}
             </View>
           )}
-        </View>
-      )}
-
-      {/* Keysets needing attention — admin only, hidden when empty */}
-      {isAdmin && (attentionLoading || needsAttention.length > 0) && (
-        <View style={styles.section}>
-          <SectionHeader title="Needs Attention" />
-          <KeySetAttentionList
-            data={needsAttention}
-            isLoading={attentionLoading}
-          />
         </View>
       )}
 

@@ -65,9 +65,7 @@ export function KeySetActionsPanel({
             color={overdue ? theme.colors.danger : theme.colors.warning}
             strokeWidth={2}
           />
-          <Text
-            style={[styles.dueText, overdue && styles.dueTextOverdue]}
-          >
+          <Text style={[styles.dueText, overdue && styles.dueTextOverdue]}>
             {overdue ? "Was due" : "Due"}{" "}
             <Text style={styles.dueDate}>{formatDueAt(dueBackAt)}</Text>
           </Text>
@@ -91,6 +89,15 @@ export function KeySetActionsPanel({
           variant="success"
           disabled={isBusy}
           onPress={onCheckoutPress}
+        />
+      )}
+
+      {showAgentCheckout && (
+        <Button
+          title="Reserve"
+          variant="successOutline"
+          disabled={isBusy}
+          onPress={() => {}}
         />
       )}
 

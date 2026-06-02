@@ -13,16 +13,14 @@ import {
 import { useInfiniteProperties } from "@/lib/hooks";
 import { useRole } from "@/hooks";
 import { placeSearchLabel } from "@/lib/utils";
-import type { DbProperty, PropertyKeyStatus } from "@/types";
+import type { DbProperty, PropertyStatus } from "@/types";
 import { theme , useBottomListPadding } from "@/constants";
 
 
-const AGENT_KEY_STATUS: PropertyKeyStatus = "available";
-
 const EMPTY_MESSAGE_BY_TAB: Record<AdminPropertyTab, string> = {
-  available: "No keysets are currently in the office.",
+  active: "No active properties.",
   leased: "No properties are currently leased.",
-  landlord: "No keysets have been returned to landlords.",
+  inactive: "No inactive properties.",
 };
 
 export default function PropertiesScreen() {
@@ -30,10 +28,10 @@ export default function PropertiesScreen() {
   const { isAdmin } = useRole();
 
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
-  const [adminTab, setAdminTab] = useState<AdminPropertyTab>("available");
+  const [adminTab, setAdminTab] = useState<AdminPropertyTab>("active");
 
   const search = placeSearchLabel(selectedPlace);
-  const keyStatus: PropertyKeyStatus = isAdmin ? adminTab : AGENT_KEY_STATUS;
+  const status: PropertyStatus = isAdmin ? adminTab : "active";
 
   const {
     properties,
@@ -43,7 +41,7 @@ export default function PropertiesScreen() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteProperties({ search, keyStatus });
+  } = useInfiniteProperties({ search, status });
 
   const renderItem = useCallback(
     ({ item }: { item: DbProperty }) => <PropertyCard property={item} />,

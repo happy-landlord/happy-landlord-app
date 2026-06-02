@@ -438,6 +438,48 @@ export async function uploadKeySetImages(
 }
 
 /**
+ * Marks specific keysets as handed over to the tenant and sets the property
+ * status to "leased" so it appears in the leased filter.
+ */
+export async function handoverKeysetsToTenant(
+  propertyId: string,
+  keySetIds: string[],
+): Promise<void> {
+  if (keySetIds.length === 0) return;
+
+  const { error: ksErr } = await supabase
+    .from("key_sets")
+    .update({ status: "handover_tenant" })
+    .in("id", keySetIds);
+  if (ksErr) throw ksErr;
+
+  const { error: propErr } = await supabase
+    .from("properties")
+    .update({ status: "leased" })
+    .eq("id", propertyId);
+  if (propErr) throw propErr;
+}
+
+/**
+ * Handover to landlord: marks all active keysets as `handover_landlord`
+ * and sets the property status to `inactive`.
+ */
+export async function handoverPropertyToLandlord(propertyId: string): Promise<void> {
+  const { error: ksErr } = await supabase
+    .from("key_sets")
+    .update({ status: "handover_landlord" })
+    .eq("property_id", propertyId)
+    .not("status", "in", '("inactive","missing_damaged")');
+  if (ksErr) throw ksErr;
+
+  const { error: propErr } = await supabase
+    .from("properties")
+    .update({ status: "inactive" })
+    .eq("id", propertyId);
+  if (propErr) throw propErr;
+}
+
+/**
  * Patches the `images` column on a key_set row.
  * Call this after `uploadKeySetImages` to persist the storage paths.
  */
