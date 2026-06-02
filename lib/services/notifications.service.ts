@@ -73,38 +73,54 @@ function getProjectId(): string | undefined {
   );
 }
 
-export async function requestExpoPushToken(): Promise<string | null> {
-  if (Platform.OS === "web" || !Device.isDevice) {
-    return null;
-  }
+async function ensureAndroidChannel(): Promise<void> {
+  if (Platform.OS !== "android") return;
+  await Notifications.setNotificationChannelAsync("default", {
+    name: "Default",
+    importance: Notifications.AndroidImportance.MAX,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor: "#A38449",
+  });
+}
 
-  if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("default", {
-      name: "Default",
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#A38449",
-    });
-  }
+async function getExpoPushTokenSafe(): Promise<string | null> {
+  const projectId = getProjectId();
+  const token = await Notifications.getExpoPushTokenAsync(
+    projectId ? { projectId } : undefined,
+  );
+  return token.data;
+}
+
+/**
+ * Returns an Expo push token **only if permission has already been granted**.
+ * Never prompts the user. Use this for app-launch silent re-registration so
+ * we don't pop the OS permission dialog before the user has any context.
+ */
+export async function getExistingExpoPushToken(): Promise<string | null> {
+  if (Platform.OS === "web" || !Device.isDevice) return null;
+  await ensureAndroidChannel();
+  const { status } = await Notifications.getPermissionsAsync();
+  if (status !== "granted") return null;
+  return getExpoPushTokenSafe();
+}
+
+/**
+ * Prompts the OS for push permission if necessary, then returns a token.
+ * Call this only from explicit user-driven actions (e.g. the Settings toggle).
+ */
+export async function requestExpoPushToken(): Promise<string | null> {
+  if (Platform.OS === "web" || !Device.isDevice) return null;
+  await ensureAndroidChannel();
 
   const existing = await Notifications.getPermissionsAsync();
   let finalStatus = existing.status;
-
   if (existing.status !== "granted") {
     const requested = await Notifications.requestPermissionsAsync();
     finalStatus = requested.status;
   }
+  if (finalStatus !== "granted") return null;
 
-  if (finalStatus !== "granted") {
-    return null;
-  }
-
-  const projectId = getProjectId();
-  const token = await Notifications.getExpoPushTokenAsync(
-    projectId ? { projectId } : undefined
-  );
-
-  return token.data;
+  return getExpoPushTokenSafe();
 }
 
 export async function saveUserPushToken(
@@ -127,6 +143,9 @@ export async function saveUserPushToken(
   if (error) throw error;
 }
 
+/** Maximum notifications fetched for the in-app list. */
+export const NOTIFICATIONS_PAGE_SIZE = 100;
+
 export async function fetchNotifications(
   userId: string
 ): Promise<DbNotification[]> {
@@ -134,7 +153,8 @@ export async function fetchNotifications(
     .from("notifications")
     .select("*")
     .eq("recipient_user_id", userId)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(NOTIFICATIONS_PAGE_SIZE);
 
   if (error) throw error;
   return (data ?? []) as DbNotification[];
@@ -246,60 +266,82 @@ export async function createNotification(params: {
   return data as string;
 }
 
-export function getNotificationTargetPath(
-  data: NotificationNavigationData | null | undefined
-): string | null {
-  if (!data) return null;
+// ── Navigation target resolution ─────────────────────────────────────────────
+// Both push payloads (`NotificationNavigationData`) and DB rows
+// (`DbNotification`) eventually want the same routing decision. Normalise both
+// inputs into one shape and route via a single function — guarantees the in-app
+// list, the push tap, and any future caller stay in lockstep.
 
-  const directPath = typeof data.path === "string" ? data.path : data.route;
-  if (typeof directPath === "string" && directPath.length > 0) {
-    return directPath;
-  }
+type NormalizedNotification = {
+  type?: string | null;
+  propertyId?: string | null;
+  keySetId?: string | null;
+  checkoutId?: string | null;
+  /** Optional explicit override path from a push payload. */
+  path?: string | null;
+};
 
-  if (data.type === NOTIFICATION_TYPES.USER_REGISTRATION_REQUESTED) {
+function resolveTargetPath(n: NormalizedNotification): string | null {
+  if (n.path && n.path.length > 0) return n.path;
+
+  if (n.type === NOTIFICATION_TYPES.USER_REGISTRATION_REQUESTED) {
     return "/(app)/requests";
   }
 
-  const propertyId = data.related_property_id ?? data.relatedPropertyId ?? data.property_id ?? data.propertyId;
-  if (typeof propertyId === "string" && propertyId.length > 0) {
-    return `/(app)/properties/${propertyId}`;
-  }
-
-  const keyId = data.related_key_set_id ?? data.relatedKeySetId ?? data.key_set_id ?? data.keySetId;
-  if (typeof keyId === "string" && keyId.length > 0) {
-    return `/(app)/keys/${keyId}`;
-  }
-
-  const checkoutId = data.related_checkout_id ?? data.relatedCheckoutId ?? data.checkout_id ?? data.checkoutId;
-  if (typeof checkoutId === "string" && checkoutId.length > 0) {
-    return `/(app)/checkouts/${checkoutId}`;
-  }
+  // Keyset detail lives under properties/keyset/[id] — NOT /(app)/keys/...
+  if (n.keySetId) return `/(app)/properties/keyset/${n.keySetId}`;
+  if (n.propertyId) return `/(app)/properties/${n.propertyId}`;
+  if (n.checkoutId) return `/(app)/checkouts/${n.checkoutId}`;
 
   return null;
+}
+
+export function getNotificationTargetPath(
+  data: NotificationNavigationData | null | undefined,
+): string | null {
+  if (!data) return null;
+  const explicitPath =
+    typeof data.path === "string"
+      ? data.path
+      : typeof data.route === "string"
+        ? data.route
+        : null;
+
+  return resolveTargetPath({
+    type: typeof data.type === "string" ? data.type : null,
+    propertyId:
+      (data.related_property_id as string | undefined) ??
+      (data.relatedPropertyId as string | undefined) ??
+      (data.property_id as string | undefined) ??
+      (data.propertyId as string | undefined) ??
+      null,
+    keySetId:
+      (data.related_key_set_id as string | undefined) ??
+      (data.relatedKeySetId as string | undefined) ??
+      (data.key_set_id as string | undefined) ??
+      (data.keySetId as string | undefined) ??
+      null,
+    checkoutId:
+      (data.related_checkout_id as string | undefined) ??
+      (data.relatedCheckoutId as string | undefined) ??
+      (data.checkout_id as string | undefined) ??
+      (data.checkoutId as string | undefined) ??
+      null,
+    path: explicitPath,
+  });
 }
 
 export function getNotificationRowTargetPath(
   notification: Pick<
     DbNotification,
     "type" | "related_property_id" | "related_key_set_id" | "related_checkout_id"
-  >
+  >,
 ): string | null {
-  if (notification.type === NOTIFICATION_TYPES.USER_REGISTRATION_REQUESTED) {
-    return "/(app)/requests";
-  }
-
-  if (notification.related_key_set_id) {
-    return `/(app)/keys/${notification.related_key_set_id}`;
-  }
-
-  if (notification.related_property_id) {
-    return `/(app)/properties/${notification.related_property_id}`;
-  }
-
-  if (notification.related_checkout_id) {
-    return `/(app)/checkouts/${notification.related_checkout_id}`;
-  }
-
-  return null;
+  return resolveTargetPath({
+    type: notification.type,
+    propertyId: notification.related_property_id,
+    keySetId: notification.related_key_set_id,
+    checkoutId: notification.related_checkout_id,
+  });
 }
 

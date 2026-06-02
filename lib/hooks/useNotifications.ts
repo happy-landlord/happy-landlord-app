@@ -4,17 +4,18 @@ import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
 
 import type { DbNotification } from "@/types";
-import { QUERY_KEYS } from "@/lib/query";
-import { invalidateNotifications } from "@/lib/query";
+import { QUERY_KEYS, invalidateNotifications } from "@/lib/query";
 import { supabase } from "@/lib/supabase";
 import { useLockStore } from "@/lib/state";
 import { useCurrentUserId } from "@/lib/hooks/useSession";
+import { alertError } from "@/lib/utils";
 import {
   createNotification,
   deactivateAllPushTokens,
   fetchNotifications,
   fetchPushStatus,
   fetchUnreadNotificationCount,
+  getExistingExpoPushToken,
   getNotificationTargetPath,
   markAllNotificationsRead,
   markNotificationRead,
@@ -48,24 +49,28 @@ export function useUnreadNotificationCount() {
   });
 }
 
+// ── Mark read mutations ──────────────────────────────────────────────────────
+
+type MarkReadContext = {
+  previousList?: DbNotification[];
+  previousCount?: number;
+};
+
 export function useMarkNotificationRead() {
   const userId = useCurrentUserId();
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, string>({
+  return useMutation<void, Error, string, MarkReadContext>({
     mutationFn: markNotificationRead,
 
-    // ── Optimistic update: patch cache immediately so the card changes
-    //    without waiting for a server response or triggering a refetch.
-    onMutate: async (notificationId) => {
-      if (!userId) return;
+    // Optimistic patch: cache flips to "read" instantly.
+    onMutate: async (notificationId): Promise<MarkReadContext> => {
+      if (!userId) return {};
 
-      // Cancel any in-flight refetches so they don't overwrite the optimistic data
       await queryClient.cancelQueries({
         queryKey: QUERY_KEYS.notifications.all(userId),
       });
 
-      // Snapshot for rollback
       const previousList = queryClient.getQueryData<DbNotification[]>(
         QUERY_KEYS.notifications.all(userId),
       );
@@ -73,7 +78,6 @@ export function useMarkNotificationRead() {
         QUERY_KEYS.notifications.unreadCount(userId),
       );
 
-      // Patch the notification list: mark the tapped item read
       queryClient.setQueryData<DbNotification[]>(
         QUERY_KEYS.notifications.all(userId),
         (old) =>
@@ -84,7 +88,6 @@ export function useMarkNotificationRead() {
           ) ?? [],
       );
 
-      // Decrement unread count
       queryClient.setQueryData<number>(
         QUERY_KEYS.notifications.unreadCount(userId),
         (old) => Math.max(0, (old ?? 1) - 1),
@@ -93,30 +96,82 @@ export function useMarkNotificationRead() {
       return { previousList, previousCount };
     },
 
-    // ── Rollback on server error
+    // Roll back AND invalidate only when the server rejected us.
     onError: (_err, _id, context) => {
-      if (!userId) return;
-      const ctx = context as
-        | { previousList?: DbNotification[]; previousCount?: number }
-        | undefined;
-
-      if (ctx?.previousList !== undefined) {
+      if (!userId || !context) return;
+      if (context.previousList !== undefined) {
         queryClient.setQueryData(
           QUERY_KEYS.notifications.all(userId),
-          ctx.previousList,
+          context.previousList,
         );
       }
-      if (ctx?.previousCount !== undefined) {
+      if (context.previousCount !== undefined) {
         queryClient.setQueryData(
           QUERY_KEYS.notifications.unreadCount(userId),
-          ctx.previousCount,
+          context.previousCount,
         );
       }
+      invalidateNotifications(queryClient, userId);
+    },
+    // No onSettled invalidation on success — the optimistic patch already
+    // matches the server, so refetching would just flicker the cards.
+  });
+}
+
+/** Marks every unread notification for this user as read. */
+export function useMarkAllNotificationsRead() {
+  const userId = useCurrentUserId();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, void, MarkReadContext>({
+    mutationFn: () => {
+      if (!userId) return Promise.resolve();
+      return markAllNotificationsRead(userId);
     },
 
-    // ── Sync with server after settle (success or error)
-    onSettled: () => {
-      if (!userId) return;
+    // Optimistic patch — flip every unread row + zero the badge instantly.
+    onMutate: async (): Promise<MarkReadContext> => {
+      if (!userId) return {};
+
+      await queryClient.cancelQueries({
+        queryKey: QUERY_KEYS.notifications.all(userId),
+      });
+
+      const previousList = queryClient.getQueryData<DbNotification[]>(
+        QUERY_KEYS.notifications.all(userId),
+      );
+      const previousCount = queryClient.getQueryData<number>(
+        QUERY_KEYS.notifications.unreadCount(userId),
+      );
+
+      const now = new Date().toISOString();
+      queryClient.setQueryData<DbNotification[]>(
+        QUERY_KEYS.notifications.all(userId),
+        (old) =>
+          old?.map((n) => (n.read_at ? n : { ...n, read_at: now })) ?? [],
+      );
+      queryClient.setQueryData<number>(
+        QUERY_KEYS.notifications.unreadCount(userId),
+        0,
+      );
+
+      return { previousList, previousCount };
+    },
+
+    onError: (_err, _vars, context) => {
+      if (!userId || !context) return;
+      if (context.previousList !== undefined) {
+        queryClient.setQueryData(
+          QUERY_KEYS.notifications.all(userId),
+          context.previousList,
+        );
+      }
+      if (context.previousCount !== undefined) {
+        queryClient.setQueryData(
+          QUERY_KEYS.notifications.unreadCount(userId),
+          context.previousCount,
+        );
+      }
       invalidateNotifications(queryClient, userId);
     },
   });
@@ -124,6 +179,11 @@ export function useMarkNotificationRead() {
 
 // ── Push registration / realtime / foreground listeners ──────────────────────
 
+/**
+ * Silent registration: if the OS has *already* granted push permission, refresh
+ * the active token in the DB. **Never prompts.** The first-time prompt is
+ * deferred to an explicit user action (the Settings → Push toggle).
+ */
 export function useRegisterPushToken() {
   const userId = useCurrentUserId();
   useEffect(() => {
@@ -132,11 +192,11 @@ export function useRegisterPushToken() {
     async function register() {
       if (!userId) return;
       try {
-        const token = await requestExpoPushToken();
+        const token = await getExistingExpoPushToken();
         if (!token || cancelled) return;
         await saveUserPushToken(userId, token);
       } catch (error) {
-        console.warn("Push token registration failed:", error);
+        console.warn("Silent push token refresh failed:", error);
       }
     }
 
@@ -203,34 +263,15 @@ export function useNotificationResponseNavigation() {
   }, [router, isLocked]);
 }
 
-/**
- * Listens for notifications received while the app is in the foreground and
- * refreshes the notification list / unread count for the current user.
- */
-export function useForegroundNotificationListener() {
-  const userId = useCurrentUserId();
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    if (!userId) return;
-
-    const subscription = Notifications.addNotificationReceivedListener(() => {
-      invalidateNotifications(queryClient, userId);
-    });
-
-    return () => subscription.remove();
-  }, [queryClient, userId]);
-}
 
 /**
- * Single entry-point for the four notification lifecycle hooks that should run
- * once per authenticated app session. Mount this in the top-level authenticated
- * layout instead of wiring each hook individually.
+ * Single entry-point for the notification lifecycle hooks that should run
+ * once per authenticated app session. Mount this in the top-level
+ * authenticated layout instead of wiring each hook individually.
  */
 export function useNotificationsLifecycle() {
   useRegisterPushToken();
   useNotificationRealtime();
-  useForegroundNotificationListener();
   useNotificationResponseNavigation();
 }
 
@@ -304,6 +345,9 @@ export function useTogglePush() {
         await deactivateAllPushTokens(userId);
       }
     },
+    onError: (err) => {
+      alertError("Couldn't update push notifications", err);
+    },
     onSettled: () => {
       if (!userId) return;
       queryClient.invalidateQueries({
@@ -313,19 +357,3 @@ export function useTogglePush() {
   });
 }
 
-/** Marks every unread notification for this user as read. */
-export function useMarkAllNotificationsRead() {
-  const userId = useCurrentUserId();
-  const queryClient = useQueryClient();
-
-  return useMutation<void, Error, void>({
-    mutationFn: () => {
-      if (!userId) return Promise.resolve();
-      return markAllNotificationsRead(userId);
-    },
-    onSuccess: () => {
-      if (!userId) return;
-      invalidateNotifications(queryClient, userId);
-    },
-  });
-}
