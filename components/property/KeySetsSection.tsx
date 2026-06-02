@@ -7,7 +7,8 @@ import {
   KeyRound,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
-import { KEY_TYPE_ICON, KEY_TYPE_LABEL , TransferConfirmModal } from "@/components/key";
+import { KEY_TYPE_ICON, KEY_TYPE_LABEL, theme } from "@/constants";
+import { TransferConfirmModal } from "@/components/keyset";
 import { KeyStatusChip } from "@/components/KeyStatusChip";
 import { EmptyState , ErrorState , LoadingState } from "@/components/ui";
 import { useRole } from "@/hooks";
@@ -16,7 +17,6 @@ import {
   useTransferKeySet,
   useUnassignedKeys,
 } from "@/lib/hooks";
-import { theme } from "@/constants";
 import { formatDate, formatDateTime , alertError } from "@/lib/utils";
 import type {
   KeySetWithDetails,
@@ -677,19 +677,6 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: theme.spacing.sm,
   },
-  cardFooterRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    gap: 8,
-  },
-  cardFooterRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    gap: 6,
-    flexShrink: 0,
-  },
   cardChevronWrap: {
     alignSelf: "stretch",
     alignItems: "center",
@@ -709,15 +696,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     color: theme.colors.textMuted,
-  },
-  cardDetailsRow: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    columnGap: 10,
-    rowGap: 4,
   },
   metaItem: {
     flex: 1,

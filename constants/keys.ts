@@ -1,3 +1,11 @@
+/**
+ * Canonical icon / label / short-code tables for every `KeyType`.
+ *
+ * Lives in `@/constants` because these are domain config consumed by many
+ * feature areas (property add wizard, keyset edit sheet, keyset detail,
+ * activity rows, …). Keeping them under a single component folder would
+ * couple unrelated screens to that folder.
+ */
 import type { ComponentType } from "react";
 import {
   AppWindow,

@@ -1,6 +1,5 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { QUERY_KEYS } from "@/lib/query";
-import { ACTIVITY_PAGE_SIZE, STALE_TIME } from "@/lib/query";
+import { ACTIVITY_PAGE_SIZE, QUERY_KEYS, STALE_TIME } from "@/lib/query";
 import { useQueryScope } from "@/hooks";
 import {
   fetchMyActivity,
@@ -9,7 +8,16 @@ import {
 } from "@/lib/services";
 import type { ActivityTransaction } from "@/types";
 
-export function useMyActivity() {
+/**
+ * Recent activity for the dashboard.
+ *
+ * - Admins see all recent activity.
+ * - Agents see only their own activity.
+ *
+ * `enabled` lets callers suppress the query entirely (e.g. when the
+ * dashboard section isn't shown for the current role).
+ */
+export function useMyActivity({ enabled = true }: { enabled?: boolean } = {}) {
   const { userId, isAdmin, ready } = useQueryScope();
   return useQuery({
     queryKey: isAdmin
@@ -18,7 +26,7 @@ export function useMyActivity() {
         ? QUERY_KEYS.activity.mine(userId)
         : ["activity", "none"],
     queryFn: isAdmin ? fetchAllActivity : () => fetchMyActivity(userId!),
-    enabled: ready,
+    enabled: ready && enabled,
     staleTime: STALE_TIME.short,
   });
 }

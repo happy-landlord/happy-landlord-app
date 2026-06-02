@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChevronRight, MapPin } from "lucide-react-native";
@@ -12,6 +12,7 @@ import {
   fetchKeySetsForProperty,
   type KeySetWithDetails,
 } from "@/lib/services";
+import { Pill, PressableCard } from "@/components/ui";
 
 type PropertyCardProps = {
   property: DbProperty;
@@ -54,7 +55,6 @@ export function PropertyCard({ property }: PropertyCardProps) {
   const handlePress = async () => {
     const propertyHref = `/(app)/properties/${property.id}` as const;
 
-    // Admins always go to the full property page.
     if (isAdmin) {
       router.push(propertyHref as never);
       return;
@@ -79,26 +79,16 @@ export function PropertyCard({ property }: PropertyCardProps) {
   };
 
   return (
-    <Pressable
-      onPress={handlePress}
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-    >
-      {/* Text */}
-      <View style={styles.content}>
-        {/* Type badge */}
-        <View style={styles.typeBadge}>
-          <Text style={styles.typeBadgeText}>
-            {PROPERTY_TYPE_LABEL[property.property_type] ??
-              property.property_type}
-          </Text>
-        </View>
+    <PressableCard onPress={handlePress} flush style={styles.row}>
+      <View style={styles.body}>
+        <Pill tone="primary" size="sm">
+          {PROPERTY_TYPE_LABEL[property.property_type] ?? property.property_type}
+        </Pill>
 
-        {/* Street address */}
         <Text style={styles.address} numberOfLines={1}>
           {title}
         </Text>
 
-        {/* Location row */}
         <View style={styles.metaRow}>
           <MapPin size={11} color={theme.colors.textLight} strokeWidth={1.8} />
           <Text style={styles.location} numberOfLines={1}>
@@ -113,24 +103,16 @@ export function PropertyCard({ property }: PropertyCardProps) {
         strokeWidth={1.8}
         style={styles.chevron}
       />
-    </Pressable>
+    </PressableCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
+  row: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.lg,
-    overflow: "hidden",
   },
-  cardPressed: {
-    backgroundColor: theme.colors.neutralSoft,
-  },
-  content: {
+  body: {
     flex: 1,
     gap: 4,
     padding: theme.spacing.md,
@@ -138,18 +120,6 @@ const styles = StyleSheet.create({
   },
   chevron: {
     marginRight: theme.spacing.sm,
-  },
-  typeBadge: {
-    alignSelf: "flex-start",
-    backgroundColor: theme.colors.primarySoft,
-    borderRadius: theme.radius.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  typeBadgeText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: theme.colors.primary,
   },
   address: {
     fontSize: 15,

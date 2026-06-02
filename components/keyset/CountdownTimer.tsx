@@ -14,22 +14,34 @@ export const CountdownTimer = memo(function CountdownTimer({ endAt }: CountdownT
   const [remaining, setRemaining] = useState(() => getRemainingTime(endAt));
 
   useEffect(() => {
-    const tick = () => setRemaining(getRemainingTime(endAt));
+    // Tick every second when < 1 hour left, every minute otherwise.
+    // The interval itself stays stable for the lifetime of `endAt`; the
+    // cadence is enforced by recomputing the next-tick delay inside the
+    // handler via a small self-rescheduling timeout.
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    const tick = () => {
+      if (cancelled) return;
+      const next = getRemainingTime(endAt);
+      setRemaining(next);
+      const fastTick =
+        next.total > 0 && next.days === 0 && next.hours === 0;
+      timeoutId = setTimeout(tick, fastTick ? 1_000 : 60_000);
+    };
+
     tick();
-    // Tick every second when < 1 hour left; every minute otherwise.
-    const ms = remaining.total > 0 && remaining.days === 0 && remaining.hours === 0
-      ? 1_000
-      : 60_000;
-    const id = setInterval(tick, ms);
-    return () => clearInterval(id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [endAt, remaining.days, remaining.hours]);
+    return () => {
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [endAt]);
 
   const isOverdue = remaining.total <= 0;
   const accent = theme.colors.danger;
 
   return (
-    <View style={[styles.card, isOverdue && styles.cardOverdue]}>
+    <View style={styles.card}>
       <View style={styles.topRow}>
         <Clock size={13} color={accent} strokeWidth={2} />
         <Text style={[styles.label, { color: accent }]}>
@@ -54,10 +66,6 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.md,
     alignItems: "center",
     gap: 5,
-  },
-  cardOverdue: {
-    backgroundColor: theme.colors.dangerSoft,
-    borderColor: theme.colors.danger + "55",
   },
   topRow: {
     flexDirection: "row",

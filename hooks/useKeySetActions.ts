@@ -10,9 +10,7 @@ import {
   useTransferKeySet,
   useUndoReportKeySetLost,
 } from "@/lib/hooks";
-import { isPastDue } from "@/lib/utils";
-import { alertError } from "@/lib/utils";
-import { DAY_MS, isoInDays } from "@/lib/utils";
+import { alertError, isoInDays, isPastDue } from "@/lib/utils";
 import type { KeySetWithDetails } from "@/lib/services";
 
 
@@ -168,10 +166,10 @@ export function useKeySetActions({
   const extend = useCallback(
     (days: number, onClose: () => void) => {
       if (!keySet) return;
-      const base = keySet.due_back_at
-        ? new Date(keySet.due_back_at).getTime()
-        : Date.now();
-      const newDueBack = new Date(base + days * DAY_MS).toISOString();
+      const newDueBack = isoInDays(
+        days,
+        keySet.due_back_at ? new Date(keySet.due_back_at) : Date.now(),
+      );
       extendMut.mutate(
         { keySetId: keySet.id, dueBackAt: newDueBack },
         {

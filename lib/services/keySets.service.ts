@@ -143,18 +143,25 @@ export async function fetchUnassignedKeysForProperty(
 }
 
 /**
- * Fetch all keysets currently checked out or overdue, limited to `limit` rows.
- * Returns keysets with their current holder and property info.
+ * Fetch keysets currently checked out or overdue, limited to `limit` rows.
+ *
+ * When `holderProfileId` is provided, results are filtered server-side to
+ * only the keysets held by that profile — used to scope agent dashboards to
+ * their own holdings without over-fetching.
  */
-export async function fetchCheckedOutKeySets(
+export async function fetchCheckedOutKeySets({
   limit = 10,
-): Promise<CheckedOutKeySet[]> {
-  const { data, error } = await supabase
+  holderProfileId,
+}: {
+  limit?: number;
+  holderProfileId?: string;
+} = {}): Promise<CheckedOutKeySet[]> {
+  let query = supabase
     .from("key_sets")
     .select(
       `
       id, property_id, name, code, status, due_back_at, current_holder_id,
-      current_holder:current_holder_id(full_name, holder_type, profile_id, phone),
+      current_holder:current_holder_id!inner(full_name, holder_type, profile_id, phone),
       property:property_id(address, formatted_address, suburb, city, postcode),
       keys(label)
     `,
@@ -163,6 +170,11 @@ export async function fetchCheckedOutKeySets(
     .order("due_back_at", { ascending: true, nullsFirst: false })
     .limit(limit);
 
+  if (holderProfileId) {
+    query = query.eq("current_holder.profile_id", holderProfileId);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return (data ?? []) as unknown as CheckedOutKeySet[];
 }

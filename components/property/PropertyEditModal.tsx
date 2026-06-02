@@ -19,7 +19,7 @@ import {
   X,
 } from "lucide-react-native";
 import { BottomSheet, PickerModal } from "@/components/ui";
-import { theme, PROPERTY_TYPES } from "@/constants";
+import { KEY_TYPE_ICON, KEY_TYPE_LABEL, PROPERTY_TYPES, theme } from "@/constants";
 import { alertError } from "@/lib/utils";
 import {
   useKeySets,
@@ -33,7 +33,6 @@ import type {
   KeyInSet,
   UnassignedKey,
 } from "@/lib/services";
-import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key";
 import type { DbKeyInsert, KeyType, PropertyType } from "@/types";
 
 const ALL_KEY_TYPE_OPTIONS = (Object.keys(KEY_TYPE_LABEL) as KeyType[]).map(

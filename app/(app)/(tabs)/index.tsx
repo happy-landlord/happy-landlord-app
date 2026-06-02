@@ -1,33 +1,33 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { ChevronRight, Clock3, KeyRound } from "lucide-react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { KeyRound } from "lucide-react-native";
 import { useRouter } from "expo-router";
+
+import { KeyDashboardSummary } from "@/components/KeyDashboardSummary";
+import { KeySetAttentionList } from "@/components/KeySetAttentionList";
+import { ActivityRow } from "@/components/activity";
 import {
-  useMyActivity,
-} from "@/lib/hooks/useTransactions";
-import type { ActivityTransaction } from "@/types/database";
+  Card,
+  IconBadge,
+  MetaRow,
+  Pill,
+  PressableCard,
+  SectionHeader,
+  type IconBadgeTone,
+} from "@/components/ui";
 import {
   useCheckedOutKeySets,
   useKeySetsNeedingAttention,
-} from "@/lib/hooks/useKeySets";
-import { useCurrentUserId } from "@/lib/hooks/useSession";
-import { useRole } from "@/hooks/useRole";
-import { theme } from "@/constants/theme";
-import { useBottomListPadding } from "@/constants/layout";
-import { MOVEMENT_CONFIG, getMovementLabel } from "@/constants/movements";
-import {
-  formatShortAddress,
-  formatActivityTimestamp,
-  formatShortDate,
-  isPastDue,
-} from "@/lib/utils/format";
-import type { CheckedOutKeySet } from "@/lib/services/keySets.service";
-import { KeyDashboardSummary } from "@/components/KeyDashboardSummary";
-import { PropertiesNeedingAttention } from "@/components/PropertiesNeedingAttention";
+  useMyActivity,
+} from "@/lib/hooks";
+import { useRole } from "@/hooks";
+import { theme, useBottomListPadding } from "@/constants";
+import { formatShortDate, isPastDue } from "@/lib/utils";
+import type { CheckedOutKeySet } from "@/lib/services";
 
-// ── Sort checked-out keysets ──────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-function sortCheckedOutKeySets(keys: CheckedOutKeySet[]): CheckedOutKeySet[] {
-  // Sort by due date ascending (earliest first)
+/** Earliest due date first; null due dates sink to the bottom. */
+function sortByDueDate(keys: CheckedOutKeySet[]): CheckedOutKeySet[] {
   return [...keys].sort((a, b) => {
     if (!a.due_back_at && !b.due_back_at) return 0;
     if (!a.due_back_at) return 1;
@@ -36,28 +36,32 @@ function sortCheckedOutKeySets(keys: CheckedOutKeySet[]): CheckedOutKeySet[] {
   });
 }
 
+// ── Screen ───────────────────────────────────────────────────────────────────
+
 export default function HomeScreen() {
   const listPaddingBottom = useBottomListPadding();
   const router = useRouter();
   const { isAdmin } = useRole();
-  const currentUserId = useCurrentUserId();
+
+  // useCheckedOutKeySets is now role-scoped server-side — admins see all,
+  // agents only their own holdings. The previous client-side filter is gone.
   const { data: checkedOut = [], isLoading: checkedOutLoading } =
     useCheckedOutKeySets(isAdmin ? 20 : 50);
-  const { data: activity = [], isLoading: activityLoading } = useMyActivity();
-  // activity only shown for agents — still fetched so it's ready when needed
+
+  // Recent activity is only rendered for agents — skip the network call for
+  // admins (rather than fetching and discarding).
+  const { data: activity = [], isLoading: activityLoading } = useMyActivity({
+    enabled: !isAdmin,
+  });
+
   const { data: needsAttention = [], isLoading: attentionLoading } =
     useKeySetsNeedingAttention();
 
+  const checkedOutKeySets = sortByDueDate(checkedOut);
   const recentActivity = activity.slice(0, 4);
 
-  // Admins see all checked-out keysets; agents see only their own
-  const checkedOutKeySets = sortCheckedOutKeySets(
-    isAdmin
-      ? checkedOut
-      : checkedOut.filter(
-          (ks) => ks.current_holder?.profile_id === currentUserId,
-        ),
-  );
+  const goToKeyset = (id: string) =>
+    router.push(`/(app)/properties/keyset/${id}` as never);
 
   return (
     <ScrollView
@@ -70,54 +74,55 @@ export default function HomeScreen() {
     >
       {/* Key status summary — admin only */}
       {isAdmin && (
-        <DashboardSection title="Keyset status">
+        <View style={styles.section}>
+          <SectionHeader title="Keyset status" />
           <KeyDashboardSummary />
-        </DashboardSection>
+        </View>
       )}
-      {/* Current checked out — only when there are items or loading */}
+
+      {/* Currently checked out */}
       {(checkedOutLoading || checkedOutKeySets.length > 0) && (
-        <DashboardSection title="Keysets Checked Out">
+        <View style={styles.section}>
+          <SectionHeader title="Keysets Checked Out" />
           {checkedOutLoading ? (
-            <View style={styles.compactCard}>
+            <Card>
               <Text style={styles.emptyText}>Loading checked out keysets…</Text>
-            </View>
+            </Card>
           ) : (
             <View style={styles.cardList}>
               {checkedOutKeySets.map((keySet) => (
-                <CheckedOutRow
+                <CheckedOutCard
                   key={keySet.id}
                   keySet={keySet}
                   isAdmin={isAdmin}
-                  onPress={() =>
-                    router.push(
-                      `/(app)/properties/keyset/${keySet.id}` as never,
-                    )
-                  }
+                  onPress={() => goToKeyset(keySet.id)}
                 />
               ))}
             </View>
           )}
-        </DashboardSection>
+        </View>
       )}
 
-      {/* Properties needing attention — admin only, hidden when empty */}
+      {/* Keysets needing attention — admin only, hidden when empty */}
       {isAdmin && (attentionLoading || needsAttention.length > 0) && (
-        <DashboardSection title="Needs Attention">
-          <PropertiesNeedingAttention
+        <View style={styles.section}>
+          <SectionHeader title="Needs Attention" />
+          <KeySetAttentionList
             data={needsAttention}
             isLoading={attentionLoading}
           />
-        </DashboardSection>
+        </View>
       )}
 
       {/* My activity — agents only */}
       {!isAdmin && (
-        <DashboardSection
-          title="My activity"
-          actionLabel="View all"
-          onPressAction={() => router.push("/(app)/(tabs)/activity")}
-        >
-          <View style={styles.compactCard}>
+        <View style={styles.section}>
+          <SectionHeader
+            title="My activity"
+            actionLabel="View all"
+            onAction={() => router.push("/(app)/(tabs)/activity")}
+          />
+          <Card flush>
             {activityLoading ? (
               <Text style={styles.emptyText}>Loading recent activity…</Text>
             ) : recentActivity.length === 0 ? (
@@ -127,55 +132,22 @@ export default function HomeScreen() {
                 <ActivityRow
                   key={item.id}
                   item={item}
-                  showDivider={index < recentActivity.length - 1}
+                  divider={index < recentActivity.length - 1}
                 />
               ))
             )}
-          </View>
-        </DashboardSection>
+          </Card>
+        </View>
       )}
     </ScrollView>
   );
 }
 
-function DashboardSection({
-  title,
-  actionLabel,
-  onPressAction,
-  children,
-}: {
-  title: string;
-  actionLabel?: string;
-  onPressAction?: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <View style={styles.section}>
-      <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionLabel}>{title}</Text>
-        {actionLabel && onPressAction ? (
-          <Pressable
-            onPress={onPressAction}
-            style={({ pressed }) => [
-              styles.sectionAction,
-              pressed && styles.cardPressed,
-            ]}
-          >
-            <Text style={styles.sectionActionText}>{actionLabel}</Text>
-            <ChevronRight
-              size={14}
-              color={theme.colors.primary}
-              strokeWidth={2}
-            />
-          </Pressable>
-        ) : null}
-      </View>
-      {children}
-    </View>
-  );
-}
+// ── Checked-out card ─────────────────────────────────────────────────────────
+// Uses the shared <PressableCard> + <IconBadge> + <Pill> + <MetaRow>
+// primitives — visual parity with the agent variant in KeySetsSection.
 
-function CheckedOutRow({
+function CheckedOutCard({
   keySet,
   isAdmin,
   onPress,
@@ -189,293 +161,108 @@ function CheckedOutRow({
     keySet.property?.formatted_address ??
     "Property";
   const suburb = keySet.property?.suburb;
+  const overdue = isPastDue(keySet.due_back_at);
+  const tone: IconBadgeTone = overdue ? "danger" : "warning";
+
   const holderName = keySet.current_holder?.full_name ?? "Unknown";
   const holderType = keySet.current_holder?.holder_type;
   const holderPhone = keySet.current_holder?.phone ?? null;
-  const keyLabels = keySet.keys.map((key) => key.label);
-  const isOverdue = isPastDue(keySet.due_back_at);
+  const keyLabels = keySet.keys.map((k) => k.label);
 
-  const iconBg = isOverdue ? theme.colors.dangerSoft : theme.colors.warningSoft;
-  const iconColor = isOverdue ? theme.colors.danger : theme.colors.warning;
-  const cardBorderColor = isOverdue ? theme.colors.danger : theme.colors.border;
+  const metaItems = isAdmin
+    ? [
+        {
+          label: "With",
+          value:
+            holderName +
+            (holderType && holderType !== "agent" ? ` · ${holderType}` : ""),
+          danger: overdue,
+        },
+        holderPhone
+          ? { label: "Contact", value: holderPhone, danger: overdue }
+          : keySet.due_back_at
+            ? {
+                label: overdue ? "Was due" : "Due",
+                value: formatShortDate(keySet.due_back_at),
+                danger: overdue,
+              }
+            : null,
+      ].filter((x): x is { label: string; value: string; danger: boolean } =>
+        Boolean(x),
+      )
+    : [];
 
   return (
-    <Pressable
+    <PressableCard
       onPress={onPress}
-      style={({ pressed }) => [
-        coStyles.card,
-        { borderColor: cardBorderColor },
-        pressed && coStyles.cardPressed,
-      ]}
+      tone={overdue ? "danger" : "default"}
+      flush
       accessibilityRole="button"
+      accessibilityLabel={keySet.name}
     >
-      {/* Top row: icon + name + key pills */}
-      <View style={coStyles.top}>
-        <View style={[coStyles.iconWrap, { backgroundColor: iconBg }]}>
-          <KeyRound size={22} color={iconColor} strokeWidth={1.8} />
-        </View>
-        <View style={coStyles.info}>
-          <View style={coStyles.titleRow}>
-            <Text style={coStyles.name} numberOfLines={1}>
+      {/* Top: icon + title + key pills */}
+      <View style={cardStyles.top}>
+        <IconBadge icon={KeyRound} tone={tone} size="lg" />
+        <View style={cardStyles.info}>
+          <View style={cardStyles.titleRow}>
+            <Text style={cardStyles.name} numberOfLines={1}>
               {keySet.name}
             </Text>
             {keyLabels.length > 0 && (
-              <View style={coStyles.countPill}>
-                <Text style={coStyles.countText}>
-                  {keyLabels.length} {keyLabels.length === 1 ? "key" : "keys"}
-                </Text>
-              </View>
+              <Pill tone="neutral" size="sm">
+                {keyLabels.length} {keyLabels.length === 1 ? "key" : "keys"}
+              </Pill>
             )}
           </View>
-          <Text style={coStyles.suburb} numberOfLines={1}>
+          <Text style={cardStyles.subtitle} numberOfLines={1}>
             {address}
           </Text>
           {suburb ? (
-            <Text style={coStyles.suburb} numberOfLines={1}>
+            <Text style={cardStyles.subtitle} numberOfLines={1}>
               {suburb}
             </Text>
           ) : null}
           {keyLabels.length > 0 && (
-            <View style={coStyles.keyPillsWrap}>
+            <View style={cardStyles.keyPills}>
               {keyLabels.map((label, i) => (
-                <View key={i} style={coStyles.keyPill}>
-                  <Text style={coStyles.keyPillText} numberOfLines={1}>
-                    {label}
-                  </Text>
-                </View>
+                <Pill key={i} tone="primary" variant="soft" size="sm">
+                  {label}
+                </Pill>
               ))}
             </View>
           )}
         </View>
       </View>
 
-      {/* Meta row: admin only */}
-      {isAdmin && (
-        <View style={coStyles.meta}>
-          <View style={coStyles.metaDivider} />
-          <View style={coStyles.metaContent}>
-            <View style={coStyles.metaItem}>
-              <Text style={coStyles.metaLabel}>With</Text>
-              <Text
-                style={[
-                  coStyles.metaValue,
-                  isOverdue && coStyles.metaValueDanger,
-                ]}
-                numberOfLines={1}
-              >
-                {holderName}
-                {holderType && holderType !== "agent" ? ` · ${holderType}` : ""}
-              </Text>
-            </View>
-            {holderPhone ? (
-              <View style={coStyles.metaItem}>
-                <Text style={coStyles.metaLabel}>Contact</Text>
-                <Text
-                  style={[
-                    coStyles.metaValue,
-                    isOverdue && coStyles.metaValueDanger,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {holderPhone}
-                </Text>
-              </View>
-            ) : keySet.due_back_at ? (
-              <View style={coStyles.metaItem}>
-                <Text style={coStyles.metaLabel}>
-                  {isOverdue ? "Was due" : "Due"}
-                </Text>
-                <Text
-                  style={[
-                    coStyles.metaValue,
-                    isOverdue && coStyles.metaValueDanger,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {formatShortDate(keySet.due_back_at)}
-                </Text>
-              </View>
-            ) : null}
-          </View>
+      {/* Holder meta — admin only */}
+      {metaItems.length > 0 ? (
+        <View style={cardStyles.metaWrap}>
+          <MetaRow items={metaItems} />
         </View>
-      )}
-    </Pressable>
+      ) : null}
+    </PressableCard>
   );
 }
 
-
-function ActivityRow({
-  item,
-  showDivider,
-}: {
-  item: ActivityTransaction;
-  showDivider: boolean;
-}) {
-  const currentUserId = useCurrentUserId();
-  const movement = MOVEMENT_CONFIG[item.transaction_type];
-  const address = formatShortAddress(item.property);
-  const ActivityIcon = movement.Icon;
-  const label = getMovementLabel(item, currentUserId);
-
-  return (
-    <View style={[styles.compactRow, showDivider && styles.compactRowDivider]}>
-      <View style={[styles.rowIcon, { backgroundColor: movement.bg }]}>
-        <ActivityIcon size={16} color={movement.color} strokeWidth={2} />
-      </View>
-      <View style={styles.rowContent}>
-        <Text
-          style={[styles.recentActivityTitle, { color: movement.color }]}
-          numberOfLines={1}
-        >
-          {label}
-        </Text>
-        <Text style={styles.rowSubtitle} numberOfLines={1}>
-          {address}
-        </Text>
-        <View style={styles.activityMetaRow}>
-          <Clock3 size={12} color={theme.colors.textLight} strokeWidth={2} />
-          <Text style={styles.rowMeta} numberOfLines={1}>
-            {formatActivityTimestamp(item.created_at)}
-          </Text>
-        </View>
-      </View>
-    </View>
-  );
-}
+// ── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.background },
   content: { padding: theme.spacing.screen, gap: theme.spacing.lg },
-  sectionLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: theme.colors.textMuted,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-  },
   section: { gap: theme.spacing.sm },
-  sectionHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: theme.spacing.md,
-  },
-  sectionAction: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-    paddingLeft: theme.spacing.sm,
-  },
-  sectionActionText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: theme.colors.primary,
-  },
-  compactCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    overflow: "hidden",
-  },
-  cardPressed: { opacity: 0.7 },
-  compactRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: 12,
-  },
-  compactRowDivider: {
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  cardList: {
-    gap: theme.spacing.sm,
-  },
-  rowIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: theme.radius.md,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  checkedOutIcon: {
-    width: 38,
-    height: 38,
-    backgroundColor: theme.colors.warningSoft,
-  },
-  rowContent: {
-    flex: 1,
-    gap: 3,
-    minWidth: 0,
-  },
-  rowTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: theme.colors.text,
-  },
-  recentActivityTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  locationText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: theme.colors.textLight,
-    letterSpacing: 0.2,
-    textTransform: "uppercase",
-  },
-  rowSubtitle: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: theme.colors.textMuted,
-  },
-  rowMeta: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: theme.colors.textLight,
-  },
-  keyLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: theme.colors.textMuted,
-  },
-  activityMetaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
+  cardList: { gap: theme.spacing.sm },
   emptyText: {
-    padding: theme.spacing.md,
     fontSize: 13,
     color: theme.colors.textMuted,
   },
 });
 
-// ── Checked-out card styles (mirrors AgentKeySetCard) ─────────────────────────
-const coStyles = StyleSheet.create({
-  card: {
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderRadius: theme.radius.lg,
-    overflow: "hidden",
-  },
-  cardPressed: { opacity: 0.72 },
+const cardStyles = StyleSheet.create({
   top: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: theme.spacing.md,
     padding: theme.spacing.md,
-  },
-  iconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: theme.radius.md,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
   },
   info: { flex: 1, gap: 6, minWidth: 0 },
   titleRow: {
@@ -491,69 +278,20 @@ const coStyles = StyleSheet.create({
     color: theme.colors.text,
     letterSpacing: -0.2,
   },
-  suburb: {
+  subtitle: {
     fontSize: 12,
     fontWeight: "500",
     color: theme.colors.textMuted,
     marginTop: -2,
   },
-  countPill: {
-    flexShrink: 0,
-    borderRadius: theme.radius.pill,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    backgroundColor: theme.colors.neutralSoft,
-  },
-  countText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: theme.colors.textMuted,
-  },
-  keyPillsWrap: {
+  keyPills: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 5,
+    marginTop: 2,
   },
-  keyPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    borderRadius: theme.radius.sm,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    backgroundColor: theme.colors.primarySoft,
-  },
-  keyPillText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: theme.colors.primaryDark,
-  },
-  meta: {
+  metaWrap: {
     paddingHorizontal: theme.spacing.md,
     paddingBottom: theme.spacing.md,
   },
-  metaDivider: {
-    height: 1,
-    backgroundColor: theme.colors.border,
-    marginBottom: theme.spacing.sm,
-  },
-  metaContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-  },
-  metaItem: { flex: 1, gap: 2 },
-  metaLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: theme.colors.textLight,
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-  },
-  metaValue: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: theme.colors.text,
-  },
-  metaValueDanger: { color: theme.colors.danger },
 });

@@ -11,7 +11,15 @@ import {
 
 import { theme } from "@/constants";
 
-type ButtonVariant = "primary" | "accent" | "outline" | "ghost" | "danger";
+type ButtonVariant =
+  | "primary"
+  | "accent"
+  | "outline"
+  | "ghost"
+  | "danger"
+  | "success"
+  | "successOutline"
+  | "dangerOutline";
 
 type ButtonProps = Omit<PressableProps, "style"> & {
   title: string;
@@ -110,5 +118,28 @@ const variantStyles: Record<
     container: { backgroundColor: theme.colors.danger },
     label: { color: theme.colors.textInverse },
     spinner: theme.colors.textInverse,
+  },
+  success: {
+    container: { backgroundColor: theme.colors.success },
+    label: { color: theme.colors.textInverse },
+    spinner: theme.colors.textInverse,
+  },
+  successOutline: {
+    container: {
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1.5,
+      borderColor: theme.colors.success,
+    },
+    label: { color: theme.colors.success },
+    spinner: theme.colors.success,
+  },
+  dangerOutline: {
+    container: {
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1.5,
+      borderColor: theme.colors.danger,
+    },
+    label: { color: theme.colors.danger },
+    spinner: theme.colors.danger,
   },
 };

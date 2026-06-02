@@ -3,10 +3,10 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Building2, MapPin, Pencil } from "lucide-react-native";
 
 import { useRole } from "@/hooks";
-import { theme , PROPERTY_TYPE_LABEL } from "@/constants";
+import { theme, PROPERTY_TYPE_LABEL } from "@/constants";
 import type { PropertyWithLandlord } from "@/lib/services";
 import { PropertyEditModal } from "@/components/property/PropertyEditModal";
-
+import { Card, IconBadge, MetaRow, Pill } from "@/components/ui";
 
 export type PropertyHeaderProps = {
   property: PropertyWithLandlord;
@@ -27,31 +27,32 @@ export const PropertyHeader = memo(function PropertyHeader({
     .join(", ");
 
   const landlord = property.landlord;
+  const showLandlord = Boolean(isAdmin && landlord);
+  const landlordMeta = showLandlord && landlord
+    ? [
+        { label: "Landlord", value: landlord.full_name || "—" },
+        ...(landlord.phone || landlord.email
+          ? [{ label: "Contact", value: landlord.phone ?? landlord.email ?? "—" }]
+          : []),
+      ]
+    : [];
 
   return (
-    <View style={styles.header}>
+    <Card flush>
       {/* ── Info row ──────────────────────────────────────────────────────── */}
       <View style={styles.top}>
-        <View style={styles.iconWrap}>
-          <Building2 size={24} color={theme.colors.primary} strokeWidth={1.8} />
-        </View>
+        <IconBadge icon={Building2} tone="primary" size="lg" />
 
         <View style={styles.info}>
-          <View style={styles.typeBadge}>
-            <Text style={styles.typeBadgeText}>
-              {PROPERTY_TYPE_LABEL[property.property_type] ??
-                property.property_type}
-            </Text>
-          </View>
+          <Pill tone="primary" size="sm">
+            {PROPERTY_TYPE_LABEL[property.property_type] ??
+              property.property_type}
+          </Pill>
 
           <Text style={styles.title}>{title}</Text>
 
           <View style={styles.locationRow}>
-            <MapPin
-              size={12}
-              color={theme.colors.textLight}
-              strokeWidth={1.8}
-            />
+            <MapPin size={12} color={theme.colors.textLight} strokeWidth={1.8} />
             <Text style={styles.locationText}>{location}</Text>
           </View>
         </View>
@@ -73,25 +74,9 @@ export const PropertyHeader = memo(function PropertyHeader({
       </View>
 
       {/* ── Landlord meta ─────────────────────────────────────────────────── */}
-      {isAdmin && landlord ? (
-        <View style={styles.metaRow}>
-          <View style={styles.metaDivider} />
-          <View style={styles.metaContent}>
-            <View style={styles.metaItem}>
-              <Text style={styles.metaLabel}>Landlord</Text>
-              <Text style={styles.metaValue} numberOfLines={1}>
-                {landlord.full_name || "—"}
-              </Text>
-            </View>
-            {landlord.phone || landlord.email ? (
-              <View style={styles.metaItem}>
-                <Text style={styles.metaLabel}>Contact</Text>
-                <Text style={styles.metaValue} numberOfLines={1}>
-                  {landlord.phone ?? landlord.email ?? "—"}
-                </Text>
-              </View>
-            ) : null}
-          </View>
+      {landlordMeta.length > 0 ? (
+        <View style={styles.metaWrap}>
+          <MetaRow items={landlordMeta} />
         </View>
       ) : null}
 
@@ -103,49 +88,17 @@ export const PropertyHeader = memo(function PropertyHeader({
           onClose={() => setEditOpen(false)}
         />
       )}
-    </View>
+    </Card>
   );
 });
 
 const styles = StyleSheet.create({
-  header: {
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.lg,
-    overflow: "hidden",
-  },
-
-  // ── Info row ─────────────────────────────────────────────────────────────
   top: {
     flexDirection: "row",
     gap: theme.spacing.md,
     padding: theme.spacing.md,
   },
-  iconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.primarySoft,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  info: {
-    flex: 1,
-    gap: 4,
-  },
-  typeBadge: {
-    alignSelf: "flex-start",
-    backgroundColor: theme.colors.primarySoft,
-    borderRadius: theme.radius.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  typeBadgeText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: theme.colors.primary,
-  },
+  info: { flex: 1, gap: 4 },
   title: {
     fontSize: 17,
     fontWeight: "700",
@@ -172,36 +125,8 @@ const styles = StyleSheet.create({
   editBtnPressed: {
     opacity: 0.6,
   },
-
-  // ── Landlord meta ────────────────────────────────────────────────────────
-  metaRow: {
+  metaWrap: {
     paddingHorizontal: theme.spacing.md,
     paddingBottom: theme.spacing.md,
-  },
-  metaDivider: {
-    height: 1,
-    backgroundColor: theme.colors.border,
-    marginBottom: theme.spacing.sm,
-  },
-  metaContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-  },
-  metaItem: {
-    flex: 1,
-    gap: 2,
-  },
-  metaLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: theme.colors.textLight,
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-  },
-  metaValue: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: theme.colors.text,
   },
 });

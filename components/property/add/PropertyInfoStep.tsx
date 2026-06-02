@@ -10,7 +10,7 @@ import {
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { ChevronDown, KeyRound, X } from "lucide-react-native";
 
-import { theme, PROPERTY_TYPES } from "@/constants";
+import { KEY_TYPE_ICON, KEY_TYPE_LABEL, PROPERTY_TYPES, theme } from "@/constants";
 import {
   AddressSearch,
   Input,
@@ -20,7 +20,6 @@ import {
   PickerModal,
   type PlaceResult,
 } from "@/components/ui";
-import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key";
 import { formatLongDate } from "@/lib/utils";
 import type { KeyType } from "@/types";
 

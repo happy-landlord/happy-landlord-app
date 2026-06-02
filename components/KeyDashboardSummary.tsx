@@ -183,11 +183,6 @@ export function KeyDashboardSummary() {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    padding: theme.spacing.md,
     gap: theme.spacing.sm,
   },
   placeholder: {

@@ -6,8 +6,7 @@ import {
   User,
 } from "lucide-react-native";
 
-import { theme, PROPERTY_TYPES } from "@/constants";
-import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key";
+import { KEY_TYPE_ICON, KEY_TYPE_LABEL, PROPERTY_TYPES, theme } from "@/constants";
 import type { KeyEntry, KeySetDraft, PropertyStep } from "./types";
 
 function keyLabel(entry: KeyEntry): string {

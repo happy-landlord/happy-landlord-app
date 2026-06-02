@@ -7,7 +7,7 @@ import {
 } from "@/lib/services";
 import { formatLongDate } from "@/lib/utils";
 import type { DbKeyInsert, DbProperty, DbPropertyInsert } from "@/types";
-import { KEY_TYPE_LABEL } from "@/components/key";
+import { KEY_TYPE_LABEL } from "@/constants";
 import {
   buildKeySetCode,
   type KeyEntry,

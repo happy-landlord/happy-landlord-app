@@ -170,11 +170,25 @@ export function useUpdateKey(propertyId: string) {
 
 // ── Dashboard / attention hooks (legacy keys service) ────────────────────────
 
+/**
+ * Checked-out keysets for the dashboard.
+ *
+ * - Admins receive all checked-out / overdue keysets (up to `limit`).
+ * - Agents receive only the keysets they currently hold — filtered
+ *   server-side to avoid over-fetching.
+ *
+ * Query cache is partitioned by role + user id so that switching accounts
+ * never returns stale data from a previous session.
+ */
 export function useCheckedOutKeySets(limit = 10) {
-  const { ready } = useQueryScope();
+  const { userId, isAdmin, scope, ready } = useQueryScope();
   return useQuery({
-    queryKey: [...QUERY_KEYS.keys.checkedOut("admin"), limit],
-    queryFn: () => fetchCheckedOutKeySets(limit),
+    queryKey: [...QUERY_KEYS.keys.checkedOut(scope), limit],
+    queryFn: () =>
+      fetchCheckedOutKeySets({
+        limit,
+        holderProfileId: isAdmin ? undefined : userId,
+      }),
     enabled: ready,
     staleTime: 1000 * 30,
   });
