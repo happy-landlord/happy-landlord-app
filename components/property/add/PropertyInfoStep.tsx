@@ -117,6 +117,7 @@ export function PropertyInfoStep({
       <OutlinedField label="Address" required style={styles.addressField}>
         <AddressSearch
           placeholder="Search address…"
+          mode="full"
           onSelect={(place) => {
             onChange({ selectedPlace: place });
             onAddressSelect(place);

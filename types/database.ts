@@ -750,6 +750,7 @@ export type ActivityTransaction = DbTransaction & {
     unit_number: string | null;
     suburb: string;
     formatted_address: string | null;
+    status: "active" | "leased" | "inactive";
   } | null;
   from_holder: Pick<DbKeyHolder, "full_name" | "holder_type" | "profile_id"> | null;
   to_holder: Pick<DbKeyHolder, "full_name" | "holder_type" | "profile_id"> | null;

@@ -5,7 +5,7 @@ import { Building2, MapPin, Pencil } from "lucide-react-native";
 import { useRole } from "@/hooks";
 import { theme, PROPERTY_TYPE_LABEL } from "@/constants";
 import type { PropertyWithLandlord } from "@/lib/services";
-import { PropertyEditSheet } from "@/components/property/PropertyEditSheet";
+import { PropertyEditSheet } from "./PropertyEditSheet";
 import { Card, IconBadge, MetaRow, Pill } from "@/components/ui";
 
 export type PropertyHeaderProps = {

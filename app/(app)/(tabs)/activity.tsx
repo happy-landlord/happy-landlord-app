@@ -6,25 +6,22 @@ import {
   SectionList,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
-import { FileText, KeyRound, X } from "lucide-react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { FileText, Search, SlidersHorizontal, X } from "lucide-react-native";
 
-import { ActivityCard } from "@/components/activity";
 import {
-  AddressSearch,
-  EmptyState,
-  ErrorState,
-  LoadingState,
-  Pill,
-  type AddressSearchRef,
-  type PlaceResult,
-} from "@/components/ui";
+  ActivityCard,
+  ActivityFilterChips,
+  ActivityFilterSheet,
+  useActivityFilters,
+} from "@/components/activity";
+import { EmptyState, ErrorState, LoadingState } from "@/components/ui";
 import { useInfiniteActivity } from "@/lib/hooks";
-import { useRole } from "@/hooks";
+import { useRole, useDebouncedValue } from "@/hooks";
 import { theme, useBottomListPadding } from "@/constants";
-import { placeSearchLabel, toDateLabel } from "@/lib/utils";
+import { toDateLabel, toIsoDate } from "@/lib/utils";
 import type { ActivityTransaction } from "@/types";
 
 // ── Section grouping ─────────────────────────────────────────────────────────
@@ -48,18 +45,27 @@ function groupByDate(transactions: ActivityTransaction[]): Section[] {
 // ── Screen ───────────────────────────────────────────────────────────────────
 
 export default function ActivityScreen() {
-  const router = useRouter();
   const { isAdmin } = useRole();
   const listPaddingBottom = useBottomListPadding();
-  const searchRef = useRef<AddressSearchRef>(null);
-  const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
-  const { propertyId, keySetId, keySetName } = useLocalSearchParams<{
-    propertyId?: string;
-    keySetId?: string;
-    keySetName?: string;
-  }>();
+  const searchInputRef = useRef<TextInput>(null);
 
-  const search = placeSearchLabel(selectedPlace);
+  // Search state
+  const [searchText, setSearchText] = useState("");
+  const debouncedSearch = useDebouncedValue(searchText, 400);
+
+  // Filters + URL-param context (myActivityOnly deep-link, keyset context)
+  const {
+    filters,
+    patch: patchFilters,
+    reset: resetFilters,
+    activeCount: activeFilterCount,
+    propertyId,
+    keySetId,
+    keySetName,
+    clearKeysetParam,
+  } = useActivityFilters();
+
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
   const {
     data,
@@ -70,7 +76,14 @@ export default function ActivityScreen() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteActivity({ search, propertyId, keySetId });
+  } = useInfiniteActivity({
+    search: debouncedSearch,
+    propertyId,
+    keySetId,
+    myActivityOnly: filters.myActivityOnly,
+    dateFrom: toIsoDate(filters.dateFrom),
+    dateTo: toIsoDate(filters.dateTo),
+  });
 
   const allItems = useMemo(() => data?.pages.flat() ?? [], [data]);
   const sections = useMemo(() => groupByDate(allItems), [allItems]);
@@ -91,120 +104,154 @@ export default function ActivityScreen() {
     );
   }, [isFetchingNextPage]);
 
-  const clearPlace = () => {
-    setSelectedPlace(null);
-    searchRef.current?.clear();
+  const clearSearch = () => {
+    setSearchText("");
+    searchInputRef.current?.clear();
   };
 
-  if (isLoading) {
-    return (
-      <View style={styles.screen}>
-        <LoadingState message="Loading activity…" />
-      </View>
-    );
-  }
-
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <View style={styles.screen}>
+      {/* ── Search row ────────────────────────────────────────────────────── */}
       <View style={styles.searchRow}>
-        <View style={styles.searchWrap}>
-          <AddressSearch
-            ref={searchRef}
-            placeholder="Filter by property address"
-            onSelect={setSelectedPlace}
+        {/* Search input */}
+        <View style={styles.searchInputWrap}>
+          <Search
+            size={16}
+            color={theme.colors.textLight}
+            strokeWidth={2}
+            style={styles.searchIcon}
           />
+          <TextInput
+            ref={searchInputRef}
+            style={styles.searchInput}
+            placeholder="Address or keyset code…"
+            placeholderTextColor={theme.colors.textLight}
+            selectionColor={theme.colors.primary}
+            value={searchText}
+            onChangeText={setSearchText}
+            returnKeyType="search"
+            autoCorrect={false}
+            autoCapitalize="none"
+            clearButtonMode="never"
+          />
+          {searchText.length > 0 && (
+            <Pressable onPress={clearSearch} hitSlop={8}>
+              <X size={15} color={theme.colors.textMuted} strokeWidth={2} />
+            </Pressable>
+          )}
         </View>
-        {selectedPlace ? (
-          <Pressable
-            onPress={clearPlace}
-            style={styles.clearButton}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Clear filter"
-          >
-            <X size={16} color={theme.colors.textMuted} strokeWidth={2} />
-          </Pressable>
-        ) : null}
+
+        {/* Filter button */}
+        <Pressable
+          onPress={() => setFilterSheetOpen(true)}
+          style={({ pressed }) => [
+            styles.filterBtn,
+            activeFilterCount > 0 && styles.filterBtnActive,
+            pressed && styles.filterBtnPressed,
+          ]}
+          hitSlop={4}
+          accessibilityRole="button"
+          accessibilityLabel="Open filters"
+        >
+          <SlidersHorizontal
+            size={18}
+            color={
+              activeFilterCount > 0
+                ? theme.colors.primary
+                : theme.colors.textMuted
+            }
+            strokeWidth={2}
+          />
+          {activeFilterCount > 0 && (
+            <View style={styles.filterBadge}>
+              <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+            </View>
+          )}
+        </Pressable>
       </View>
 
-      {keySetId ? (
-        <View style={styles.chipRow}>
-          <Pressable
-            onPress={() =>
-              router.setParams({ keySetId: undefined, keySetName: undefined })
-            }
-            accessibilityRole="button"
-            accessibilityLabel="Clear keyset filter"
-          >
-            <Pill
-              tone="primary"
-              variant="soft"
-              leading={
-                <KeyRound size={13} color={theme.colors.primary} strokeWidth={2} />
-              }
-            >
-              {`${keySetName ?? "Keyset"}   ✕`}
-            </Pill>
-          </Pressable>
-        </View>
-      ) : null}
+      {/* ── Active filter chips ───────────────────────────────────────────── */}
+      <ActivityFilterChips
+        filters={filters}
+        keySetId={keySetId}
+        keySetName={keySetName}
+        onClearKeyset={clearKeysetParam}
+        onPatch={patchFilters}
+      />
 
-      <SectionList
-        sections={sections}
-        keyExtractor={(item) => item.id}
-        style={styles.sectionList}
-        contentContainerStyle={[
-          styles.list,
-          { paddingBottom: listPaddingBottom },
-          sections.length === 0 && styles.listEmpty,
-        ]}
-        stickySectionHeadersEnabled={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isFetching && !isLoading}
-            onRefresh={refetch}
+      {/* ── List / states ─────────────────────────────────────────────────── */}
+      {isLoading ? (
+        <View style={[styles.stateArea, { paddingBottom: listPaddingBottom }]}>
+          <LoadingState message="Loading activity…" />
+        </View>
+      ) : isError ? (
+        <View style={[styles.stateArea, { paddingBottom: listPaddingBottom }]}>
+          <ErrorState
+            title="Couldn't load activity"
+            message="Check your connection and try again."
+            onRetry={refetch}
           />
-        }
-        onEndReached={() => {
-          if (hasNextPage) fetchNextPage();
-        }}
-        onEndReachedThreshold={0.3}
-        ListHeaderComponent={
-          isError ? (
-            <ErrorState
-              title="Couldn't load activity"
-              message="Pull down to try again."
+        </View>
+      ) : (
+        <SectionList
+          sections={sections}
+          keyExtractor={(item) => item.id}
+          style={styles.sectionList}
+          contentContainerStyle={[
+            styles.list,
+            { paddingBottom: listPaddingBottom },
+            sections.length === 0 && styles.listEmpty,
+          ]}
+          stickySectionHeadersEnabled={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isFetching && !isLoading}
+              onRefresh={refetch}
             />
-          ) : null
-        }
-        ListEmptyComponent={
-          !isError ? (
+          }
+          onEndReached={() => {
+            if (hasNextPage) fetchNextPage();
+          }}
+          onEndReachedThreshold={0.3}
+          ListEmptyComponent={
             <EmptyState
               Icon={FileText}
               title={
                 keySetId
                   ? "No activity"
-                  : selectedPlace
+                  : searchText || activeFilterCount > 0
                     ? "No results"
                     : "No activity yet"
               }
               message={
                 keySetId
                   ? `No transactions recorded for ${keySetName ?? "this keyset"}.`
-                  : selectedPlace
-                    ? `No transactions for "${placeSearchLabel(selectedPlace)}"`
+                  : searchText || activeFilterCount > 0
+                    ? "Try adjusting your search or filters."
                     : "Keyset transactions you record will appear here."
               }
             />
-          ) : null
-        }
-        ListFooterComponent={renderFooter}
-        renderSectionHeader={({ section: { title } }) => (
-          <Text style={styles.sectionHeader}>{title}</Text>
-        )}
-        renderItem={renderItem}
-        ItemSeparatorComponent={() => <View style={styles.itemSep} />}
-        showsVerticalScrollIndicator={false}
+          }
+          ListFooterComponent={renderFooter}
+          renderSectionHeader={({ section: { title } }) => (
+            <Text style={styles.sectionHeader}>{title}</Text>
+          )}
+          renderItem={renderItem}
+          ItemSeparatorComponent={() => <View style={styles.itemSep} />}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        />
+      )}
+
+      {/* ── Filter bottom sheet ────────────────────────────────────────────── */}
+      <ActivityFilterSheet
+        visible={filterSheetOpen}
+        onClose={() => setFilterSheetOpen(false)}
+        filters={filters}
+        onChange={patchFilters}
+        onReset={resetFilters}
       />
     </View>
   );
@@ -217,6 +264,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
+
+  // ── Search row ─────────────────────────────────────────────────────────────
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -226,24 +275,70 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing.sm,
     backgroundColor: theme.colors.background,
   },
-  searchWrap: { flex: 1 },
-  clearButton: {
-    width: 40,
-    height: 40,
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.neutralSoft,
+  searchInputWrap: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    height: 48,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.surface,
+    paddingHorizontal: theme.spacing.sm,
+    gap: theme.spacing.sm,
+  },
+  searchIcon: {
+    flexShrink: 0,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: theme.colors.text,
+    paddingVertical: 0,
+  },
+  filterBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
   },
-  chipRow: {
-    flexDirection: "row",
-    marginHorizontal: theme.spacing.screen,
-    marginBottom: theme.spacing.sm,
+  filterBtnActive: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primarySoft,
   },
+  filterBtnPressed: { opacity: 0.7 },
+  filterBadge: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: theme.colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    lineHeight: 12,
+  },
+
+  // ── List ───────────────────────────────────────────────────────────────────
   sectionList: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  stateArea: {
+    flex: 1,
+    paddingHorizontal: theme.spacing.screen,
+    paddingTop: theme.spacing.md,
   },
   list: {
     paddingHorizontal: theme.spacing.screen,

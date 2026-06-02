@@ -120,13 +120,22 @@ export default function HomeScreen() {
           <SectionHeader
             title="My activity"
             actionLabel="View all"
-            onAction={() => router.push("/(app)/(tabs)/activity")}
+            onAction={() =>
+              router.push({
+                pathname: "/(app)/(tabs)/activity",
+                params: { myActivityOnly: "1" },
+              })
+            }
           />
           <Card flush>
             {activityLoading ? (
-              <Text style={styles.emptyText}>Loading recent activity…</Text>
+              <View style={styles.activityState}>
+                <Text style={styles.emptyText}>Loading recent activity…</Text>
+              </View>
             ) : recentActivity.length === 0 ? (
-              <Text style={styles.emptyText}>No recent activity yet.</Text>
+              <View style={styles.activityState}>
+                <Text style={styles.emptyText}>No recent activity yet.</Text>
+              </View>
             ) : (
               recentActivity.map((item, index) => (
                 <ActivityRow
@@ -251,6 +260,10 @@ const styles = StyleSheet.create({
   content: { padding: theme.spacing.screen, gap: theme.spacing.lg },
   section: { gap: theme.spacing.sm },
   cardList: { gap: theme.spacing.sm },
+  activityState: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.md,
+  },
   emptyText: {
     fontSize: 13,
     color: theme.colors.textMuted,

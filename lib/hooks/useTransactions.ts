@@ -35,6 +35,12 @@ type UseInfiniteActivityOptions = {
   search?: string;
   propertyId?: string;
   keySetId?: string;
+  /** Admin-only: restrict to transactions where the current user is involved */
+  myActivityOnly?: boolean;
+  /** ISO date string "YYYY-MM-DD" — lower bound */
+  dateFrom?: string;
+  /** ISO date string "YYYY-MM-DD" — upper bound */
+  dateTo?: string;
   /** Override the enabled flag. Defaults to true (fires whenever ready). */
   enabled?: boolean;
 };
@@ -43,12 +49,23 @@ export function useInfiniteActivity({
   search = "",
   propertyId,
   keySetId,
+  myActivityOnly = false,
+  dateFrom,
+  dateTo,
   enabled: enabledOverride = true,
 }: UseInfiniteActivityOptions = {}) {
   const { userId, isAdmin, scope, ready } = useQueryScope();
 
   return useInfiniteQuery<ActivityTransaction[], Error>({
-    queryKey: QUERY_KEYS.activity.infinite(scope, search, propertyId, keySetId),
+    queryKey: QUERY_KEYS.activity.infinite(
+      scope,
+      search,
+      propertyId,
+      keySetId,
+      myActivityOnly,
+      dateFrom,
+      dateTo,
+    ),
     queryFn: ({ pageParam }) =>
       fetchActivity({
         userId: userId!,
@@ -57,6 +74,9 @@ export function useInfiniteActivity({
         search,
         propertyId,
         keySetId,
+        myActivityOnly,
+        dateFrom,
+        dateTo,
       }),
     initialPageParam: 0,
     getNextPageParam: (lastPage, allPages) =>

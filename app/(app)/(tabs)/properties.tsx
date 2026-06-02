@@ -85,13 +85,27 @@ export default function PropertiesScreen() {
       />
 
       {isError ? (
-        <ErrorState
-          title="Couldn't load keysets"
-          message="Check your connection and try again."
-          onRetry={refetch}
-        />
+        <View
+          style={[
+            styles.stateArea,
+            { paddingBottom: listPaddingBottom },
+          ]}
+        >
+          <ErrorState
+            title="Couldn't load properties"
+            message="Check your connection and try again."
+            onRetry={refetch}
+          />
+        </View>
       ) : isLoading ? (
-        <LoadingState message="Loading keysets…" />
+        <View
+          style={[
+            styles.stateArea,
+            { paddingBottom: listPaddingBottom },
+          ]}
+        >
+          <LoadingState message="Loading properties…" />
+        </View>
       ) : (
         <FlatList
           data={properties}
@@ -124,6 +138,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.screen,
     paddingTop: theme.spacing.screen,
     gap: theme.spacing.xs,
+  },
+  stateArea: {
+    flex: 1,
+    paddingHorizontal: theme.spacing.screen,
+    paddingTop: theme.spacing.md,
   },
   listEmpty: {
     flexGrow: 1,

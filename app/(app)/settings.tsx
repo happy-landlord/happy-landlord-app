@@ -20,6 +20,7 @@ import {
   Fingerprint,
   ShieldCheck,
   Smartphone,
+  Wrench,
 } from "lucide-react-native";
 import * as Device from "expo-device";
 
@@ -33,6 +34,8 @@ import {
   useBiometricSettings,
   useToggleBiometric} from "@/lib/hooks";
 import { getBiometricLabel } from "@/lib/services";
+import { useDevOverridesStore } from "@/lib/state";
+import { useRole } from "@/hooks";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -336,7 +339,61 @@ export default function SettingsScreen() {
           }
         />
       </SectionCard>
+
+      {/* ── Developer section (dev builds only) ───────────────────────── */}
+      {__DEV__ && <DeveloperSection />}
     </ScrollView>
+  );
+}
+
+// ── Developer-only overrides ─────────────────────────────────────────────────
+// Rendered ONLY when `__DEV__` is true. Metro strips the entire branch — and
+// therefore this component — from production bundles, so neither the toggle UI
+// nor the store reference ship to end users.
+
+function DeveloperSection() {
+  const { role } = useRole();
+  const adminOverride = useDevOverridesStore((s) => s.adminOverride);
+  const toggleAdminOverride = useDevOverridesStore(
+    (s) => s.toggleAdminOverride,
+  );
+
+  const dbRole = role ?? "unknown";
+  const subtitle = adminOverride
+    ? `Override ON — DB role: ${dbRole}. Reload to clear.`
+    : `Force admin view (DB role: ${dbRole})`;
+
+  return (
+    <>
+      <SectionHeader title="Developer" />
+      <SectionCard>
+        <SettingRow
+          Icon={Wrench}
+          iconBg={
+            adminOverride
+              ? theme.colors.warningSoft
+              : theme.colors.neutralSoft
+          }
+          iconColor={
+            adminOverride ? theme.colors.warning : theme.colors.neutral
+          }
+          title="Make me admin"
+          subtitle={subtitle}
+          right={
+            <Switch
+              value={adminOverride}
+              onValueChange={toggleAdminOverride}
+              trackColor={{
+                false: theme.colors.neutralSoft,
+                true: theme.colors.warning,
+              }}
+              thumbColor={theme.colors.surface}
+              ios_backgroundColor={theme.colors.neutralSoft}
+            />
+          }
+        />
+      </SectionCard>
+    </>
   );
 }
 

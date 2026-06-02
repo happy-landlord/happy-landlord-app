@@ -5,4 +5,4 @@
  *   import { useLockStore } from "@/lib/state";
  */
 export * from "./lockStore";
-
+export * from "./devOverridesStore";

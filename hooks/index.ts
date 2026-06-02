@@ -1,13 +1,12 @@
 /**
  * Barrel re-exports for the top-level app `@/hooks`.
  *
- * These are app-level hooks that compose multiple `lib/hooks` together
- * (e.g. role gating, keyset action consolidation).
+ * Only **cross-cutting** hooks live here — ones used by many unrelated
+ * features (auth/role, query helpers, generic utilities). Feature-specific
+ * hooks live alongside their feature in `@/components/<feature>/`.
  *
  * Import via:
- *   import { useRole, useKeySetActions, useQueryScope } from "@/hooks";
+ *   import { useRole, useDebouncedValue } from "@/hooks";
  */
 export * from "./useRole";
-export * from "./useKeySetActions";
-export * from "./useKeysetAvailability";
 export * from "./useDebouncedValue";

@@ -1,24 +1,19 @@
 /**
- * Barrel re-exports for `@/components/keyset`.
+ * Public API for `@/components/keyset`.
  *
- * Import via:
- *   import { CountdownTimer } from "@/components/keyset";
- *
- * NOTE: `KEY_TYPE_LABEL`, `KEY_TYPE_ICON`, `KEY_TYPE_SHORT` now live in
- * `@/constants` — import them from there.
+ * Only the names listed here are consumed from outside this folder
+ * (today: the keyset detail screen and an agent-side keyset transfer
+ * action in `components/property`). Everything else — sub-modals
+ * (`CountdownTimer`, `KeySetEditSheet`, `ReportLostSheet`, …), the
+ * context's internal `useKeySetScreen` hook, and the feature-scoped
+ * `useKeySetActions` / `useKeysetAvailability` hooks — is imported
+ * via relative paths within this folder and intentionally not
+ * re-exported.
  */
-export * from "./CountdownTimer";
-export * from "./KeySetActionsPanel";
-export * from "./KeySetDurationModal";
-export * from "./KeySetEditSheet";
-export * from "./KeySetIdentityCard";
-export * from "./KeySetKeysList";
-export * from "./KeySetLastActivity";
-export * from "./KeySetModals";
-export * from "./KeySetScreenContext";
-export * from "./ReservationStatusChip";
-export * from "./ReportLostSheet";
-export * from "./ReserveKeySetModal";
-export * from "./ReturnConfirmModal";
-export * from "./SelectedKeysSummary";
-export * from "./TransferConfirmModal";
+export { KeySetActionsPanel } from "./KeySetActionsPanel";
+export { KeySetIdentityCard } from "./KeySetIdentityCard";
+export { KeySetKeysList } from "./KeySetKeysList";
+export { KeySetLastActivity } from "./KeySetLastActivity";
+export { KeySetModals } from "./KeySetModals";
+export { KeySetScreenProvider } from "./KeySetScreenContext";
+export { TransferConfirmModal } from "./TransferConfirmModal";

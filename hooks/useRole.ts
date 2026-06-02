@@ -1,4 +1,5 @@
 import { useCurrentUserId, useProfile } from "@/lib/hooks";
+import { useDevOverridesStore } from "@/lib/state";
 import type { UserRole } from "@/types";
 
 export type UseRoleResult = {
@@ -11,13 +12,17 @@ export type UseRoleResult = {
 
 export function useRole(): UseRoleResult {
   const { data: profile, isLoading } = useProfile();
+  // Dev-only admin override — completely tree-shaken in production builds
+  // because `__DEV__` is a Metro compile-time constant.
+  const adminOverride = useDevOverridesStore((s) => s.adminOverride);
 
   const role = profile?.role;
+  const isAdmin = role === "admin" || (__DEV__ && adminOverride);
 
   return {
     role,
-    isAdmin: role === "admin",
-    isAgent: role === "agent",
+    isAdmin,
+    isAgent: role === "agent" && !isAdmin,
     isLoading,
   };
 }

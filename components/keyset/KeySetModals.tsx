@@ -10,7 +10,9 @@ import {
   useKeySet,
   useProperty,
 } from "@/lib/hooks";
-import { useKeySetActions, useKeysetAvailability, useRole } from "@/hooks";
+import { useRole } from "@/hooks";
+import { useKeySetActions } from "./useKeySetActions";
+import { useKeysetAvailability } from "./useKeysetAvailability";
 
 // ── KeySetModals ─────────────────────────────────────────────────────────────
 // Single home for every keyset-action modal mounted on the detail screen.

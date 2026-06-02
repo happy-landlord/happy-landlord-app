@@ -34,7 +34,7 @@ type RoleGateProps = {
  * </RoleGate>
  */
 export function RoleGate({ allow, children, fallback = null }: RoleGateProps) {
-  const { role, isLoading } = useRole();
+  const { role, isAdmin, isLoading } = useRole();
 
   if (isLoading) {
     return (
@@ -45,7 +45,14 @@ export function RoleGate({ allow, children, fallback = null }: RoleGateProps) {
   }
 
   const allowed = Array.isArray(allow) ? allow : [allow];
-  if (!role || !allowed.includes(role)) {
+
+  // `isAdmin` already incorporates the dev override, so treat it as the source
+  // of truth for admin access rather than checking the raw DB role string.
+  const hasAccess =
+    (allowed.includes("admin") && isAdmin) ||
+    (role !== undefined && allowed.includes(role));
+
+  if (!hasAccess) {
     return <>{fallback}</>;
   }
 

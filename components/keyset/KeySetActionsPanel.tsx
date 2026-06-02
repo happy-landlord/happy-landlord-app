@@ -9,7 +9,9 @@ import {
   useCurrentUserId,
   useKeySet,
 } from "@/lib/hooks";
-import { useKeySetActions, useKeysetAvailability, useRole } from "@/hooks";
+import { useRole } from "@/hooks";
+import { useKeySetActions } from "./useKeySetActions";
+import { useKeysetAvailability } from "./useKeysetAvailability";
 import { formatDueAt } from "@/lib/utils";
 
 // ── KeySetActionsPanel ───────────────────────────────────────────────────────

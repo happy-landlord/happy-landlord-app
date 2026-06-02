@@ -30,6 +30,14 @@ type AddressSearchProps = {
   label?: string;
   /** Remove the component's own border/radius so it can sit inside an OutlinedField */
   borderless?: boolean;
+  /**
+   * Controls how broad the autocomplete results are.
+   * - "full"    → "address" type — only returns full street addresses (street number required).
+   *               Use when creating/editing a property.
+   * - "partial" → "geocode" type (default) — returns full addresses, partial streets,
+   *               suburbs and localities. Use on search/filter bars.
+   */
+  mode?: "full" | "partial";
 };
 
 export type AddressSearchRef = {
@@ -45,7 +53,7 @@ const API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY ?? "";
 const DISABLE_LIST_SCROLL = { flatListProps: { scrollEnabled: false } } as unknown as object;
 
 export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
-  function AddressSearch({ onSelect, placeholder = "Search address…", borderless = false }, ref) {
+  function AddressSearch({ onSelect, placeholder = "Search address…", borderless = false, mode = "partial" }, ref) {
     // ── Fallback plain-text input (used when FEATURES.GOOGLE_PLACES = false) ──
     const [text, setText] = useState("");
 
@@ -136,9 +144,7 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
           key: API_KEY,
           language: "en",
           components: "country:au",
-          // "geocode" returns precise addresses, partial street inputs, AND
-          // locality/suburb names — unlike "address" which requires a street number.
-          types: "geocode",
+          types: mode === "full" ? "address" : "geocode",
           // Bias toward Greater Sydney (soft — other cities still discoverable)
           ...SYDNEY_BIAS,
         }}

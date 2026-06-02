@@ -70,17 +70,19 @@ export function PropertiesFilterBar({
           </Pressable>
         ) : null}
 
-        <Pressable
-          style={({ pressed }) => [
-            styles.addButton,
-            pressed && styles.addButtonPressed,
-          ]}
-          onPress={() => router.push("/(app)/properties/add")}
-          accessibilityRole="button"
-          accessibilityLabel="Add property"
-        >
-          <Plus size={20} color={theme.colors.textInverse} strokeWidth={2.4} />
-        </Pressable>
+        <RoleGate allow="admin">
+          <Pressable
+            style={({ pressed }) => [
+              styles.addButton,
+              pressed && styles.addButtonPressed,
+            ]}
+            onPress={() => router.push("/(app)/properties/add")}
+            accessibilityRole="button"
+            accessibilityLabel="Add property"
+          >
+            <Plus size={20} color={theme.colors.textInverse} strokeWidth={2.4} />
+          </Pressable>
+        </RoleGate>
       </View>
 
       <RoleGate allow="admin">

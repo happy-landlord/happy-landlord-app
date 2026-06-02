@@ -6,7 +6,8 @@ import { ReservationStatusChip } from "./ReservationStatusChip";
 import { useKeySetScreen } from "./KeySetScreenContext";
 import { theme } from "@/constants";
 import { useCurrentUserId, useFirstKeySetImageUrl, useKeySet } from "@/lib/hooks";
-import { useKeysetAvailability, useRole } from "@/hooks";
+import { useRole } from "@/hooks";
+import { useKeysetAvailability } from "./useKeysetAvailability";
 import { getTotalKeyQuantity, isPastDue } from "@/lib/utils";
 
 // ── KeySetIdentityCard ───────────────────────────────────────────────────────

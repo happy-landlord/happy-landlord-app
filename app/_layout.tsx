@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
@@ -10,6 +11,7 @@ import * as SystemUI from "expo-system-ui";
 import "react-native-reanimated";
 
 import { queryClient } from "@/lib/query";
+import { useDevOverridesStore } from "@/lib/state";
 
 // GooglePlacesAutocomplete renders a FlatList inside the add-property ScrollView.
 // The warning is cosmetic — scroll-stealing is prevented by
@@ -31,6 +33,15 @@ const AppTheme = {
 };
 
 export default function RootLayout() {
+  // Reset dev overrides on every app mount so a refresh never carries stale
+  // overrides (e.g. "Make me admin" left on from the previous session).
+  // __DEV__ is a Metro compile-time constant — stripped from production builds.
+  const resetDevOverrides = useDevOverridesStore((s) => s.reset);
+  useEffect(() => {
+    if (__DEV__) resetDevOverrides();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <BottomSheetModalProvider>

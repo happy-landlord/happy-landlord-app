@@ -1,10 +1,10 @@
 /**
- * Barrel re-exports for `@/components/notification`.
+ * Public API for `@/components/notification`.
  *
- * Import via:
- *   import { NotificationCard, AdminPushTestPanel } from "@/components/notification";
+ * `notificationVisuals` is intentionally not re-exported — its helpers
+ * (`getNotificationVisual`, palettes) are only consumed by sibling
+ * files in this folder and are imported via relative paths.
  */
-export * from "./AdminPushTestPanel";
-export * from "./NotificationCard";
-export * from "./notificationVisuals";
+export { AdminPushTestPanel } from "./AdminPushTestPanel";
+export { NotificationCard } from "./NotificationCard";
 

@@ -56,6 +56,19 @@ export function formatShortDate(iso: string): string {
 }
 
 /**
+ * Serialises a Date into a YYYY-MM-DD calendar string in the device's
+ * local timezone. Returns `undefined` when the input is null/undefined so
+ * it can be spread directly into query-param objects.
+ */
+export function toIsoDate(d: Date | null | undefined): string | undefined {
+  if (!d) return undefined;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/**
  * Formats a Date (or ISO string) as a long calendar date with full month:
  * "5 June 2025". Used in the add-property wizard and review screens.
  */
