@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Dimensions,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,211 +9,312 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { Image } from "expo-image";
-import { Plus, X } from "lucide-react-native";
-import * as ImagePicker from "expo-image-picker";
-
+import {
+  Check,
+  ChevronDown,
+  ChevronUp,
+  KeyRound,
+  Minus,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react-native";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { PickerModal } from "@/components/ui/PickerModal";
 import { theme } from "@/constants/theme";
-import { QUERY_KEYS } from "@/constants/queryKeys";
-import { useUpdateProperty } from "@/hooks/useProperties";
-import { usePropertyImageUrls } from "@/hooks/usePropertyImages";
-import { useQueryClient } from "@tanstack/react-query";
+import { useKeySets, useUnassignedKeys, useCreateKeys, useDeleteKey, useUpdateKey } from "@/hooks/useKeySets";
 import {
-  createKeyHolder,
-  getVisibleImages,
-  updateKeyHolder,
-  uploadPropertyImagesForEdit,
-  type PropertyImage,
   type PropertyWithLandlord,
 } from "@/services/properties.service";
+import type { KeyInSet, UnassignedKey } from "@/services/keySets.service";
+import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
+import type { DbKeyInsert, KeyType } from "@/types/database";
 import { PROPERTY_TYPES, type PropertyType } from "@/components/property/add/types";
+// ── Key type options ───────────────────────────────────────────────────────────
+const ALL_KEY_TYPE_OPTIONS = (Object.keys(KEY_TYPE_LABEL) as KeyType[]).map((type) => {
+  const Icon = KEY_TYPE_ICON[type] ?? KeyRound;
+  return {
+    value: type,
+    label: KEY_TYPE_LABEL[type],
+    icon: <Icon size={16} color={theme.colors.textMuted} strokeWidth={1.8} />,
+  };
+});
+// ── Enriched key type ─────────────────────────────────────────────────────────
+type EnrichedKey = (KeyInSet | UnassignedKey) & { keySetName?: string };
 
-// ── Thumb sizing ─────────────────────────────────────────────────────────────
+type ComparableKey = Pick<EnrichedKey, "key_type" | "label" | "code">;
 
-const SCREEN_W = Dimensions.get("window").width;
-const THUMB_GAP = 6;
-const THUMB_SIZE = Math.floor((SCREEN_W - theme.spacing.screen * 2 - THUMB_GAP * 2) / 3);
+function getKeyName(key: ComparableKey) {
+  return (key.label?.trim() || KEY_TYPE_LABEL[key.key_type as KeyType] || key.key_type).trim();
+}
 
-// ── Component ─────────────────────────────────────────────────────────────────
+function getKeySignature(key: ComparableKey) {
+  return [
+    key.key_type,
+    getKeyName(key).toLocaleLowerCase(),
+    (key.code ?? "").trim().toLocaleLowerCase(),
+  ].join("::");
+}
 
+// ── PropertyKeysSection ───────────────────────────────────────────────────────
+type PropertyKeysSectionProps = {
+  propertyId: string;
+  allKeys: EnrichedKey[];
+};
+function PropertyKeysSection({ propertyId, allKeys }: PropertyKeysSectionProps) {  const [pendingType, setPendingType] = useState<KeyType>("main_door");
+  const [pendingQty, setPendingQty] = useState(1);
+  const [pendingCode, setPendingCode] = useState("");
+  const [typePickerOpen, setTypePickerOpen] = useState(false);
+  const createMut = useCreateKeys(propertyId);
+  const deleteMut = useDeleteKey(propertyId);
+  const updateMut = useUpdateKey(propertyId);
+  const addBusy = createMut.isPending || updateMut.isPending;
+
+  function resetPendingKey() {
+    setPendingQty(1);
+    setPendingCode("");
+  }
+
+  function handleAdd() {
+    if (pendingQty < 1 || addBusy) return;
+    setTypePickerOpen(false);
+    const pendingLabel = KEY_TYPE_LABEL[pendingType] ?? pendingType;
+    const pendingKey = {
+      key_type: pendingType,
+      label: pendingLabel,
+      code: pendingCode.trim() || null,
+    } satisfies ComparableKey;
+    const matchingKey = allKeys.find(
+      (key) => !key.keySetName && getKeySignature(key) === getKeySignature(pendingKey),
+    );
+
+    if (matchingKey) {
+      updateMut.mutate(
+        { keyId: matchingKey.id, patch: { quantity: (matchingKey.quantity ?? 1) + pendingQty } },
+        {
+          onSuccess: resetPendingKey,
+          onError: (err: unknown) =>
+            Alert.alert("Error", err instanceof Error ? err.message : "Failed to update key."),
+        },
+      );
+      return;
+    }
+
+    const insert: DbKeyInsert = {
+      property_id: propertyId,
+      key_type: pendingType,
+      label: pendingLabel,
+      quantity: pendingQty,
+      code: pendingCode.trim() || null,
+      key_set_id: null,
+    };
+    createMut.mutate([insert], {
+      onSuccess: resetPendingKey,
+      onError: (err) =>
+        Alert.alert("Error", err instanceof Error ? err.message : "Failed to add key."),
+    });
+  }
+  function handleQtyChange(key: EnrichedKey, delta: number) {
+    const next = Math.max(1, (key.quantity ?? 1) + delta);
+    if (next === (key.quantity ?? 1)) return;
+    updateMut.mutate(
+      { keyId: key.id, patch: { quantity: next } },
+      {
+        onError: (err: unknown) =>
+          Alert.alert("Error", err instanceof Error ? err.message : "Failed to update."),
+      },
+    );
+  }
+  function handleDelete(key: EnrichedKey) {
+    deleteMut.mutate(key.id, {
+      onError: (err: unknown) =>
+        Alert.alert("Error", err instanceof Error ? err.message : "Failed to delete."),
+    });
+  }
+  return (
+    <View style={styles.keysCard}>
+      {allKeys.length === 0 && (
+        <Text style={styles.emptyText}>No keys yet. Add one below.</Text>
+      )}
+      {allKeys.map((k) => {
+        const Icon = KEY_TYPE_ICON[k.key_type as KeyType] ?? KeyRound;
+        const label = getKeyName(k);
+        const qty = k.quantity ?? 1;
+        return (
+          <View key={k.id} style={styles.keyRow}>
+            <View style={styles.keyIconCircle}>
+              <Icon size={13} color={theme.colors.primary} strokeWidth={1.8} />
+            </View>
+            <View style={styles.keyInfo}>
+              <Text style={styles.keyLabel} numberOfLines={1}>{label}</Text>
+              {k.code ? <Text style={styles.keyCode}>{k.code}</Text> : null}
+            </View>
+            {k.keySetName && (
+              <View style={styles.keySetNameBadge}>
+                <Text style={styles.keySetNameBadgeText} numberOfLines={1}>{k.keySetName}</Text>
+              </View>
+            )}
+            <View style={styles.stepper}>
+              <Pressable
+                onPress={() => handleQtyChange(k, -1)}
+                disabled={updateMut.isPending || qty <= 1}
+                hitSlop={6}
+                style={[styles.stepBtn, qty <= 1 && styles.stepBtnDisabled]}
+              >
+                <Minus size={11} color={qty <= 1 ? theme.colors.textLight : theme.colors.text} strokeWidth={2.5} />
+              </Pressable>
+              <Text style={styles.stepVal}>{qty}</Text>
+              <Pressable
+                onPress={() => handleQtyChange(k, +1)}
+                disabled={updateMut.isPending}
+                hitSlop={6}
+                style={styles.stepBtn}
+              >
+                <Plus size={11} color={theme.colors.text} strokeWidth={2.5} />
+              </Pressable>
+            </View>
+            <Pressable
+              onPress={() => handleDelete(k)}
+              disabled={deleteMut.isPending}
+              hitSlop={8}
+              style={({ pressed }) => [styles.deleteBtn, pressed && { opacity: 0.65 }]}
+            >
+              {deleteMut.isPending
+                ? <ActivityIndicator size={13} color={theme.colors.danger} />
+                : <Trash2 size={14} color={theme.colors.danger} strokeWidth={2} />}
+            </Pressable>
+          </View>
+        );
+      })}
+      <View style={styles.cardDivider} />
+      {/* Add key row */}
+      <View style={styles.addKeyRow}>
+        <View style={styles.typePickerWrapper}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.typePicker,
+              typePickerOpen && styles.typePickerOpen,
+              pressed && { opacity: 0.75 },
+            ]}
+            onPress={() => setTypePickerOpen((v) => !v)}
+            disabled={addBusy}
+          >
+            {(() => {
+              const Icon = KEY_TYPE_ICON[pendingType] ?? KeyRound;
+              return <Icon size={14} color={theme.colors.textMuted} strokeWidth={1.8} />;
+            })()}
+            <Text style={styles.typePickerText} numberOfLines={1}>
+              {KEY_TYPE_LABEL[pendingType]}
+            </Text>
+            {typePickerOpen
+              ? <ChevronUp size={13} color={theme.colors.textMuted} strokeWidth={2} />
+              : <ChevronDown size={13} color={theme.colors.textMuted} strokeWidth={2} />}
+          </Pressable>
+          {typePickerOpen && (
+            <ScrollView
+              style={styles.inlinePicker}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+              nestedScrollEnabled
+            >
+              {ALL_KEY_TYPE_OPTIONS.map((opt) => {
+                const selected = opt.value === pendingType;
+                return (
+                  <Pressable
+                    key={opt.value}
+                    style={({ pressed }) => [
+                      styles.inlinePickerOption,
+                      selected && styles.inlinePickerOptionSelected,
+                      pressed && { opacity: 0.7 },
+                    ]}
+                    onPress={() => { setPendingType(opt.value as KeyType); setTypePickerOpen(false); }}
+                  >
+                    <View style={styles.inlinePickerIcon}>{opt.icon}</View>
+                    <Text style={[styles.inlinePickerLabel, selected && styles.inlinePickerLabelSelected]}>
+                      {opt.label}
+                    </Text>
+                    {selected && <Check size={13} color={theme.colors.primary} strokeWidth={2.5} />}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          )}
+        </View>
+        <View style={styles.stepper}>
+          <Pressable
+            onPress={() => setPendingQty((v) => Math.max(1, v - 1))}
+            disabled={addBusy || pendingQty <= 1}
+            hitSlop={6}
+            style={[styles.stepBtn, pendingQty <= 1 && styles.stepBtnDisabled]}
+          >
+            <Minus size={11} color={pendingQty <= 1 ? theme.colors.textLight : theme.colors.text} strokeWidth={2.5} />
+          </Pressable>
+          <Text style={styles.stepVal}>{pendingQty}</Text>
+          <Pressable
+            onPress={() => setPendingQty((v) => v + 1)}
+            disabled={addBusy}
+            hitSlop={6}
+            style={styles.stepBtn}
+          >
+            <Plus size={11} color={theme.colors.text} strokeWidth={2.5} />
+          </Pressable>
+        </View>
+        <Pressable
+          style={({ pressed }) => [styles.addKeyBtn, pressed && { opacity: 0.78 }, addBusy && { opacity: 0.6 }]}
+          onPress={handleAdd}
+          disabled={addBusy}
+        >
+          {addBusy
+            ? <ActivityIndicator size="small" color="#fff" />
+            : <Text style={styles.addKeyBtnText}>Add</Text>}
+        </Pressable>
+      </View>
+      <TextInput
+        style={styles.codeInput}
+        value={pendingCode}
+        onChangeText={setPendingCode}
+        placeholder="Code / tag # (optional)"
+        placeholderTextColor={theme.colors.textLight}
+        returnKeyType="done"
+        maxLength={30}
+      />
+    </View>
+  );
+}
+// ── PropertyEditModal ─────────────────────────────────────────────────────────
 type Props = {
   property: PropertyWithLandlord;
   visible: boolean;
   onClose: () => void;
 };
-
 export function PropertyEditModal({ property, visible, onClose }: Props) {
-  const queryClient = useQueryClient();
-  const updateProperty = useUpdateProperty(property.id);
-
-  // ── Draft state ────────────────────────────────────────────────────────────
+  const { data: keySets = [] } = useKeySets(property.id);
+  const { data: unassignedKeys = [] } = useUnassignedKeys(property.id);
+  // All property keys: assigned (from keysets, with name) + unassigned
+  const allKeys = useMemo<EnrichedKey[]>(
+    () => [
+      ...keySets.flatMap((ks) => ks.keys.map((k) => ({ ...k, keySetName: ks.name }))),
+      ...unassignedKeys,
+    ],
+    [keySets, unassignedKeys],
+  );
   const [propertyType, setPropertyType] = useState<PropertyType>(property.property_type);
   const [landlordName, setLandlordName] = useState(property.landlord?.full_name ?? "");
   const [landlordContact, setLandlordContact] = useState(property.landlord?.phone ?? "");
-  const [keptImages, setKeptImages] = useState<PropertyImage[]>([]);
-  const [newPhotoUris, setNewPhotoUris] = useState<string[]>([]);
-  const [saving, setSaving] = useState(false);
   const [showTypePicker, setShowTypePicker] = useState(false);
-
-  // Reset draft when modal opens so stale state is never shown
   useEffect(() => {
     if (visible) {
       setPropertyType(property.property_type);
       setLandlordName(property.landlord?.full_name ?? "");
       setLandlordContact(property.landlord?.phone ?? "");
-      setKeptImages(getVisibleImages(property.images ?? []));
-      setNewPhotoUris([]);
     }
   }, [visible, property]);
-
-  // Signed URLs for existing images (from TQ cache — no extra network call)
-  const { data: signedUrls = [] } = usePropertyImageUrls(property.images ?? []);
-
-  // Map each kept image to its signed URL by matching path
-  const allVisibleImages = getVisibleImages(property.images ?? []);
-  function signedUrlFor(img: PropertyImage): string | null {
-    const idx = allVisibleImages.findIndex((v) => v.path === img.path);
-    return idx >= 0 ? (signedUrls[idx] ?? null) : null;
-  }
-
-  // ── Handlers ──────────────────────────────────────────────────────────────
-
-  function removeKeptImage(path: string) {
-    setKeptImages((prev) => prev.filter((img) => img.path !== path));
-  }
-
-  function removeNewPhoto(index: number) {
-    setNewPhotoUris((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  async function addPhotos() {
-    Alert.alert("Add Photos", "Choose photo source", [
-      {
-        text: "Take Photo",
-        onPress: async () => {
-          const perm = await ImagePicker.requestCameraPermissionsAsync();
-          if (perm.status !== "granted") {
-            Alert.alert("Permission required", "Allow camera access in Settings.");
-            return;
-          }
-          const result = await ImagePicker.launchCameraAsync({
-            mediaTypes: "images",
-            quality: 0.85,
-          });
-          if (!result.canceled && result.assets[0]) {
-            setNewPhotoUris((prev) => [...prev, result.assets[0].uri]);
-          }
-        },
-      },
-      {
-        text: "Choose from Library",
-        onPress: async () => {
-          const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-          if (perm.status !== "granted") {
-            Alert.alert("Permission required", "Allow photo library access in Settings.");
-            return;
-          }
-          const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: "images",
-            quality: 0.85,
-            allowsMultipleSelection: true,
-          });
-          if (!result.canceled) {
-            setNewPhotoUris((prev) => [...prev, ...result.assets.map((a) => a.uri)]);
-          }
-        },
-      },
-      { text: "Cancel", style: "cancel" },
-    ]);
-  }
-
-  async function handleSave() {
-    setSaving(true);
-    try {
-      // 1. Upload new photos
-      let uploadedImages: PropertyImage[] = [];
-      if (newPhotoUris.length > 0) {
-        uploadedImages = await uploadPropertyImagesForEdit(
-          property.id,
-          newPhotoUris,
-          keptImages.length + 1,
-        );
-      }
-
-      // 2. Build final images array with correct sort_order
-      const finalImages: PropertyImage[] = [
-        ...keptImages.map((img, i) => ({ ...img, sort_order: i + 1 })),
-        ...uploadedImages,
-      ];
-
-      // 3. Landlord: update existing or create new
-      let landlordHolderId = property.landlord_holder_id ?? null;
-      const hasLandlordData = Boolean(landlordName.trim() || landlordContact.trim());
-
-      if (property.landlord?.id) {
-        await updateKeyHolder(property.landlord.id, {
-          full_name: landlordName.trim() || null,
-          phone: landlordContact.trim() || null,
-        });
-      } else if (hasLandlordData) {
-        const holder = await createKeyHolder({
-          holder_type: "landlord",
-          full_name: landlordName.trim() || null,
-          phone: landlordContact.trim() || null,
-        });
-        landlordHolderId = holder.id;
-      }
-
-      // 4. Update property
-      await updateProperty.mutateAsync({
-        property_type: propertyType,
-        images: finalImages,
-        landlord_holder_id: landlordHolderId,
-      });
-
-      // 5. Bust signed URL cache for new images so they resolve immediately
-      for (const img of uploadedImages) {
-        queryClient.invalidateQueries({
-          queryKey: QUERY_KEYS.storage.signedUrl(img.path),
-        });
-      }
-      // Also invalidate the bulk signed URLs query for this property
-      queryClient.invalidateQueries({
-        queryKey: QUERY_KEYS.storage.signedUrls(
-          allVisibleImages.map((i) => i.path),
-        ),
-      });
-
-      onClose();
-    } catch (err) {
-      Alert.alert(
-        "Save failed",
-        err instanceof Error ? err.message : "Please try again.",
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
-
   const selectedTypeLabel =
     PROPERTY_TYPES.find((t) => t.value === propertyType)?.label ?? "Select…";
-
-  const totalPhotos = keptImages.length + newPhotoUris.length;
-
-  // ── Render ────────────────────────────────────────────────────────────────
-
   return (
     <>
-      <BottomSheet
-        visible={visible}
-        onClose={onClose}
-        containerStyle={styles.sheet}
-      >
-        {/* Drag handle is shown by BottomSheet automatically */}
-
-        {/* Header */}
+      <BottomSheet visible={visible} onClose={onClose} containerStyle={styles.sheet}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Edit Property</Text>
           <Pressable
@@ -227,14 +327,13 @@ export function PropertyEditModal({ property, visible, onClose }: Props) {
             <X size={18} color={theme.colors.text} strokeWidth={2.2} />
           </Pressable>
         </View>
-
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* ── Property type ─────────────────────────────────────────── */}
+          {/* Property type */}
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Property Type</Text>
             <Pressable
@@ -245,8 +344,7 @@ export function PropertyEditModal({ property, visible, onClose }: Props) {
               <Text style={styles.selectChevron}>›</Text>
             </Pressable>
           </View>
-
-          {/* ── Landlord ──────────────────────────────────────────────── */}
+          {/* Landlord */}
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Landlord</Text>
             <View style={styles.inputGroup}>
@@ -271,107 +369,13 @@ export function PropertyEditModal({ property, visible, onClose }: Props) {
               />
             </View>
           </View>
-
-          {/* ── Photos ────────────────────────────────────────────────── */}
+          {/* Keys */}
           <View style={styles.section}>
-            <View style={styles.sectionRow}>
-              <Text style={styles.sectionLabel}>Photos</Text>
-              {totalPhotos > 0 && (
-                <Text style={styles.photoCount}>{totalPhotos} photo{totalPhotos === 1 ? "" : "s"}</Text>
-              )}
-            </View>
-
-            <View style={styles.photoGrid}>
-              {/* Existing (kept) images */}
-              {keptImages.map((img) => {
-                const url = signedUrlFor(img);
-                return (
-                  <View key={img.path} style={styles.thumb}>
-                    {url ? (
-                      <Image
-                        source={{ uri: url }}
-                        style={styles.thumbImg}
-                        contentFit="cover"
-                        transition={150}
-                      />
-                    ) : (
-                      <View style={[styles.thumbImg, styles.thumbPlaceholder]} />
-                    )}
-                    <Pressable
-                      style={styles.thumbRemove}
-                      onPress={() => removeKeptImage(img.path)}
-                      hitSlop={4}
-                      accessibilityRole="button"
-                      accessibilityLabel="Remove photo"
-                    >
-                      <X size={11} color="#fff" strokeWidth={3} />
-                    </Pressable>
-                  </View>
-                );
-              })}
-
-              {/* New (local) images */}
-              {newPhotoUris.map((uri, i) => (
-                <View key={`new-${i}`} style={[styles.thumb, styles.thumbNew]}>
-                  <Image
-                    source={{ uri }}
-                    style={styles.thumbImg}
-                    contentFit="cover"
-                    transition={150}
-                  />
-                  <Pressable
-                    style={styles.thumbRemove}
-                    onPress={() => removeNewPhoto(i)}
-                    hitSlop={4}
-                    accessibilityRole="button"
-                    accessibilityLabel="Remove photo"
-                  >
-                    <X size={11} color="#fff" strokeWidth={3} />
-                  </Pressable>
-                </View>
-              ))}
-
-              {/* Add photos tile */}
-              <Pressable
-                style={({ pressed }) => [styles.addTile, pressed && { opacity: 0.7 }]}
-                onPress={addPhotos}
-                accessibilityRole="button"
-                accessibilityLabel="Add photo"
-              >
-                <View style={styles.addIcon}>
-                  <Plus size={18} color={theme.colors.primary} strokeWidth={2} />
-                </View>
-                <Text style={styles.addLabel}>Add</Text>
-              </Pressable>
-            </View>
+            <Text style={styles.sectionLabel}>Keys</Text>
+            <PropertyKeysSection propertyId={property.id} allKeys={allKeys} />
           </View>
-
-          {/* ── Save button ───────────────────────────────────────────── */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.saveBtn,
-              pressed && { opacity: 0.82 },
-              saving && { opacity: 0.6 },
-            ]}
-            onPress={handleSave}
-            disabled={saving}
-            accessibilityRole="button"
-          >
-            {saving ? (
-              <>
-                <ActivityIndicator color="#fff" size="small" />
-                <Text style={styles.saveBtnLabel}>
-                  {newPhotoUris.length > 0 ? `Uploading ${newPhotoUris.length} photo${newPhotoUris.length === 1 ? "" : "s"}…` : "Saving…"}
-                </Text>
-              </>
-            ) : (
-              <Text style={styles.saveBtnLabel}>Save changes</Text>
-            )}
-          </Pressable>
         </ScrollView>
       </BottomSheet>
-
-      {/* Type picker — rendered outside BottomSheet to avoid z-index issues */}
       <PickerModal
         visible={showTypePicker}
         title="Property Type"
@@ -383,12 +387,9 @@ export function PropertyEditModal({ property, visible, onClose }: Props) {
     </>
   );
 }
-
+// ── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  sheet: {
-    maxHeight: "90%",
-    paddingHorizontal: 0,
-  },
+  sheet: { maxHeight: "92%", paddingHorizontal: 0 },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -396,18 +397,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.screen,
     paddingBottom: theme.spacing.sm,
   },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: theme.colors.text,
-  },
+  headerTitle: { fontSize: 17, fontWeight: "700", color: theme.colors.text },
   closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 32, height: 32, borderRadius: 16,
     backgroundColor: theme.colors.neutralSoft,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: "center", justifyContent: "center",
   },
   scroll: { flex: 1 },
   scrollContent: {
@@ -416,149 +410,110 @@ const styles = StyleSheet.create({
     gap: theme.spacing.lg,
   },
   section: { gap: theme.spacing.sm },
-  sectionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
   sectionLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.7,
-    textTransform: "uppercase",
-    color: theme.colors.textLight,
+    fontSize: 11, fontWeight: "700", letterSpacing: 0.7,
+    textTransform: "uppercase", color: theme.colors.textLight,
   },
-  photoCount: {
-    fontSize: 12,
-    color: theme.colors.textMuted,
-    fontWeight: "500",
-  },
-
-  // ── Property type select ──────────────────────────────────────────────────
   selectField: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.md,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: 13,
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border,
+    borderRadius: theme.radius.md, paddingHorizontal: theme.spacing.md, paddingVertical: 13,
   },
-  selectText: {
-    fontSize: 15,
-    color: theme.colors.text,
-    fontWeight: "500",
-  },
-  selectChevron: {
-    fontSize: 18,
-    color: theme.colors.textMuted,
-  },
-
-  // ── Inputs ────────────────────────────────────────────────────────────────
+  selectText: { fontSize: 15, color: theme.colors.text, fontWeight: "500" },
+  selectChevron: { fontSize: 18, color: theme.colors.textMuted },
   inputGroup: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border,
+    borderRadius: theme.radius.md, overflow: "hidden",
+  },
+  input: { paddingHorizontal: theme.spacing.md, paddingVertical: 13, fontSize: 15, color: theme.colors.text },
+  inputDivider: { height: 1, backgroundColor: theme.colors.border, marginLeft: theme.spacing.md },
+  keysCard: {
+    backgroundColor: theme.colors.surface, borderWidth: 1.5,
+    borderColor: theme.colors.primarySoft, borderRadius: theme.radius.lg,
+    padding: theme.spacing.md, gap: theme.spacing.sm,
+  },
+  emptyText: {
+    fontSize: 13, color: theme.colors.textLight, fontStyle: "italic",
+    textAlign: "center", paddingVertical: theme.spacing.xs,
+  },
+  cardDivider: { height: 1, backgroundColor: theme.colors.border, marginVertical: 2 },
+  keyRow: {
+    flexDirection: "row", alignItems: "center", gap: theme.spacing.sm,
+    paddingVertical: 7, paddingHorizontal: 10,
+    backgroundColor: theme.colors.background, borderRadius: theme.radius.md,
+  },
+  keyIconCircle: {
+    width: 30, height: 30, borderRadius: theme.radius.sm,
+    backgroundColor: theme.colors.primarySoft,
+    alignItems: "center", justifyContent: "center", flexShrink: 0,
+  },
+  keyInfo: { flex: 1, gap: 2, minWidth: 0 },
+  keyLabel: { fontSize: 13, fontWeight: "600", color: theme.colors.text },
+  keyCode: { fontSize: 11, color: theme.colors.textMuted },
+  keySetNameBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.primarySoft,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.md,
-    overflow: "hidden",
+    borderColor: theme.colors.primary + "44",
+    maxWidth: 80,
+    flexShrink: 1,
   },
-  input: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: 13,
-    fontSize: 15,
-    color: theme.colors.text,
-  },
-  inputDivider: {
-    height: 1,
-    backgroundColor: theme.colors.border,
-    marginLeft: theme.spacing.md,
-  },
-
-  // ── Photo grid ────────────────────────────────────────────────────────────
-  photoGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: THUMB_GAP,
-  },
-  thumb: {
-    width: THUMB_SIZE,
-    height: THUMB_SIZE,
-    borderRadius: theme.radius.md,
-    overflow: "hidden",
-  },
-  thumbNew: {
-    borderWidth: 2,
-    borderColor: theme.colors.primary,
-  },
-  thumbImg: {
-    width: "100%",
-    height: "100%",
-  },
-  thumbPlaceholder: {
-    backgroundColor: theme.colors.neutralSoft,
-  },
-  thumbRemove: {
-    position: "absolute",
-    top: 5,
-    right: 5,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: "#E53935",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 2,
-  },
-  addTile: {
-    width: THUMB_SIZE,
-    height: THUMB_SIZE,
-    borderRadius: theme.radius.md,
-    borderWidth: 1.5,
-    borderStyle: "dashed",
-    borderColor: theme.colors.primary + "88",
-    backgroundColor: theme.colors.surfaceWarm,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-  },
-  addIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: theme.colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  addLabel: {
-    fontSize: 12,
-    fontWeight: "600",
+  keySetNameBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
     color: theme.colors.primary,
   },
-
-  // ── Save button ───────────────────────────────────────────────────────────
-  saveBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.radius.lg,
-    paddingVertical: 15,
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
-    marginTop: theme.spacing.sm,
+  stepper: { flexDirection: "row", alignItems: "center", gap: 5, flexShrink: 0 },
+  stepBtn: {
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: theme.colors.neutralSoft,
+    alignItems: "center", justifyContent: "center",
+    borderWidth: 1, borderColor: theme.colors.border,
   },
-  saveBtnLabel: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#fff",
-    letterSpacing: 0.2,
+  stepBtnDisabled: { opacity: 0.35 },
+  stepVal: { fontSize: 14, fontWeight: "700", color: theme.colors.text, minWidth: 20, textAlign: "center" },
+  deleteBtn: {
+    width: 32, height: 32, borderRadius: theme.radius.sm,
+    backgroundColor: theme.colors.dangerSoft,
+    alignItems: "center", justifyContent: "center", flexShrink: 0,
+  },
+  addKeyRow: { flexDirection: "row", alignItems: "center", gap: theme.spacing.sm },
+  typePickerWrapper: { flex: 1, position: "relative", zIndex: 10 },
+  typePicker: {
+    flexDirection: "row", alignItems: "center", gap: 6, height: 44,
+    borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.radius.md,
+    paddingHorizontal: theme.spacing.sm, backgroundColor: theme.colors.background,
+  },
+  typePickerOpen: { borderColor: theme.colors.primary, backgroundColor: theme.colors.primarySoft },
+  typePickerText: { flex: 1, fontSize: 13, color: theme.colors.text },
+  inlinePicker: {
+    position: "absolute", bottom: 46, left: 0, right: 0,
+    zIndex: 100, elevation: 20, maxHeight: 220,
+    borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.surface,
+    shadowColor: theme.colors.charcoal, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12, shadowRadius: 8,
+  },
+  inlinePickerOption: {
+    flexDirection: "row", alignItems: "center", gap: theme.spacing.sm,
+    paddingVertical: 11, paddingHorizontal: theme.spacing.sm,
+    borderBottomWidth: 1, borderBottomColor: theme.colors.border,
+  },
+  inlinePickerOptionSelected: { backgroundColor: theme.colors.primarySoft },
+  inlinePickerIcon: { width: 22, alignItems: "center" },
+  inlinePickerLabel: { flex: 1, fontSize: 14, color: theme.colors.text },
+  inlinePickerLabelSelected: { color: theme.colors.primary, fontWeight: "600" },
+  addKeyBtn: {
+    height: 44, paddingHorizontal: theme.spacing.md, borderRadius: theme.radius.md,
+    alignItems: "center", justifyContent: "center",
+    backgroundColor: theme.colors.primary, minWidth: 60,
+  },
+  addKeyBtnText: { fontSize: 14, fontWeight: "700", color: "#fff" },
+  codeInput: {
+    height: 40, borderWidth: 1, borderColor: theme.colors.border,
+    borderRadius: theme.radius.md, paddingHorizontal: theme.spacing.sm,
+    fontSize: 13, color: theme.colors.text, backgroundColor: theme.colors.background,
   },
 });
-

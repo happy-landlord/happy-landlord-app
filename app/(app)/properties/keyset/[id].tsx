@@ -24,7 +24,7 @@ import {
 import { KEY_TYPE_ICON, KEY_TYPE_LABEL } from "@/components/key/keyLabels";
 import { CountdownTimer } from "@/components/key/CountdownTimer";
 import { KeyStatusChip } from "@/components/KeyStatusChip";
-import { KeyEditSheet } from "@/components/property/KeyEditSheet";
+import { KeySetEditSheet } from "@/components/property/KeySetEditSheet";
 import { PropertyHeader } from "@/components/property/PropertyHeader";
 import { ReturnConfirmModal } from "@/components/key/ReturnConfirmModal";
 import { TransferConfirmModal } from "@/components/key/TransferConfirmModal";
@@ -648,11 +648,12 @@ export default function KeySetDetailScreen() {
 
       {/* Admin: edit keys in this keyset */}
       {isAdmin && (
-        <KeyEditSheet
+        <KeySetEditSheet
           visible={editKeysOpen}
           onClose={() => setEditKeysOpen(false)}
           propertyId={keySet.property_id}
           keySetId={keySet.id}
+          keySetName={keySet.name}
           keys={keySet.keys ?? []}
         />
       )}

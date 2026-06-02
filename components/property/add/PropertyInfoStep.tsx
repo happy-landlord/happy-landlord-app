@@ -78,15 +78,33 @@ export function PropertyInfoStep({
 
   function addKey() {
     if (pendingCount < 1) return;
-    const entry: KeyEntry = {
-      id: `key-${Date.now()}`,
-      type: pendingType,
-      count: pendingCount,
-      code: pendingCode.trim() || null,
-      otherLabel:
-        pendingType === "other" ? pendingOtherLabel.trim() || null : null,
-    };
-    onKeysChange([...keys, entry]);
+    const normalizedCode = pendingCode.trim() || null;
+    const normalizedLabel =
+      pendingType === "other" ? pendingOtherLabel.trim() || null : null;
+
+    const existingIndex = keys.findIndex(
+      (k) =>
+        k.type === pendingType &&
+        k.code === normalizedCode &&
+        k.otherLabel === normalizedLabel,
+    );
+
+    if (existingIndex !== -1) {
+      const updated = keys.map((k, i) =>
+        i === existingIndex ? { ...k, count: k.count + pendingCount } : k,
+      );
+      onKeysChange(updated);
+    } else {
+      const entry: KeyEntry = {
+        id: `key-${Date.now()}`,
+        type: pendingType,
+        count: pendingCount,
+        code: normalizedCode,
+        otherLabel: normalizedLabel,
+      };
+      onKeysChange([...keys, entry]);
+    }
+
     const next = KEY_TYPE_OPTIONS.find((o) => o.value !== pendingType);
     setPendingType(next?.value ?? KEY_TYPE_OPTIONS[0].value);
     setPendingCount(1);
