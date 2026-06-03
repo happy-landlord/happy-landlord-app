@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, View } from "react-native";
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from "react-native";
 
 import { PropertyCard } from "@/components/PropertyCard";
 import { EmptyState , ErrorState , LoadingState } from "@/components/ui";
@@ -11,7 +11,7 @@ import {
   type AdminPropertyTab,
 } from "@/components/property";
 import { useInfiniteProperties } from "@/lib/hooks";
-import { useRole } from "@/hooks";
+import { useRole, useRefreshControl } from "@/hooks";
 import { placeSearchLabel } from "@/lib/utils";
 import type { DbProperty, PropertyStatus } from "@/types";
 import { theme , useBottomListPadding } from "@/constants";
@@ -42,6 +42,8 @@ export default function PropertiesScreen() {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteProperties({ search, status });
+
+  const { refreshing, onRefresh } = useRefreshControl(refetch);
 
   const renderItem = useCallback(
     ({ item }: { item: DbProperty }) => <PropertyCard property={item} />,
@@ -120,6 +122,14 @@ export default function PropertiesScreen() {
             { paddingBottom: listPaddingBottom },
             properties.length === 0 && styles.listEmpty,
           ]}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.colors.primary}
+              colors={[theme.colors.primary]}
+            />
+          }
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"

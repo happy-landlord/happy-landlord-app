@@ -1,5 +1,6 @@
 import {
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -20,7 +21,7 @@ import {
 import { ErrorState, LoadingState } from "@/components/ui";
 import { theme } from "@/constants";
 import { useProperty, usePropertyTenant } from "@/lib/hooks";
-import { useRole } from "@/hooks";
+import { useRole, useRefreshControl } from "@/hooks";
 
 export default function PropertyDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -29,6 +30,7 @@ export default function PropertyDetailScreen() {
 
   const { data: property, isPending, isError, refetch } = useProperty(id);
   const { data: tenant } = usePropertyTenant(id, property?.status === "leased");
+  const { refreshing, onRefresh } = useRefreshControl(refetch);
   const [tenantSheetOpen, setTenantSheetOpen] = useState(false);
   const [collectSheetOpen, setCollectSheetOpen] = useState(false);
   const [landlordSheetOpen, setLandlordSheetOpen] = useState(false);
@@ -54,6 +56,14 @@ export default function PropertyDetailScreen() {
           { paddingBottom: insets.bottom + theme.spacing.xl },
         ]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.primary}
+            colors={[theme.colors.primary]}
+          />
+        }
       >
         <PropertyHeader property={property} tenant={tenant} />
 

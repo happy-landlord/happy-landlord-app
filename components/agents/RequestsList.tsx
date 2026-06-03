@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   FlatList,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   View,
@@ -11,6 +12,7 @@ import { CheckCircle, Clock, Phone, UserX, XCircle } from "lucide-react-native";
 
 import { theme } from "@/constants";
 import { useRegistrationRequests, useReviewRequest } from "@/lib/hooks";
+import { useRefreshControl } from "@/hooks";
 import type { RegistrationRequest } from "@/lib/services";
 
 import { sharedStyles } from "./styles";
@@ -26,6 +28,7 @@ export function RequestsList() {
     refetch,
   } = useRegistrationRequests();
   const { approve, reject } = useReviewRequest();
+  const { refreshing, onRefresh } = useRefreshControl(refetch);
 
   const { sorted, pendingCount } = useMemo(() => {
     const rows = requests ?? [];
@@ -110,6 +113,14 @@ export function RequestsList() {
           onReject={() => reject.mutate({ requestId: item.id })}
         />
       )}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={theme.colors.primary}
+          colors={[theme.colors.primary]}
+        />
+      }
     />
   );
 }

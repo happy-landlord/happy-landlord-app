@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { KeyRound } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
@@ -19,7 +19,7 @@ import {
   useKeySetsNeedingAttention,
   useMyActivity,
 } from "@/lib/hooks";
-import { useRole } from "@/hooks";
+import { useRole, useRefreshControl } from "@/hooks";
 import { theme, useBottomListPadding } from "@/constants";
 import { formatShortDate, isPastDue } from "@/lib/utils";
 import type { CheckedOutKeySet } from "@/lib/services";
@@ -45,17 +45,23 @@ export default function HomeScreen() {
 
   // useCheckedOutKeySets is now role-scoped server-side — admins see all,
   // agents only their own holdings. The previous client-side filter is gone.
-  const { data: checkedOut = [], isLoading: checkedOutLoading } =
+  const { data: checkedOut = [], isLoading: checkedOutLoading, refetch: refetchCheckedOut } =
     useCheckedOutKeySets(isAdmin ? 20 : 50);
 
   // Recent activity is only rendered for agents — skip the network call for
   // admins (rather than fetching and discarding).
-  const { data: activity = [], isLoading: activityLoading } = useMyActivity({
+  const { data: activity = [], isLoading: activityLoading, refetch: refetchActivity } = useMyActivity({
     enabled: !isAdmin,
   });
 
-  const { data: needsAttention = [], isLoading: attentionLoading } =
+  const { data: needsAttention = [], isLoading: attentionLoading, refetch: refetchAttention } =
     useKeySetsNeedingAttention();
+
+  const { refreshing, onRefresh } = useRefreshControl(
+    refetchCheckedOut,
+    refetchActivity,
+    refetchAttention,
+  );
 
   const checkedOutKeySets = sortByDueDate(checkedOut);
   const recentActivity = activity.slice(0, 4);
@@ -71,6 +77,14 @@ export default function HomeScreen() {
         { paddingBottom: listPaddingBottom },
       ]}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={theme.colors.primary}
+          colors={[theme.colors.primary]}
+        />
+      }
     >
       {/* Key status summary — admin only */}
       {isAdmin && (

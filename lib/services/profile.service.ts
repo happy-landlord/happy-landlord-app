@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { compressAvatar } from "@/lib/utils/imageCompression";
 import type { DbKeyHolder, DbProfile, DbProfileUpdate } from "@/types";
 
 /** Profile fields the user can edit themselves. */
@@ -115,20 +116,24 @@ const SIGNED_URL_TTL = 3600;
 /**
  * Uploads a local photo URI to `profiles/{userId}/avatar.jpg` (overwrites
  * any existing avatar) and returns the storage path to save in the DB.
+ *
+ * The image is compressed to ≤ 400 px wide JPEG before upload to keep
+ * avatar storage minimal (~30–60 KB each).
  */
 export async function uploadProfileImage(
   userId: string,
   localUri: string,
 ): Promise<string> {
-  const ext = localUri.split("?")[0].split(".").pop()?.toLowerCase() ?? "jpg";
-  const contentType = ext === "png" ? "image/png" : "image/jpeg";
-  const fileName = ext === "png" ? "avatar.png" : "avatar.jpg";
-  const storagePath = `${userId}/${fileName}`;
+  // Compress to a small avatar-sized JPEG before uploading
+  const compressedUri = await compressAvatar(localUri);
+
+  const storagePath = `${userId}/avatar.jpg`;
+  const contentType = "image/jpeg";
 
   // React Native: `response.blob()` produces a 0-byte upload because RN's
   // Blob is just a metadata stub. `arrayBuffer()` returns the actual bytes
   // and is the supported way to upload files to Supabase Storage from RN.
-  const response = await fetch(localUri);
+  const response = await fetch(compressedUri);
   const arrayBuffer = await response.arrayBuffer();
 
   const { error } = await supabase.storage

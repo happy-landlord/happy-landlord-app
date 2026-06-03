@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { compressImage } from "@/lib/utils/imageCompression";
 import type {
   DbKeySet,
   DbKeySetInsert,
@@ -399,6 +400,9 @@ export async function fetchSignedKeySetImageUrl(
  * Uploads local photo URIs to Supabase Storage under
  * `properties/{propertyId}/{keySetId}/` in the `properties` bucket
  * and returns a `StoredImage[]` array ready to be saved in the DB.
+ *
+ * Each photo is compressed to ≤ 1 200 px wide JPEG before upload
+ * (~150–300 KB vs 3–5 MB originals — roughly 15× storage savings).
  */
 export async function uploadKeySetImages(
   propertyId: string,
@@ -408,18 +412,17 @@ export async function uploadKeySetImages(
   const results: StoredImage[] = [];
 
   for (let i = 0; i < localUris.length; i++) {
-    const uri = localUris[i];
-    const ext = uri.split("?")[0].split(".").pop()?.toLowerCase() ?? "jpg";
-    const contentType = ext === "png" ? "image/png" : "image/jpeg";
-    const fileName = `photo-${i + 1}.${ext === "png" ? "png" : "jpg"}`;
+    // Compress to JPEG before uploading
+    const compressedUri = await compressImage(localUris[i]);
+    const fileName = `photo-${i + 1}.jpg`;
     const storagePath = `${propertyId}/${keySetId}/${fileName}`;
 
-    const response = await fetch(uri);
+    const response = await fetch(compressedUri);
     const arrayBuffer = await response.arrayBuffer();
 
     const { error } = await supabase.storage
       .from("properties")
-      .upload(storagePath, arrayBuffer, { contentType, upsert: true });
+      .upload(storagePath, arrayBuffer, { contentType: "image/jpeg", upsert: true });
 
     if (error) {
       throw new Error(

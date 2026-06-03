@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { compressImage } from "@/lib/utils/imageCompression";
 import type {
   DbKeyHolder,
   DbKeyHolderInsert,
@@ -361,6 +362,8 @@ export async function updateKeyHolder(
  * Uploads new local photos during a property edit.
  * Uses timestamp-based filenames to avoid collisions with existing files.
  * `baseSortOrder`: the sort_order to start numbering from (1 = first image overall).
+ *
+ * Each photo is compressed to ≤ 1 200 px wide JPEG before upload.
  */
 export async function uploadPropertyImagesForEdit(
   propertyId: string,
@@ -371,18 +374,17 @@ export async function uploadPropertyImagesForEdit(
   const batchTs = Date.now();
 
   for (let i = 0; i < localUris.length; i++) {
-    const uri = localUris[i];
-    const ext = uri.split("?")[0].split(".").pop()?.toLowerCase() ?? "jpg";
-    const contentType = ext === "png" ? "image/png" : "image/jpeg";
-    const fileName = `photo-${batchTs}-${i + 1}.${ext === "png" ? "png" : "jpg"}`;
+    // Compress to JPEG before uploading
+    const compressedUri = await compressImage(localUris[i]);
+    const fileName = `photo-${batchTs}-${i + 1}.jpg`;
     const storagePath = `${propertyId}/${fileName}`;
 
-    const response = await fetch(uri);
+    const response = await fetch(compressedUri);
     const arrayBuffer = await response.arrayBuffer();
 
     const { error } = await supabase.storage
       .from("properties")
-      .upload(storagePath, arrayBuffer, { contentType, upsert: false });
+      .upload(storagePath, arrayBuffer, { contentType: "image/jpeg", upsert: false });
 
     if (error)
       throw new Error(`Failed to upload photo ${i + 1}: ${error.message}`);
@@ -401,8 +403,8 @@ export async function uploadPropertyImagesForEdit(
  * Uploads local photo URIs to Supabase Storage under `properties/{propertyId}/`
  * and returns a `StoredImage[]` array ready to be saved in the DB.
  *
- * Uses `fetch` → blob so it works with both `file://` and `ph://` URIs on iOS.
- * Photos are uploaded sequentially to avoid overwhelming low-end devices.
+ * Each photo is compressed to ≤ 1 200 px wide JPEG before upload
+ * (~150–300 KB vs 3–5 MB originals — roughly 15× storage savings).
  */
 export async function uploadPropertyImages(
   propertyId: string,
@@ -411,21 +413,19 @@ export async function uploadPropertyImages(
   const results: StoredImage[] = [];
 
   for (let i = 0; i < localUris.length; i++) {
-    const uri = localUris[i];
-    // Detect content type from extension; default to JPEG
-    const ext = uri.split("?")[0].split(".").pop()?.toLowerCase() ?? "jpg";
-    const contentType = ext === "png" ? "image/png" : "image/jpeg";
-    const fileName = `photo-${i + 1}.${ext === "png" ? "png" : "jpg"}`;
+    // Compress to JPEG before uploading
+    const compressedUri = await compressImage(localUris[i]);
+    const fileName = `photo-${i + 1}.jpg`;
     const storagePath = `${propertyId}/${fileName}`;
 
-    const response = await fetch(uri);
+    const response = await fetch(compressedUri);
     // React Native: use arrayBuffer() (not blob()) — RN's Blob is a metadata
     // stub and uploads as 0 bytes when passed to supabase-js.
     const arrayBuffer = await response.arrayBuffer();
 
     const { error } = await supabase.storage
       .from("properties")
-      .upload(storagePath, arrayBuffer, { contentType, upsert: true });
+      .upload(storagePath, arrayBuffer, { contentType: "image/jpeg", upsert: true });
 
     if (error) {
       throw new Error(`Failed to upload photo ${i + 1}: ${error.message}`);

@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   FlatList,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   TextInput,
@@ -13,6 +14,7 @@ import { Search, UserCheck } from "lucide-react-native";
 
 import { theme } from "@/constants";
 import { useAgents, useProfileImageUrl } from "@/lib/hooks";
+import { useRefreshControl } from "@/hooks";
 import type { AgentProfile } from "@/lib/services/profile.service";
 import { PhoneLink } from "@/components/ui";
 
@@ -25,6 +27,7 @@ export function AgentsList() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<AgentProfile | null>(null);
   const deferredSearch = useDeferredValue(search);
+  const { refreshing, onRefresh } = useRefreshControl(refetch);
 
   const filteredAgents = useMemo(() => {
     const trimmed = deferredSearch.trim().toLowerCase();
@@ -111,6 +114,14 @@ export function AgentsList() {
         }
         ItemSeparatorComponent={Separator}
         renderItem={renderAgent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.primary}
+            colors={[theme.colors.primary]}
+          />
+        }
         keyboardShouldPersistTaps="handled"
       />
       <AgentDetailsSheet agent={selected} onClose={handleClose} />

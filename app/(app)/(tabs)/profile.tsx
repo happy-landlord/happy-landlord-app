@@ -1,11 +1,13 @@
-﻿import { ScrollView, StyleSheet, Text, View } from "react-native";
+﻿import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { ProfileAvatar, ProfileDetailsCard } from "@/components/profile";
 import { ErrorState, LoadingState } from "@/components/ui";
 import { theme, useBottomListPadding } from "@/constants";
 import { useProfile } from "@/lib/hooks";
+import { useRefreshControl } from "@/hooks";
 export default function ProfileScreen() {
   const listPaddingBottom = useBottomListPadding();
   const { data: profile, isLoading, isError, refetch } = useProfile();
+  const { refreshing, onRefresh } = useRefreshControl(refetch);
   if (isLoading) return <LoadingState message="Loading profile…" />;
   if (isError || !profile) {
     return (
@@ -20,6 +22,14 @@ export default function ProfileScreen() {
         { paddingBottom: listPaddingBottom },
       ]}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={theme.colors.primary}
+          colors={[theme.colors.primary]}
+        />
+      }
     >
       <View style={styles.hero}>
         <ProfileAvatar />
