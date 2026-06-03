@@ -11,11 +11,14 @@ import { Card, IconBadge, MetaRow, Pill } from "@/components/ui";
 export type PropertyHeaderProps = {
   property: PropertyWithLandlord;
   tenant?: TenantHolder;
+  /** When true, the admin edit button is hidden (e.g. on the keyset detail screen). */
+  hideEdit?: boolean;
 };
 
 export const PropertyHeader = memo(function PropertyHeader({
   property,
   tenant,
+  hideEdit = false,
 }: PropertyHeaderProps) {
   const { isAdmin } = useRole();
   const [editOpen, setEditOpen] = useState(false);
@@ -67,7 +70,7 @@ export const PropertyHeader = memo(function PropertyHeader({
           </View>
         </View>
 
-        {isAdmin ? (
+        {isAdmin && !hideEdit ? (
           <Pressable
             onPress={() => setEditOpen(true)}
             style={({ pressed }) => [
@@ -103,7 +106,7 @@ export const PropertyHeader = memo(function PropertyHeader({
       ) : null}
 
       {/* ── Edit sheet ────────────────────────────────────────────────────── */}
-      {isAdmin && (
+      {isAdmin && !hideEdit && (
         <PropertyEditSheet
           property={property}
           visible={editOpen}

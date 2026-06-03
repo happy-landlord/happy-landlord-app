@@ -17,6 +17,6 @@ export * from "./OutlinedField";
 export * from "./PhotoPicker";
 export * from "./PickerModal";
 export * from "./Pill";
-export * from "./PrintButton";
+export * from "./ShareQrButton";
 export * from "./SectionHeader";
 export * from "./StepIndicator";

@@ -8,13 +8,8 @@ import {
 import { KeyRound, Plus, Trash2, X } from "lucide-react-native";
 
 import { KEY_TYPE_ICON, theme } from "@/constants";
-import { PhotoPicker, PrintButton } from "@/components/ui";
-
-import {
-  buildKeySetCode,
-  buildQrPrintPage,
-  getDraftKeyLabel,
-} from "@/lib/utils";
+import { PhotoPicker, ShareQrButton } from "@/components/ui";
+import { buildKeySetCode, getDraftKeyLabel } from "@/lib/utils";
 import type { KeyEntry, KeySetDraft } from "./useAddPropertyWizard";
 
 // ── KeySetsStep ──────────────────────────────────────────────────────────────
@@ -170,13 +165,11 @@ function KeySetDraftCard({
           returnKeyType="done"
           maxLength={40}
         />
-        <PrintButton
+        <ShareQrButton
           variant="pill"
-          label="Print QR"
+          code={code ?? " "}
+          title={draft.name}
           disabled={!code || codeLoading}
-          buildHtml={
-            code ? () => buildQrPrintPage({ code, title: draft.name }) : undefined
-          }
         />
         <Pressable
           onPress={onDelete}

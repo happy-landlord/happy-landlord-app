@@ -73,7 +73,7 @@ export default function KeySetDetailScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {property && <PropertyHeader property={property} />}
+        {property && <PropertyHeader property={property} hideEdit />}
         <KeySetIdentityCard />
         <KeySetKeysList />
         {showLastActivity && (

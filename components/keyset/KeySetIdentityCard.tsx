@@ -1,8 +1,8 @@
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
-import { AlertTriangle, Camera, KeyRound, Pencil } from "lucide-react-native";
+import { AlertTriangle, Camera, KeyRound } from "lucide-react-native";
 
 import { KeyStatusChip } from "@/components/KeyStatusChip";
-import { PhoneLink } from "@/components/ui";
+import { PhoneLink, ShareQrButton } from "@/components/ui";
 import { ReservationStatusChip } from "./ReservationStatusChip";
 import { useKeySetScreen } from "./KeySetScreenContext";
 import { theme } from "@/constants";
@@ -52,7 +52,16 @@ export function KeySetIdentityCard() {
         </View>
       )}
 
-      <View style={[styles.card, overdue && styles.cardOverdue]}>
+      <Pressable
+        style={({ pressed }) => [
+          styles.card,
+          overdue && styles.cardOverdue,
+          isAdmin && pressed && styles.cardPressed,
+        ]}
+        onPress={isAdmin ? () => openModal({ kind: "editKeys" }) : undefined}
+        accessibilityRole={isAdmin ? "button" : undefined}
+        accessibilityLabel={isAdmin ? "Edit keyset" : undefined}
+      >
         {/* Image banner */}
         {imageUrl ? (
           <View style={styles.banner}>
@@ -111,18 +120,11 @@ export function KeySetIdentityCard() {
           </View>
 
           {isAdmin && (
-            <Pressable
-              onPress={() => openModal({ kind: "editKeys" })}
-              style={({ pressed }) => [
-                styles.editBtn,
-                pressed && styles.editBtnPressed,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="Edit keys"
-              hitSlop={8}
-            >
-              <Pencil size={16} color={theme.colors.primary} strokeWidth={1.9} />
-            </Pressable>
+            <ShareQrButton
+              variant="icon"
+              code={keySet.code}
+              title={keySet.name}
+            />
           )}
         </View>
 
@@ -162,7 +164,7 @@ export function KeySetIdentityCard() {
             </View>
           </View>
         )}
-      </View>
+      </Pressable>
     </View>
   );
 }
@@ -194,6 +196,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   cardOverdue: { borderColor: theme.colors.danger },
+  cardPressed: { opacity: 0.85 },
 
   banner: { width: "100%", height: 160 },
   bannerImage: { width: "100%", height: "100%" },
@@ -245,15 +248,6 @@ const styles = StyleSheet.create({
   name: { fontSize: 17, fontWeight: "700", color: theme.colors.text },
   code: { fontSize: 13, color: theme.colors.textMuted },
 
-  editBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.primarySoft,
-    alignItems: "center",
-    justifyContent: "center",
-    alignSelf: "flex-start",
-  },
   editBtnPressed: { opacity: 0.6 },
 
   meta: {

@@ -1,9 +1,16 @@
-﻿import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+﻿import {
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { ProfileAvatar, ProfileDetailsCard } from "@/components/profile";
 import { ErrorState, LoadingState } from "@/components/ui";
 import { theme, useBottomListPadding } from "@/constants";
 import { useProfile } from "@/lib/hooks";
 import { useRefreshControl } from "@/hooks";
+
 export default function ProfileScreen() {
   const listPaddingBottom = useBottomListPadding();
   const { data: profile, isLoading, isError, refetch } = useProfile();

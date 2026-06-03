@@ -2,7 +2,9 @@ import { Alert } from "react-native";
 import * as PrintAPI from "expo-print";
 import QRCode from "qrcode";
 
-// ── Cancellation detection ────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Cancellation detection
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Returns true when `error` looks like a user-initiated dismissal of the
@@ -22,25 +24,18 @@ export function isPrintCancellation(error: unknown): boolean {
   );
 }
 
-// ── Core print executor ───────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Core print executor
+// ─────────────────────────────────────────────────────────────────────────────
 
 export type PrintResult = "printed" | "cancelled" | "error";
 
 export type PrintOptions = {
-  /**
-   * Called when a real (non-cancellation) print error occurs.
-   * If omitted, the default Alert is shown.
-   */
+  /** Called on non-cancellation errors. Defaults to a system Alert. */
   onError?: (error: Error) => void;
 };
 
-/**
- * Opens the native print dialog with the supplied HTML.
- *
- * - Returns `"printed"`   when the job is dispatched.
- * - Returns `"cancelled"` when the user intentionally dismisses the dialog.
- * - Returns `"error"`     (and shows an alert) when a real error occurs.
- */
+/** Opens the native print dialog with the supplied HTML. */
 export async function printHtml(
   html: string,
   options?: PrintOptions,
@@ -50,162 +45,56 @@ export async function printHtml(
     return "printed";
   } catch (error) {
     if (isPrintCancellation(error)) return "cancelled";
-
     const err = error instanceof Error ? error : new Error(String(error));
-    if (options?.onError) {
-      options.onError(err);
-    } else {
-      Alert.alert("Print failed", "Could not open the print dialog.");
-    }
+    if (options?.onError) options.onError(err);
+    else Alert.alert("Print failed", "Could not open the print dialog.");
     return "error";
   }
 }
 
-// ── HTML page template builder ────────────────────────────────────────────────
-
-export type PrintPageOptions = {
-  /** Bold heading rendered at the top of the page */
-  title?: string;
-  /** HTML string for the body content */
-  content: string;
-  /** Small footer line — defaults to "Happy Landlord" */
-  footer?: string;
-  /** Extra CSS injected into <style> (optional overrides / additions) */
-  extraCss?: string;
-};
+// ─────────────────────────────────────────────────────────────────────────────
+// QR → inline SVG
+//
+// SVG renders reliably in every print engine (iOS UIPrinter, Android
+// PrintManager, browser print preview). Built from the pure-JS `qrcode`
+// core — no canvas, no fs, fully synchronous.
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Wraps a content HTML fragment in a fully-styled, print-ready page.
- *
- * Usage:
- * ```ts
- * const html = buildPrintPage({
- *   title: "Property Code",
- *   content: `<img src="${qrUrl}" />`,
- * });
- * await printHtml(html);
- * ```
+ * Build a self-contained inline `<svg>` QR code for `data`.
+ * Uses `viewBox`, so it scales to whatever CSS size the parent provides
+ * (e.g. `width: 40mm; height: 40mm`).
  */
-export function buildPrintPage({
-  title,
-  content,
-  footer = "Happy Landlord",
-  extraCss = "",
-}: PrintPageOptions): string {
-  return `<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <style>
-      * { box-sizing: border-box; margin: 0; padding: 0; }
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        background: #fff;
-        color: #262626;
-        padding: 48px;
-      }
-      .page-title {
-        font-size: 20px;
-        font-weight: 700;
-        letter-spacing: 0.4px;
-        margin-bottom: 28px;
-      }
-      .page-content { width: 100%; }
-      .page-footer {
-        margin-top: 36px;
-        font-size: 11px;
-        color: #746B5D;
-        text-align: center;
-        border-top: 1px solid #E5DDCE;
-        padding-top: 12px;
-      }
-      ${extraCss}
-    </style>
-  </head>
-  <body>
-    ${title ? `<p class="page-title">${title}</p>` : ""}
-    <div class="page-content">${content}</div>
-    <div class="page-footer">${footer}</div>
-  </body>
-</html>`;
-}
-// ── QR code helpers ───────────────────────────────────────────────────────────
-//
-// QR codes are rendered as HTML <table> elements — one <td> per module,
-// coloured black or white. This approach is universally compatible with any
-// HTML renderer including iOS/Android WebViews and the print preview.
-//
-// We use QRCode.create() from the `qrcode` package (pure-JS core, no canvas,
-// no fs). This is the same function react-native-qrcode-svg uses internally.
-
-/**
- * Builds an HTML `<table>` representing the QR code for `data`.
- * Each table cell is one QR module — black or white inline background.
- * No SVG, no canvas, no external resources.
- *
- * @param data    String to encode.
- * @param cellPx  Pixel size of each module cell (default 5).
- */
-function buildQrTable(data: string, cellPx = 5): string {
+export function buildQrSvg(data: string): string {
   const qr = QRCode.create(data, { errorCorrectionLevel: "M" });
-  const raw = Array.prototype.slice.call(qr.modules.data, 0) as number[];
-  const side = Math.round(Math.sqrt(raw.length));
+  const modules = Array.prototype.slice.call(qr.modules.data, 0) as number[];
+  const size = Math.round(Math.sqrt(modules.length));
 
-  const cellStyle = `width:${cellPx}px;height:${cellPx}px;padding:0;`;
-  let table =
-    `<table style="border-collapse:collapse;border-spacing:0;` +
-    `font-size:0;line-height:0;display:inline-table;">`;
-
-  for (let row = 0; row < side; row++) {
-    table += `<tr>`;
-    for (let col = 0; col < side; col++) {
-      const dark = raw[row * side + col];
-      table += `<td style="${cellStyle}background:${dark ? "#000" : "#fff"};"></td>`;
+  let rects = "";
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      if (modules[y * size + x]) {
+        rects += `<rect x="${x}" y="${y}" width="1" height="1"/>`;
+      }
     }
-    table += `</tr>`;
   }
-  table += `</table>`;
-  return table;
+
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" ` +
+    `shape-rendering="crispEdges" preserveAspectRatio="xMidYMid meet" ` +
+    `width="100%" height="100%">` +
+    `<rect width="${size}" height="${size}" fill="#fff"/>` +
+    `<g fill="#000">${rects}</g>` +
+    `</svg>`
+  );
 }
 
-export type QrPrintPageOptions = {
-  /** The primary code/text displayed above the QR image */
-  code: string;
-  /** Optional page title rendered at the very top */
-  title?: string;
-  /** Optional secondary line shown below the QR image */
-  subtitle?: string;
-  /** Footer line — defaults to "Happy Landlord" */
-  footer?: string;
-  /** QR cell size in pixels (default 6) */
-  cellPx?: number;
-};
-
-/**
- * Builds a print-ready HTML page with a centred QR code (table-based) and code label.
- */
-export function buildQrPrintPage({
-  code,
-  title,
-  subtitle,
-  footer,
-  cellPx = 6,
-}: QrPrintPageOptions): string {
-  const qrTable = buildQrTable(code, cellPx);
-  const subtitleHtml = subtitle
-    ? `<p style="font-size:14px;color:#746B5D;margin-top:10px;">${subtitle}</p>`
-    : "";
-  const content = `
-    <div style="text-align:center;padding:16px 0;">
-      <p style="font-family:'Courier New',monospace;font-size:20px;font-weight:bold;
-                letter-spacing:2px;margin-bottom:20px;">${code}</p>
-      ${qrTable}
-      ${subtitleHtml}
-    </div>`;
-  return buildPrintPage({ title, content, footer });
-}
-
-// ── Sticker sheet builder ─────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Label / sticker sheet builder
+//
+// Designed for small thermal label printers (e.g. 50×50 mm, 40×30 mm).
+// One sticker = one page, so each label prints on its own physical sticker.
+// ─────────────────────────────────────────────────────────────────────────────
 
 export type StickerEntry = {
   /** Code encoded in the QR and printed as text */
@@ -216,74 +105,183 @@ export type StickerEntry = {
   count: number;
 };
 
-/**
- * Builds a print-ready A4 sticker sheet.
- * Each sticker shows a QR code (table-based), the set code, and the key label.
- * Stickers are laid out in a grid — `count` copies per entry.
- */
-export function buildStickerPage(entries: StickerEntry[], setLabel = ""): string {
-  const stickers = entries.flatMap(({ code, label, count }) =>
-    Array.from({ length: count }, () => ({ code, label })),
-  );
+export type StickerPageOptions = {
+  /** Physical label width  (default "50mm") */
+  width?: string;
+  /** Physical label height (default "50mm") */
+  height?: string;
+  /** Optional set/sheet label printed above the key label */
+  setLabel?: string;
+};
 
-  const cells = stickers
-    .map(({ code, label }) => {
-      const qrTable = buildQrTable(code, 4);
+/**
+ * Build a print-ready HTML document with one centred sticker per page.
+ *
+ *   ┌──────────────┐
+ *   │   [ QR  ]    │
+ *   │   CODE       │
+ *   │   set name   │
+ *   │   key label  │
+ *   └──────────────┘
+ */
+export function buildStickerPage(
+  entries: StickerEntry[],
+  setLabelOrOptions: string | StickerPageOptions = "",
+): string {
+  const opts: StickerPageOptions =
+    typeof setLabelOrOptions === "string"
+      ? { setLabel: setLabelOrOptions }
+      : setLabelOrOptions;
+
+  const width = opts.width ?? "50mm";
+  const height = opts.height ?? "50mm";
+  const setLabel = opts.setLabel ?? "";
+
+  const stickers = entries.flatMap(({ code, label, count }) =>
+    Array.from({ length: Math.max(1, count) }, () => ({ code, label })),
+  );
+  if (stickers.length === 0) stickers.push({ code: "", label: "" });
+
+  const pages = stickers
+    .map(({ code, label }, i) => {
+      const last = i === stickers.length - 1;
+      const breakStyle = last ? "" : "page-break-after:always;";
       return `
-        <div class="sticker">
-          <div class="sticker-qr">${qrTable}</div>
-          <p class="sticker-code">${code}</p>
-          <p class="sticker-label">${label}</p>
-        </div>`;
+        <section class="label" style="${breakStyle}">
+          ${code ? `<div class="qr">${buildQrSvg(code)}</div>` : ""}
+          ${code ? `<div class="code">${escapeHtml(code)}</div>` : ""}
+          ${setLabel ? `<div class="set">${escapeHtml(setLabel)}</div>` : ""}
+          ${label ? `<div class="key">${escapeHtml(label)}</div>` : ""}
+        </section>`;
     })
     .join("");
 
-  const titleLine = setLabel
-    ? `<p class="sheet-title">${setLabel} — Key Stickers</p>`
-    : "";
-
-  return buildPrintPage({
-    content: `${titleLine}<div class="sticker-grid">${cells}</div>`,
-    footer: "Happy Landlord — Key Record",
-    extraCss: `
-      body { padding: 24px; }
-      .sheet-title {
-        font-size: 12px;
-        font-weight: 600;
-        color: #746B5D;
-        letter-spacing: 0.4px;
-        margin-bottom: 14px;
-        text-transform: uppercase;
+  return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @page { size: ${width} ${height}; margin: 0; }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body { width: ${width}; background: #fff; color: #000; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
       }
-      .sticker-grid {
-        display: block;
-      }
-      .sticker {
-        display: inline-block;
-        vertical-align: top;
-        width: 120px;
-        border: 1px dashed #C4BAA8;
-        border-radius: 4px;
-        padding: 8px 6px 6px;
+      .label {
+        width: ${width};
+        height: ${height};
+        padding: 2mm;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
         text-align: center;
-        margin: 5px;
-        page-break-inside: avoid;
+        overflow: hidden;
       }
-      .sticker-qr { display: block; margin: 0 auto 5px; }
-      .sticker-code {
+      .qr {
+        flex: 1 1 auto;
+        width: 100%;
+        min-height: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .qr svg { width: 100%; height: 100%; max-width: 100%; max-height: 100%; }
+      .code {
         font-family: 'Courier New', monospace;
-        font-size: 8px;
+        font-size: 9pt;
         font-weight: 700;
         letter-spacing: 0.5px;
-        color: #262626;
+        margin-top: 1mm;
         word-break: break-all;
-        margin-bottom: 2px;
+        line-height: 1.1;
       }
-      .sticker-label {
-        font-size: 10px;
-        color: #746B5D;
+      .set {
+        font-size: 6pt;
+        color: #555;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-top: 0.5mm;
       }
-    `,
-  });
+      .key {
+        font-size: 8pt;
+        font-weight: 600;
+        margin-top: 0.5mm;
+      }
+    </style>
+  </head>
+  <body>${pages}</body>
+</html>`;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Single-code convenience wrapper (back-compat with buildQrPrintPage)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type QrPrintPageOptions = {
+  /** Code displayed under the QR and encoded inside it */
+  code: string;
+  /** Title shown above the QR (e.g. property/set name) */
+  title?: string;
+  /** Optional secondary label shown below the code */
+  subtitle?: string;
+};
+
+/**
+ * Build a compact QR label — optimised for label / sticker printers.
+ * Uses `size: auto` so the printer picks its own paper size.
+ */
+export function buildQrPrintPage({
+  code,
+  title,
+  subtitle,
+}: QrPrintPageOptions): string {
+  const qrSvg = buildQrSvg(code);
+  return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @page { size: auto; margin: 4mm; }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fff; color: #000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3mm;
+        padding: 2mm;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .qr { width: 60mm; height: 60mm; }
+      .qr svg { width: 100%; height: 100%; display: block; }
+      .title { font-size: 10pt; font-weight: 700; text-align: center; }
+      .code  { font-family: 'Courier New', monospace; font-size: 8pt; font-weight: 700; letter-spacing: 0.5px; text-align: center; }
+      .sub   { font-size: 7pt; color: #555; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <div class="qr">${qrSvg}</div>
+    ${title ? `<p class="title">${escapeHtml(title)}</p>` : ""}
+    <p class="code">${escapeHtml(code)}</p>
+    ${subtitle ? `<p class="sub">${escapeHtml(subtitle)}</p>` : ""}
+  </body>
+</html>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Internals
+// ─────────────────────────────────────────────────────────────────────────────
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
