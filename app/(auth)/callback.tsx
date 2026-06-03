@@ -25,6 +25,21 @@ export default function AuthCallbackScreen() {
 
     try {
       const parsed = Linking.parse(url);
+
+      // Reject anything that isn't our own auth callback. Without this guard
+      // a hostile deep link like `someother://x?code=...` would be exchanged
+      // for a session.
+      const isOwnScheme = parsed.scheme === "hlapp";
+      const path = (parsed.path ?? "").replace(/^\/+/, "");
+      const isAuthCallback =
+        path === "auth/callback" ||
+        path === "callback" ||
+        parsed.hostname === "auth";
+      if (!isOwnScheme || !isAuthCallback) {
+        router.replace("/");
+        return;
+      }
+
       const code = parsed.queryParams?.code as string | undefined;
 
       if (code) {

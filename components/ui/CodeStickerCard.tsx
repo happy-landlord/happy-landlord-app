@@ -1,9 +1,10 @@
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
+import { Printer } from "lucide-react-native";
 
 import { theme } from "@/constants";
-import { buildStickerPage, type StickerEntry } from "@/lib/utils";
-import { PrintButton } from "./PrintButton";
+import { buildStickerPage, printHtml, type StickerEntry } from "@/lib/utils";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -35,6 +36,8 @@ export function CodeStickerCard({
   stickerEntries,
   stickerSheetLabel,
 }: CodeStickerCardProps) {
+  const [printing, setPrinting] = useState(false);
+
   if (!code && !loading) return null;
 
   const entries: StickerEntry[] =
@@ -77,12 +80,31 @@ export function CodeStickerCard({
           )}
 
           {/* Print button — bottom */}
-          <PrintButton
-            variant="pill"
-            label="Print"
-            disabled={!code || loading}
-            buildHtml={code ? () => buildStickerPage(entries, sheetLabel) : undefined}
-          />
+          <Pressable
+            style={({ pressed }) => [
+              styles.printBtn,
+              pressed && styles.printBtnPressed,
+              (!code || loading || printing) && styles.printBtnDisabled,
+            ]}
+            disabled={!code || loading || printing}
+            onPress={async () => {
+              if (!code || printing) return;
+              setPrinting(true);
+              await printHtml(buildStickerPage(entries, sheetLabel));
+              setPrinting(false);
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Print"
+          >
+            {printing ? (
+              <ActivityIndicator size="small" color={theme.colors.primary} />
+            ) : (
+              <>
+                <Printer size={14} color={theme.colors.primary} strokeWidth={2} />
+                <Text style={styles.printBtnText}>Print</Text>
+              </>
+            )}
+          </Pressable>
         </View>
       )}
     </View>
@@ -140,5 +162,25 @@ const styles = StyleSheet.create({
     color: theme.colors.textLight,
     textAlign: "center",
     lineHeight: 15,
+  },
+  printBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 6,
+    borderRadius: theme.radius.pill,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primarySoft,
+    minWidth: 72,
+    justifyContent: "center",
+  },
+  printBtnPressed: { opacity: 0.65 },
+  printBtnDisabled: { opacity: 0.45 },
+  printBtnText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.primary,
   },
 });

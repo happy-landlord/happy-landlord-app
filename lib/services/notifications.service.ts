@@ -226,6 +226,34 @@ export async function deactivateAllPushTokens(userId: string): Promise<void> {
 }
 
 /**
+ * Deactivates only THIS device's push token for the given user. Use on
+ * sign-out so other devices the user is still signed into keep receiving
+ * push, while this device stops getting notifications meant for the
+ * previous account.
+ *
+ * Silently no-ops if permission was never granted (no token to look up).
+ */
+export async function deactivateCurrentDevicePushToken(
+  userId: string,
+): Promise<void> {
+  if (Platform.OS === "web" || !Device.isDevice) return;
+
+  const { status } = await Notifications.getPermissionsAsync();
+  if (status !== "granted") return;
+
+  const token = await getExpoPushTokenSafe();
+  if (!token) return;
+
+  const { error } = await supabase
+    .from("user_push_tokens")
+    .update({ is_active: false } as never)
+    .eq("user_id", userId)
+    .eq("expo_push_token", token);
+
+  if (error) throw error;
+}
+
+/**
  * Calls the `send-push-notification` Supabase Edge Function.
  * The Edge Function is responsible for building the privacy-safe push payload
  * (no full property addresses on the lock screen) and dispatching via Expo Push API.

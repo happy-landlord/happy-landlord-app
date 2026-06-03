@@ -221,13 +221,22 @@ export function buildStickerPage(
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type QrPrintPageOptions = {
-  /** Code displayed under the QR and encoded inside it */
+  /** Keyset code displayed under the QR and encoded as a deep-link URL */
   code: string;
   /** Title shown above the QR (e.g. property/set name) */
   title?: string;
   /** Optional secondary label shown below the code */
   subtitle?: string;
 };
+
+/**
+ * Returns the deep-link URL encoded in a keyset QR code.
+ * Format: `hlapp:///scan?code=<code>`
+ * iOS Camera recognises the `hlapp://` scheme and opens the app directly.
+ */
+export function keySetQrUrl(code: string): string {
+  return `hlapp://scan?code=${encodeURIComponent(code)}`;
+}
 
 /**
  * Build a compact QR label — optimised for label / sticker printers.
@@ -238,7 +247,7 @@ export function buildQrPrintPage({
   title,
   subtitle,
 }: QrPrintPageOptions): string {
-  const qrSvg = buildQrSvg(code);
+  const qrSvg = buildQrSvg(keySetQrUrl(code));
   return `<!DOCTYPE html>
 <html lang="en">
   <head>

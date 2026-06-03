@@ -39,6 +39,9 @@
       },
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "SENTRY_AUTH_TOKEN": "YOUR_SENTRY_AUTH_TOKEN"
       }
     }
   },

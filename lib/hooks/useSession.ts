@@ -6,6 +6,7 @@ import { QUERY_KEYS } from "@/lib/query";
 import { FEATURES } from "@/constants";
 import { useLockStore } from "@/lib/state";
 import { supabase } from "@/lib/supabase";
+import { deactivateCurrentDevicePushToken } from "@/lib/services";
 
 // ── Session query ────────────────────────────────────────────────────────────
 
@@ -61,6 +62,17 @@ export function useSignOut() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
+      // Deactivate THIS device's push token BEFORE signing out, while we
+      // still have a valid JWT for the row-level update. Failure here is
+      // non-fatal — we still want sign-out to complete.
+      try {
+        const { data } = await supabase.auth.getSession();
+        const userId = data.session?.user.id;
+        if (userId) await deactivateCurrentDevicePushToken(userId);
+      } catch (err) {
+        if (__DEV__) console.warn("Push token deactivation failed:", err);
+      }
+
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       // Run cleanup inside mutationFn so it executes even after the calling

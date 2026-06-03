@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { Redirect, Stack, useRouter, useSegments } from "expo-router";
+import * as Sentry from "@sentry/react-native";
 
 import { AppHeader } from "@/components/AppHeader";
 import { BiometricEnablePrompt } from "@/components/BiometricEnablePrompt";
@@ -16,6 +17,19 @@ export default function AppLayout() {
   const userId = profile?.id;
   const router = useRouter();
   const segments = useSegments();
+
+  // ── Identify user in Sentry ─────────────────────────────────────────────
+  useEffect(() => {
+    if (profile) {
+      Sentry.setUser({
+        id: profile.id,
+        email: session?.user.email,
+        username: profile.full_name ?? undefined,
+      });
+    } else {
+      Sentry.setUser(null);
+    }
+  }, [profile, session]);
 
   // ── Biometric lock state ────────────────────────────────────────────────
   const lockStore = useLockStore();

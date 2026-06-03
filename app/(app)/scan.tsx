@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -17,11 +17,24 @@ import { fetchKeySetByCode } from "@/lib/services";
 import { theme } from "@/constants";
 
 // ---------------------------------------------------------------------------
-// QR payload parser — keysets only
+// QR payload parser — handles both plain codes and deep-link URLs
+// e.g. "HL-001-A"  or  "hlapp://scan?code=HL-001-A"
 // ---------------------------------------------------------------------------
 function parseQrPayload(raw: string): { code: string } | null {
   const trimmed = raw.trim();
 
+  // Deep-link URL: hlapp://scan?code=...
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol === "hlapp:") {
+      const code = url.searchParams.get("code");
+      if (code) return { code };
+    }
+  } catch {
+    // not a URL — fall through
+  }
+
+  // Legacy JSON payload
   try {
     const parsed = JSON.parse(trimmed) as { type?: string; code?: string };
     if (typeof parsed.code === "string" && parsed.type === "keyset") {
@@ -48,7 +61,7 @@ type ScanState =
 export default function ScanScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
+  const { returnTo, code: deepLinkCode } = useLocalSearchParams<{ returnTo?: string; code?: string }>();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanState, setScanState] = useState<ScanState>({ status: "scanning" });
   const processingRef = useRef(false);
@@ -63,10 +76,15 @@ export default function ScanScreen() {
       router.back();
       return;
     }
-
-    // Fallback for direct/deep-linked scan opens with no navigation history.
     router.replace((returnTo || "/(app)/(tabs)") as never);
   }, [returnTo, router]);
+
+  // Auto-lookup when the screen is opened via a deep link (e.g. iOS Camera).
+  useEffect(() => {
+    if (!deepLinkCode) return;
+    handleBarCodeScanned({ data: deepLinkCode } as never);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deepLinkCode]);
 
   const handleBarCodeScanned = useCallback(
     async ({ data }: BarcodeScanningResult) => {

@@ -14,6 +14,7 @@ import {
   AlertCircle,
   BellOff,
   BellRing,
+  Bug,
   CheckCheck,
   ChevronRight,
   ExternalLink,
@@ -22,6 +23,7 @@ import {
   Smartphone,
   Wrench,
 } from "lucide-react-native";
+import * as Sentry from "@sentry/react-native";
 import * as Device from "expo-device";
 
 import { theme , FEATURES } from "@/constants";
@@ -391,6 +393,16 @@ function DeveloperSection() {
               ios_backgroundColor={theme.colors.neutralSoft}
             />
           }
+        />
+        <RowDivider />
+        <SettingRow
+          Icon={Bug}
+          iconBg={theme.colors.dangerSoft}
+          iconColor={theme.colors.danger}
+          title="Test Sentry"
+          subtitle="Capture a test exception to verify Sentry is working"
+          onPress={() => Sentry.captureException(new Error("Test Sentry error"))}
+          right={<ChevronRight size={16} color={theme.colors.textLight} strokeWidth={2} />}
         />
       </SectionCard>
     </>

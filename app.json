@@ -13,6 +13,7 @@
       "bundleIdentifier": "au.com.happylandlord.app",
       "infoPlist": {
         "NSCameraUsageDescription": "Happy Landlord uses the camera to capture photos of keysets and properties.",
+        "NSPhotoLibraryUsageDescription": "Happy Landlord uses your photo library so you can attach existing photos to keysets and properties.",
         "NSPhotoLibraryAddUsageDescription": "Happy Landlord saves QR code images to your Photos.",
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -31,8 +32,7 @@
         "android.permission.CAMERA",
         "android.permission.USE_BIOMETRIC",
         "android.permission.USE_FINGERPRINT",
-        "android.permission.READ_MEDIA_IMAGES",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
+        "android.permission.READ_MEDIA_IMAGES"
       ]
     },
     "web": {
@@ -69,7 +69,15 @@
           "faceIDPermission": "Happy Landlord uses Face ID to let you unlock the app quickly and securely."
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "happy-landlord-app",
+          "organization": "happy-landlord"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

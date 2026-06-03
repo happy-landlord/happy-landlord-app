@@ -18,6 +18,7 @@ import {
 import { Share2 } from "lucide-react-native";
 
 import { theme } from "@/constants";
+import { keySetQrUrl } from "@/lib/utils";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -89,10 +90,10 @@ export function ShareQrButton({
 
   return (
     <>
-      {/* Hidden QR rendered off-screen for PNG capture */}
+      {/* Hidden QR rendered off-screen for PNG capture — encodes deep-link URL */}
       <View style={styles.hidden} pointerEvents="none">
         <QRCode
-          value={code || " "}
+          value={keySetQrUrl(code || " ")}
           size={512}
           getRef={(ref) => {
             svgRef.current = ref as typeof svgRef.current;
