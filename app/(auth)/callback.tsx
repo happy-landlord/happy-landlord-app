@@ -6,6 +6,7 @@ import * as Linking from "expo-linking";
 import { supabase } from "@/lib/supabase";
 import { Logo } from "@/components/ui";
 import { theme } from "@/constants";
+import { logger } from "@/lib/utils";
 
 /**
  * Deep-link callback screen for Supabase auth flows (email verification,
@@ -46,28 +47,28 @@ export default function AuthCallbackScreen() {
         // PKCE flow — exchange one-time code for session
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (error) {
-          console.warn("Auth callback error (code exchange):", error.message);
-        }
-      } else {
-        // Implicit / fragment flow fallback — parse hash tokens
-        const fragment = url.split("#")[1];
-        if (fragment) {
-          const params = new URLSearchParams(fragment);
-          const accessToken = params.get("access_token");
-          const refreshToken = params.get("refresh_token");
-          if (accessToken && refreshToken) {
-            const { error } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-            });
-            if (error) {
-              console.warn("Auth callback error (set session):", error.message);
+            logger.warn("Auth callback error (code exchange)", { message: error.message });
+          }
+        } else {
+          // Implicit / fragment flow fallback — parse hash tokens
+          const fragment = url.split("#")[1];
+          if (fragment) {
+            const params = new URLSearchParams(fragment);
+            const accessToken = params.get("access_token");
+            const refreshToken = params.get("refresh_token");
+            if (accessToken && refreshToken) {
+              const { error } = await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken,
+              });
+              if (error) {
+                logger.warn("Auth callback error (set session)", { message: error.message });
+              }
             }
           }
         }
-      }
     } catch (err) {
-      console.warn("Auth callback error:", err);
+      logger.error("Auth callback error", err instanceof Error ? err : new Error(String(err)));
     }
 
     // The session listener in useSession() will update automatically.

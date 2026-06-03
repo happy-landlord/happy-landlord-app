@@ -1,0 +1,32 @@
+# Smoke test: Login flow
+# Run with: maestro test .maestro/login.yaml
+#
+# Prerequisites:
+#   Set env vars before running:
+#     MAESTRO_TEST_EMAIL    – a valid HL test account email
+#     MAESTRO_TEST_PASSWORD – its password
+
+appId: au.com.happylandlord.app
+
+---
+- launchApp:
+    clearState: true
+
+# ── Login screen ──────────────────────────────────────────────────────────────
+- assertVisible: "Welcome back"
+
+- tapOn:
+    text: "Email"
+- inputText: ${MAESTRO_TEST_EMAIL}
+
+- tapOn:
+    text: "Password"
+- inputText: ${MAESTRO_TEST_PASSWORD}
+
+- tapOn: "Sign in securely"
+
+# ── Should land on the home / dashboard tab ───────────────────────────────────
+- assertVisible:
+    text: "Keys"
+    timeout: 8000
+

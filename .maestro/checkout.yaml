@@ -1,0 +1,45 @@
+# Smoke test: Checkout flow
+# Run with: maestro test .maestro/checkout.yaml
+#
+# Depends on: login.yaml (session must already be active, or run after login)
+# Prerequisites:
+#   At least one property with an available keyset must exist in the test account.
+
+appId: au.com.happylandlord.app
+
+---
+- runFlow: login.yaml
+
+# ── Navigate to Properties tab ────────────────────────────────────────────────
+- tapOn: "Properties"
+- assertVisible:
+    text: "Properties"
+    timeout: 5000
+
+# ── Open first property ───────────────────────────────────────────────────────
+- tapOn:
+    index: 0
+    selector:
+      textRegex: ".*"       # first card in the list
+
+# ── Open first available keyset ───────────────────────────────────────────────
+- assertVisible:
+    text: "Available"
+    timeout: 5000
+- tapOn: "Available"
+
+# ── Checkout action ───────────────────────────────────────────────────────────
+- assertVisible:
+    text: "Check out"
+    timeout: 5000
+- tapOn: "Check out"
+
+# Confirm the checkout modal / confirm button if present
+- optional:
+    - tapOn: "Confirm"
+
+# ── Verify keyset is now checked out ─────────────────────────────────────────
+- assertVisible:
+    text: "Checked out"
+    timeout: 8000
+

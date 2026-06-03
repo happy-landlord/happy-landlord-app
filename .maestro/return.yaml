@@ -1,0 +1,38 @@
+# Smoke test: Return flow
+# Run with: maestro test .maestro/return.yaml
+#
+# Depends on: checkout.yaml (a keyset must already be checked out)
+
+appId: au.com.happylandlord.app
+
+---
+- runFlow: login.yaml
+
+# ── Checked-out keysets appear on the home/dashboard tab ─────────────────────
+- assertVisible:
+    text: "Keys"
+    timeout: 5000
+
+# ── Tap the first checked-out keyset card ─────────────────────────────────────
+- assertVisible:
+    text: "Checked out"
+    timeout: 5000
+- tapOn: "Checked out"
+
+# ── Return action ─────────────────────────────────────────────────────────────
+- assertVisible:
+    text: "Return"
+    timeout: 5000
+- tapOn: "Return"
+
+# Confirm the return modal / confirm button if present
+- optional:
+    - tapOn: "Confirm return"
+- optional:
+    - tapOn: "Confirm"
+
+# ── Verify keyset is now available ───────────────────────────────────────────
+- assertVisible:
+    text: "Available"
+    timeout: 8000
+

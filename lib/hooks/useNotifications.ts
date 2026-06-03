@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { useLockStore } from "@/lib/state";
 import { useCurrentUserId } from "@/lib/hooks/useSession";
 import { alertError } from "@/lib/utils";
+import { logger } from "@/lib/utils/logger";
 import {
   createNotification,
   deactivateAllPushTokens,
@@ -196,7 +197,7 @@ export function useRegisterPushToken() {
         if (!token || cancelled) return;
         await saveUserPushToken(userId, token);
       } catch (error) {
-        console.warn("Silent push token refresh failed:", error);
+        logger.warn("Silent push token refresh failed", { error: String(error) });
       }
     }
 
@@ -301,10 +302,9 @@ export function useAdminSendTestNotification() {
       try {
         await sendPushNotification(notificationId);
       } catch (pushError) {
-        console.warn(
-          "Push dispatch failed (notification row was created):",
-          pushError,
-        );
+        logger.warn("Push dispatch failed (notification row was created)", {
+          error: String(pushError),
+        });
       }
       return notificationId;
     },

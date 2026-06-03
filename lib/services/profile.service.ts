@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { compressAvatar } from "@/lib/utils/imageCompression";
+import { logger } from "@/lib/utils/logger";
 import type { DbKeyHolder, DbProfile, DbProfileUpdate } from "@/types";
 
 /** Profile fields the user can edit themselves. */
@@ -174,12 +175,10 @@ export async function fetchSignedProfileImageUrl(
     .from(PROFILE_BUCKET)
     .createSignedUrl(strippedPath, SIGNED_URL_TTL);
   if (error || !data?.signedUrl) {
-    if (__DEV__) {
-      console.warn(
-        `[profile.service] createSignedUrl failed for "${strippedPath}":`,
-        error?.message ?? "no URL returned",
-      );
-    }
+    logger.warn(
+      `[profile.service] createSignedUrl failed for "${strippedPath}"`,
+      { message: error?.message ?? "no URL returned" },
+    );
     return null;
   }
   return data.signedUrl;

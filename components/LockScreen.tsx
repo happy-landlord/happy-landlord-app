@@ -21,6 +21,7 @@ import {
   getBiometricLabel,
   type BiometricCapability,
 } from "@/lib/services";
+import { logger } from "@/lib/utils";
 
 type LockMode = "biometric" | "password";
 
@@ -128,7 +129,7 @@ export function LockScreen({ userName, userEmail }: LockScreenProps) {
     } catch (err) {
       // An exception here usually means the permission is missing entirely
       // (e.g. NSFaceIDUsageDescription absent in Expo Go). Fall back gracefully.
-      console.warn("[LockScreen] biometric auth error:", err);
+      logger.error("[LockScreen] biometric auth error", err instanceof Error ? err : new Error(String(err)));
       setMode("password");
     } finally {
       setIsAuthenticating(false);

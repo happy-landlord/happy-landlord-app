@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { compressImage } from "@/lib/utils/imageCompression";
+import { logger } from "@/lib/utils/logger";
 import type {
   DbKeyHolder,
   DbKeyHolderInsert,
@@ -40,9 +41,9 @@ export async function fetchSignedPropertyImageUrl(
     .createSignedUrl(stripped, expiresIn);
   if (error || !data?.signedUrl) {
     if (__DEV__) {
-      console.warn(
-        `[properties.service] createSignedUrl failed for "${stripped}":`,
-        error?.message ?? "no URL returned",
+      logger.warn(
+        `[properties.service] createSignedUrl failed for "${stripped}"`,
+        { message: error?.message ?? "no URL returned" },
       );
     }
     return null;
@@ -64,9 +65,9 @@ export async function fetchSignedPropertyImageUrls(
     .createSignedUrls(paths.map(stripBucketPrefix), expiresIn);
   if (error || !data) {
     if (__DEV__) {
-      console.warn(
-        `[properties.service] createSignedUrls failed for ${paths.length} path(s):`,
-        error?.message ?? "no data returned",
+      logger.warn(
+        `[properties.service] createSignedUrls failed for ${paths.length} path(s)`,
+        { message: error?.message ?? "no data returned" },
       );
     }
     return paths.map(() => null);

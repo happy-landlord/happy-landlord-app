@@ -7,6 +7,7 @@ import { FEATURES } from "@/constants";
 import { useLockStore } from "@/lib/state";
 import { supabase } from "@/lib/supabase";
 import { deactivateCurrentDevicePushToken } from "@/lib/services";
+import { logger } from "@/lib/utils/logger";
 
 // ── Session query ────────────────────────────────────────────────────────────
 
@@ -70,7 +71,7 @@ export function useSignOut() {
         const userId = data.session?.user.id;
         if (userId) await deactivateCurrentDevicePushToken(userId);
       } catch (err) {
-        if (__DEV__) console.warn("Push token deactivation failed:", err);
+        logger.warn("Push token deactivation failed", { error: String(err) });
       }
 
       const { error } = await supabase.auth.signOut();
