@@ -6,7 +6,7 @@
  * visibility on the keyset detail screen.
  */
 
-import type { KeySetWithDetails } from "@/lib/services/keysets.service";
+import type { KeySetWithDetails } from "@/lib/services/keySets.service";
 import type { Reservation } from "@/lib/services/reservations.service";
 import { formatTime } from "@/lib/utils/format";
 
@@ -171,8 +171,7 @@ export function getKeysetAvailability({
   // Find the next upcoming active reservation
   const upcomingReservations = reservations
     .filter(
-      (r) =>
-        r.status === "active" && new Date(r.starts_at).getTime() > nowMs,
+      (r) => r.status === "active" && new Date(r.starts_at).getTime() > nowMs,
     )
     .sort(
       (a, b) =>
@@ -208,4 +207,3 @@ export function getKeysetAvailability({
     canCancelReservation: false,
   };
 }
-
