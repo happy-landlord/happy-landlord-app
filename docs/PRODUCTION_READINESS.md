@@ -10,48 +10,48 @@ Legend: ✅ done · ⚠️ partial / needs work · ❌ missing · ❓ unknown / 
 
 ## 1. App config & metadata
 
-| Item                                         | Status | Notes                                                                                                                                              |
-| -------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| App name, slug, version, scheme              | ✅     | `app.json` (`HLApp`, `happy-landlord-app`, `1.0.0`, `hlapp`)                                                                                       |
-| iOS bundle / Android package                 | ✅     | `au.com.happylandlord.app`                                                                                                                         |
-| Runtime version policy                       | ✅     | `appVersion` policy → OTA compatible per `version`                                                                                                 |
-| Updates URL                                  | ✅     | EAS Update configured                                                                                                                              |
-| New Architecture + React Compiler            | ✅     | Both enabled                                                                                                                                       |
-| Icons (iOS, adaptive Android)                | ✅     | Adaptive + monochrome configured                                                                                                                   |
-| Splash screen (light/dark)                   | ✅     | `expo-splash-screen` plugin configured                                                                                                             |
-| Permissions / Info.plist strings             | ⚠️     | Camera & Photos add ✅. FaceID via plugin ✅. **Missing** `NSPhotoLibraryUsageDescription` (read) — required for `expo-image-picker`.              |
-| Android permissions                          | ⚠️     | `WRITE_EXTERNAL_STORAGE` is unnecessary on API 30+; Play will flag it. Remove.                                                                     |
-| `ITSAppUsesNonExemptEncryption`              | ✅     | `false`                                                                                                                                            |
-| iOS Privacy Manifest (PrivacyInfo.xcprivacy) | ❌     | Required since Apple May 2024. Verify Expo SDK 54 emits it; declare required-reason APIs (UserDefaults, FileTimestamp, SystemBootTime, DiskSpace). |
-| Hermes / R8                                  | ✅     | Default with SDK 54                                                                                                                                |
-| `experiments.typedRoutes`                    | ✅     | Enabled                                                                                                                                            |
+| Item                                         | Status | Notes                                                                                                                                                                                                                                                                                                                                                                                       |
+| -------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| App name, slug, version, scheme              | ✅     | `app.json` (`HLApp`, `happy-landlord-app`, `1.0.0`, `hlapp`)                                                                                                                                                                                                                                                                                                                                |
+| iOS bundle / Android package                 | ✅     | `au.com.happylandlord.app`                                                                                                                                                                                                                                                                                                                                                                  |
+| Runtime version policy                       | ✅     | `appVersion` policy → OTA compatible per `version`                                                                                                                                                                                                                                                                                                                                          |
+| Updates URL                                  | ✅     | EAS Update configured                                                                                                                                                                                                                                                                                                                                                                       |
+| New Architecture + React Compiler            | ✅     | Both enabled                                                                                                                                                                                                                                                                                                                                                                                |
+| Icons (iOS, adaptive Android)                | ✅     | Adaptive + monochrome configured                                                                                                                                                                                                                                                                                                                                                            |
+| Splash screen (light/dark)                   | ✅     | `expo-splash-screen` plugin configured                                                                                                                                                                                                                                                                                                                                                      |
+| Permissions / Info.plist strings             | ✅     | `NSCameraUsageDescription` ✅, `NSPhotoLibraryUsageDescription` ✅, `NSPhotoLibraryAddUsageDescription` ✅, FaceID via `expo-local-authentication` plugin ✅. All declared in `app.json` `ios.infoPlist`.                                                                                                                                                                                   |
+| Android permissions                          | ✅     | Explicit allowlist in `app.json`: `CAMERA`, `USE_BIOMETRIC`, `USE_FINGERPRINT`, `READ_MEDIA_IMAGES`. `WRITE_EXTERNAL_STORAGE` removed (unnecessary on API 30+).                                                                                                                                                                                                                             |
+| `ITSAppUsesNonExemptEncryption`              | ✅     | `false`                                                                                                                                                                                                                                                                                                                                                                                     |
+| iOS Privacy Manifest (PrivacyInfo.xcprivacy) | ✅     | `expo-build-properties` plugin added to `app.json` with all four required-reason API declarations: `NSPrivacyAccessedAPICategoryUserDefaults` (CA92.1), `NSPrivacyAccessedAPICategoryFileTimestamp` (C617.1), `NSPrivacyAccessedAPICategorySystemBootTime` (35F9.1), `NSPrivacyAccessedAPICategoryDiskSpace` (E174.1). Expo SDK 54 merges these into `PrivacyInfo.xcprivacy` at build time. |
+| Hermes / R8                                  | ✅     | Default with SDK 54                                                                                                                                                                                                                                                                                                                                                                         |
+| `experiments.typedRoutes`                    | ✅     | Enabled                                                                                                                                                                                                                                                                                                                                                                                     |
 
 ---
 
 ## 2. Secrets & environment
 
-| Item                               | Status | Notes                                                                                                                                                                     |
-| ---------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.env.local` ignored by git        | ✅     | `.env*.local` in `.gitignore`                                                                                                                                             |
-| Supabase anon key in client        | ✅     | Anon key is public by design                                                                                                                                              |
-| No service-role key in client      | ✅     | Confirmed                                                                                                                                                                 |
-| Google Places key in client bundle | ⚠️     | `EXPO_PUBLIC_GOOGLE_PLACES_API_KEY` ships to clients. **Restrict in GCP** to Android package + iOS bundle id + Places API only.                                           |
-| EAS env vars / Secrets             | ⚠️     | `SENTRY_AUTH_TOKEN` stored as EAS Secret via `eas env:create` ✅ — no plaintext in `eas.json`. Other prod/preview secrets (Apple IDs, Play service account) still needed. |
-| `.env.example`                     | ❌     | None — add for onboarding                                                                                                                                                 |
+| Item                               | Status | Notes                                                                                                                                                                                                                                                                                                                                                                        |
+| ---------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.env.local` ignored by git        | ✅     | `.env*.local` in `.gitignore`                                                                                                                                                                                                                                                                                                                                                |
+| Supabase anon key in client        | ✅     | Anon key is public by design                                                                                                                                                                                                                                                                                                                                                 |
+| No service-role key in client      | ✅     | Confirmed                                                                                                                                                                                                                                                                                                                                                                    |
+| Google Places key in client bundle | ⚠️     | `EXPO_PUBLIC_GOOGLE_PLACES_API_KEY` is bundled into the JS bundle. **Action required (GCP Console):** console.cloud.google.com → APIs & Services → Credentials → restrict the key to: Application restrictions = `Android apps` + `iOS apps` (add bundle id `au.com.happylandlord.app` / SHA-1 fingerprint); API restrictions = `Places API` only. Mark ✅ once saved.       |
+| EAS env vars / Secrets             | ⚠️     | `SENTRY_AUTH_TOKEN` stored as EAS Secret ✅. Still open: (1) fill `eas.json` submit placeholders — `appleId`, `ascAppId`, `appleTeamId`; (2) store the Play service-account JSON as an EAS Secret: `npx eas secret:create --scope project --name GOOGLE_SERVICE_ACCOUNT_KEY --type file --value ./google-play-service-account.json`, then update `eas.json` to reference it. |
+| `.env.example`                     | ✅     | Added — covers `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, `EXPO_PUBLIC_GOOGLE_PLACES_API_KEY`, and `SENTRY_AUTH_TOKEN` with inline guidance. Copy to `.env.local` to get started.                                                                                                                                                                          |
 
 ---
 
 ## 3. Auth & session
 
-| Item                    | Status | Notes                                                                                                                         |
-| ----------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| Supabase client config  | ⚠️     | `persistSession + autoRefreshToken` ✅. Uses AsyncStorage (not SecureStore) for session tokens. Consider SecureStore adapter. |
-| App-state token refresh | ❌     | No `AppState` listener calling `supabase.auth.startAutoRefresh()` / `stopAutoRefresh()`. Required per Supabase RN guide.      |
-| Deep link PKCE callback | ✅     | `(auth)/callback.tsx` handles code + fragment flows                                                                           |
-| Sign-out cleanup        | ✅     | `useSignOut` clears query cache + lock store                                                                                  |
-| Role gate               | ✅     | `RoleGate`, `useRole`, `pending/rejected` screens                                                                             |
-| Biometric lock          | ✅     | `expo-local-authentication` + SecureStore, behind feature flag                                                                |
-| Biometric lock flag     | ⚠️     | `FEATURES.BIOMETRIC_LOCK = false` — decide before launch                                                                      |
+| Item                    | Status | Notes                                                                                                                                                                                             |
+| ----------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Supabase client config  | ⚠️     | `persistSession + autoRefreshToken` ✅. Uses AsyncStorage (not SecureStore) for session tokens. Consider SecureStore adapter.                                                                     |
+| App-state token refresh | ✅     | `AppState` listener in `lib/supabase/client.ts` calls `supabase.auth.startAutoRefresh()` on `active` and `stopAutoRefresh()` on background/inactive. Web is excluded via `Platform.OS !== "web"`. |
+| Deep link PKCE callback | ✅     | `(auth)/callback.tsx` handles code + fragment flows                                                                                                                                               |
+| Sign-out cleanup        | ✅     | `useSignOut` clears query cache + lock store                                                                                                                                                      |
+| Role gate               | ✅     | `RoleGate`, `useRole`, `pending/rejected` screens                                                                                                                                                 |
+| Biometric lock          | ✅     | `expo-local-authentication` + SecureStore, behind feature flag                                                                                                                                    |
+| Biometric lock flag     | ⚠️     | `FEATURES.BIOMETRIC_LOCK = false` — decide before launch                                                                                                                                          |
 
 ---
 
@@ -94,27 +94,27 @@ Legend: ✅ done · ⚠️ partial / needs work · ❌ missing · ❓ unknown / 
 
 ## 7. Notifications
 
-| Item                          | Status | Notes                                                                                                                    |
-| ----------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
-| `expo-notifications` setup    | ✅     | Handler, Android channel, project id resolution                                                                          |
-| Permission UX                 | ✅     | Silent on launch, prompt on explicit toggle                                                                              |
-| Push token storage in DB      | ✅     | `user_push_tokens` upsert with conflict handling                                                                         |
-| Token cleanup on sign-out     | ⚠️     | `useSignOut` does NOT call `deactivateAllPushTokens` — previous user keeps receiving push on this device. **Fix.**       |
-| Notification tap → navigation | ✅     | `useNotificationResponseNavigation`                                                                                      |
-| iOS APNs config in EAS        | ❓     | Verify push key/cert via `eas credentials`                                                                               |
-| Android notification icon     | ✅     | `expo-notifications` plugin updated with `icon: ./assets/images/android-icon-monochrome.png` and brand `color: #A38449`. |
+| Item                          | Status | Notes                                                                                                                                                                                                                                                                                                                        |
+| ----------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `expo-notifications` setup    | ✅     | Handler, Android channel, project id resolution                                                                                                                                                                                                                                                                              |
+| Permission UX                 | ✅     | Silent on launch, prompt on explicit toggle                                                                                                                                                                                                                                                                                  |
+| Push token storage in DB      | ✅     | `user_push_tokens` upsert with conflict handling                                                                                                                                                                                                                                                                             |
+| Token cleanup on sign-out     | ⚠️     | `useSignOut` does NOT call `deactivateAllPushTokens` — previous user keeps receiving push on this device. **Fix.**                                                                                                                                                                                                           |
+| Notification tap → navigation | ✅     | `useNotificationResponseNavigation`                                                                                                                                                                                                                                                                                          |
+| iOS APNs config in EAS        | ⚠️     | **Action required:** run `npx eas credentials --platform ios`, select the production profile → Push Notifications → upload an APNs Auth Key (`.p8`) from [developer.apple.com](https://developer.apple.com) → Keys. Note the Key ID and Team ID. Test with a direct Expo Push API call after upload. Mark ✅ once confirmed. |
+| Android notification icon     | ✅     | `expo-notifications` plugin updated with `icon: ./assets/images/android-icon-monochrome.png` and brand `color: #A38449`.                                                                                                                                                                                                     |
 
 ---
 
 ## 8. Navigation / routing
 
-| Item                        | Status | Notes                                                   |
-| --------------------------- | ------ | ------------------------------------------------------- |
-| File-based routes structure | ✅     | Clean `(auth)` / `(app)` / `(tabs)` separation          |
-| Protected route gating      | ✅     | `(app)/_layout.tsx` redirects to login + status screens |
-| Typed routes                | ✅     | Enabled — some `as never` casts could be tightened      |
-| 404 / `+not-found.tsx`      | ❌     | Missing                                                 |
-| Modal presentation          | ✅     | `scan` uses `fullScreenModal`                           |
+| Item                        | Status | Notes                                                                                             |
+| --------------------------- | ------ | ------------------------------------------------------------------------------------------------- |
+| File-based routes structure | ✅     | Clean `(auth)` / `(app)` / `(tabs)` separation                                                    |
+| Protected route gating      | ✅     | `(app)/_layout.tsx` redirects to login + status screens                                           |
+| Typed routes                | ✅     | Enabled — some `as never` casts could be tightened                                                |
+| 404 / `+not-found.tsx`      | ✅     | `app/+not-found.tsx` added — renders a styled "Page not found" screen with a back-to-home button. |
+| Modal presentation          | ✅     | `scan` uses `fullScreenModal`                                                                     |
 
 ---
 
@@ -171,7 +171,7 @@ Legend: ✅ done · ⚠️ partial / needs work · ❌ missing · ❓ unknown / 
 | WebView usage                 | ✅     | None                                                                                                                                                      |
 | Clipboard secrets             | ✅     | None                                                                                                                                                      |
 | Deep-link validation          | ⚠️     | `callback.tsx` calls `exchangeCodeForSession` on any URL with `?code=`. Validate `parsed.scheme === "hlapp"` and `parsed.path === "auth/callback"` first. |
-| Google Places key restriction | ⚠️     | See §2                                                                                                                                                    |
+| Google Places key restriction | ⚠️     | See §2 for exact GCP Console steps.                                                                                                                       |
 
 ---
 
@@ -184,7 +184,7 @@ Legend: ✅ done · ⚠️ partial / needs work · ❌ missing · ❓ unknown / 
 | EAS submit placeholders   | ❌     | `eas.json` still has `YOUR_APPLE_ID_EMAIL`, `YOUR_APP_STORE_CONNECT_APP_ID`, `YOUR_APPLE_TEAM_ID` — fill before `eas submit`. |
 | Play service-account JSON | ❌     | Referenced as `./google-play-service-account.json` but not in repo (good — use `eas secret`).                                 |
 | App Store / Play listings | ❓     | Screenshots, description, keywords, age rating, content rating questionnaire                                                  |
-| Privacy Manifest (iOS)    | ❌     | See §1                                                                                                                        |
+| Privacy Manifest (iOS)    | ✅     | See §1 — declared via `expo-build-properties` in `app.json`.                                                                  |
 | Data Safety form (Play)   | ❌     | Required; collect data inventory                                                                                              |
 
 ---
@@ -223,5 +223,5 @@ Legend: ✅ done · ⚠️ partial / needs work · ❌ missing · ❓ unknown / 
 6. ✅ **Validate deep-link origin** in `(auth)/callback.tsx` before calling `exchangeCodeForSession` — _done (scheme + path guard)._
 7. **Restrict Google Places API key** in GCP to your iOS/Android fingerprints + Places API only. _(open — GCP console action)_
 8. ✅ **Wire Supabase `AppState.startAutoRefresh()`** so sessions refresh while app is foregrounded — _done in `lib/supabase/client.ts`._
-9. ⚠️ **iOS Privacy Manifest** _(still open — verify EAS build output)_; ✅ removed deprecated Android `WRITE_EXTERNAL_STORAGE`; ✅ added `NSPhotoLibraryUsageDescription`.
+9. ✅ **iOS Privacy Manifest** — `expo-build-properties` plugin added to `app.json` with all four required-reason API declarations (UserDefaults CA92.1, FileTimestamp C617.1, SystemBootTime 35F9.1, DiskSpace E174.1). ✅ removed deprecated Android `WRITE_EXTERNAL_STORAGE`; ✅ added `NSPhotoLibraryUsageDescription`.
 10. **Decide on Biometric Lock flag** (`FEATURES.BIOMETRIC_LOCK`) and ensure an in-app **Delete Account** flow exists (App Store requirement). _(open — product decisions)_

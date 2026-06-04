@@ -79,14 +79,24 @@ supabase/
 
 ## Environment
 
-Create a `.env` file (or set secrets in EAS) with your Supabase project credentials:
+Copy `.env.example` to `.env.local` and fill in your values:
 
-```env
-EXPO_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
+```
+cp .env.example .env.local
 ```
 
-These are referenced in `lib/supabase.ts`.
+| Variable                            | Where to find it                                                                               |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `EXPO_PUBLIC_SUPABASE_URL`          | Supabase dashboard → Project Settings → API                                                    |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY`     | Supabase dashboard → Project Settings → API                                                    |
+| `EXPO_PUBLIC_GOOGLE_PLACES_API_KEY` | GCP console → APIs & Services → Credentials (restrict to Places API + your app bundle IDs)     |
+| `SENTRY_AUTH_TOKEN`                 | sentry.io → Settings → Auth Tokens (`project:releases` scope) — build-time only, never bundled |
+
+> **`.env.local` is git-ignored.** For EAS cloud builds store `SENTRY_AUTH_TOKEN` as an EAS Secret:
+>
+> ```
+> npx eas secret:create --scope project --name SENTRY_AUTH_TOKEN --value <token>
+> ```
 
 ---
 
@@ -94,19 +104,19 @@ These are referenced in `lib/supabase.ts`.
 
 ### 1. Install dependencies
 
-```bash
+```
 npm install
 ```
 
 ### 2. Start the dev server
 
-```bash
+```
 npm run start
 ```
 
 Open on a specific platform:
 
-```bash
+```
 npm run android
 npm run ios
 npm run web
@@ -114,7 +124,7 @@ npm run web
 
 Clear Metro cache if you see stale bundle issues:
 
-```bash
+```
 npm run start:clear
 ```
 
@@ -122,7 +132,7 @@ npm run start:clear
 
 ## Quality checks
 
-```bash
+```
 npm run lint        # ESLint (expo + prettier config)
 npm run typecheck   # tsc --noEmit
 ```
@@ -155,13 +165,13 @@ Six [Maestro](https://maestro.mobile.dev/) flows live in `.maestro/`:
 
 Run a single flow:
 
-```bash
+```
 maestro test .maestro/login.yaml
 ```
 
 Run the full suite:
 
-```bash
+```
 maestro test .maestro/
 ```
 
@@ -169,7 +179,7 @@ maestro test .maestro/
 
 ## EAS setup (first time)
 
-```bash
+```
 npx eas login
 npm run eas:configure
 ```
@@ -182,14 +192,14 @@ Links the app to EAS project `55bce2dd-5c0f-4aca-a7f6-634e684acd3f` and generate
 
 ### Preview builds (internal distribution)
 
-```bash
+```
 npm run build:preview:android
 npm run build:preview:ios
 ```
 
 ### Production store builds
 
-```bash
+```
 npm run build:production   # both platforms, auto-increments build number
 ```
 

@@ -45,7 +45,7 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "YOUR_APPLE_ID_EMAIL",
+        "appleId": "tech@happylandlord.com.au",
         "ascAppId": "YOUR_APP_STORE_CONNECT_APP_ID",
         "appleTeamId": "YOUR_APPLE_TEAM_ID"
       },
