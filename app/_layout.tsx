@@ -8,14 +8,15 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import * as SystemUI from "expo-system-ui";
+import Toast from "react-native-toast-message";
 import "react-native-reanimated";
 
 import { queryClient } from "@/lib/query";
 import { useDevOverridesStore } from "@/lib/state";
-import * as Sentry from '@sentry/react-native';
+import * as Sentry from "@sentry/react-native";
 
 Sentry.init({
-  dsn: 'https://4a66fc94d624e04205dc8739ec3aa399@o4511500226527232.ingest.us.sentry.io/4511500234391553',
+  dsn: "https://4a66fc94d624e04205dc8739ec3aa399@o4511500226527232.ingest.us.sentry.io/4511500234391553",
 
   // Adds more context data to events (IP address, cookies, user, etc.)
   // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
@@ -27,7 +28,10 @@ Sentry.init({
   // Configure Session Replay
   replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1,
-  integrations: [Sentry.mobileReplayIntegration(), Sentry.feedbackIntegration()],
+  integrations: [
+    Sentry.mobileReplayIntegration(),
+    Sentry.feedbackIntegration(),
+  ],
 
   // uncomment the line below to enable Spotlight (https://spotlightjs.com)
   // spotlight: __DEV__,
@@ -131,6 +135,9 @@ export default Sentry.wrap(function RootLayout() {
           </KeyboardProvider>
         </QueryClientProvider>
       </BottomSheetModalProvider>
+      {/* Toast must sit outside QueryClientProvider/BottomSheet so it always
+          renders on top, but inside GestureHandlerRootView for safe-area. */}
+      <Toast />
     </GestureHandlerRootView>
   );
 });

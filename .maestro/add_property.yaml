@@ -1,0 +1,70 @@
+# Smoke test: Add property flow
+# Run with: maestro test .maestro/add_property.yaml
+#
+# Depends on: login.yaml (active session required, admin/owner role)
+# Prerequisites:
+#   MAESTRO_PROPERTY_NAME    – display name for the new property (e.g. "42 Test St")
+#   MAESTRO_PROPERTY_SUBURB  – suburb / city (e.g. "Melbourne")
+#   MAESTRO_PROPERTY_STATE   – state abbreviation (e.g. "VIC")
+#   MAESTRO_PROPERTY_POSTCODE – postcode string (e.g. "3000")
+
+appId: au.com.happylandlord.app
+
+---
+- runFlow: login.yaml
+
+# ── Navigate to Properties tab ────────────────────────────────────────────────
+- tapOn: "Properties"
+- assertVisible:
+    text: "Properties"
+    timeout: 5000
+
+# ── Open Add Property screen ──────────────────────────────────────────────────
+- tapOn:
+    id: "add-property-button"
+- assertVisible:
+    text: "Add Property"
+    timeout: 5000
+
+# ── Step 1 – Property info ────────────────────────────────────────────────────
+- tapOn:
+    text: "Property name"
+- inputText: ${MAESTRO_PROPERTY_NAME}
+
+- tapOn:
+    text: "Suburb / City"
+- inputText: ${MAESTRO_PROPERTY_SUBURB}
+
+- tapOn:
+    text: "State"
+- inputText: ${MAESTRO_PROPERTY_STATE}
+
+- tapOn:
+    text: "Postcode"
+- inputText: ${MAESTRO_PROPERTY_POSTCODE}
+
+# Dismiss keyboard then advance
+- hideKeyboard
+- tapOn:
+    text: "Next"
+- assertVisible:
+    text: "Key Sets"
+    timeout: 5000
+
+# ── Step 2 – Key sets (accept defaults / skip) ───────────────────────────────
+- tapOn:
+    text: "Next"
+- assertVisible:
+    text: "Review"
+    timeout: 5000
+
+# ── Step 3 – Review & submit ─────────────────────────────────────────────────
+- assertVisible:
+    text: ${MAESTRO_PROPERTY_NAME}
+- tapOn:
+    text: "Save property"
+
+# ── Confirm property was created ─────────────────────────────────────────────
+- assertVisible:
+    text: ${MAESTRO_PROPERTY_NAME}
+    timeout: 10000

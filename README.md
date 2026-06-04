@@ -6,27 +6,27 @@ React Native mobile app for **Happy Landlord** — a key-management platform for
 
 ## Tech stack
 
-| Layer | Choice |
-|---|---|
-| Framework | Expo SDK 54 · React Native 0.81 |
-| Navigation | Expo Router v6 (file-based, typed routes) |
-| Backend | Supabase (Postgres + Auth + Edge Functions + Realtime) |
-| Data fetching | TanStack Query v5 |
-| Styling | NativeWind v4 (Tailwind CSS) + `StyleSheet` |
-| Forms | React Hook Form + Zod |
-| State | Zustand (lock screen store) |
-| Icons | Lucide React Native · Ionicons |
+| Layer              | Choice                                                      |
+| ------------------ | ----------------------------------------------------------- |
+| Framework          | Expo SDK 54 · React Native 0.81                             |
+| Navigation         | Expo Router v6 (file-based, typed routes)                   |
+| Backend            | Supabase (Postgres + Auth + Edge Functions + Realtime)      |
+| Data fetching      | TanStack Query v5                                           |
+| Styling            | NativeWind v4 (Tailwind CSS) + `StyleSheet`                 |
+| Forms              | React Hook Form + Zod                                       |
+| State              | Zustand (lock screen store)                                 |
+| Icons              | Lucide React Native · Ionicons                              |
 | Push notifications | Expo Notifications → Supabase Edge Function → Expo Push API |
-| Biometrics | Expo Local Authentication |
-| OTA updates | EAS Update (`appVersion` runtime policy) |
+| Biometrics         | Expo Local Authentication                                   |
+| OTA updates        | EAS Update (`appVersion` runtime policy)                    |
 
 ---
 
 ## Roles
 
-| Role | Capabilities |
-|---|---|
-| **Admin** | Full access — manage properties, key sets, agents, approve/reject registration requests, see all activity |
+| Role      | Capabilities                                                                                               |
+| --------- | ---------------------------------------------------------------------------------------------------------- |
+| **Admin** | Full access — manage properties, key sets, agents, approve/reject registration requests, see all activity  |
 | **Agent** | Checkout / return / transfer company key sets assigned to properties they work on; view their own activity |
 
 New sign-ups land in a **pending** state until an admin approves their registration request.
@@ -127,6 +127,44 @@ npm run lint        # ESLint (expo + prettier config)
 npm run typecheck   # tsc --noEmit
 ```
 
+### Pre-commit hook
+
+[husky](https://typicode.github.io/husky/) + [lint-staged](https://github.com/okonet/lint-staged) run automatically on every `git commit`:
+
+| Staged file pattern       | Commands                                             |
+| ------------------------- | ---------------------------------------------------- |
+| `*.{ts,tsx}`              | `eslint --max-warnings=0 --fix` → `prettier --write` |
+| `*.{js,json,md,yaml,yml}` | `prettier --write`                                   |
+
+The hook is bootstrapped via `"prepare": "husky"` in `package.json` — no extra setup needed after `npm install`.
+
+---
+
+## E2E smoke tests (Maestro)
+
+Six [Maestro](https://maestro.mobile.dev/) flows live in `.maestro/`:
+
+| Flow         | File                | Key env vars                                                                                              |
+| ------------ | ------------------- | --------------------------------------------------------------------------------------------------------- |
+| Login        | `login.yaml`        | `MAESTRO_TEST_EMAIL`, `MAESTRO_TEST_PASSWORD`                                                             |
+| Checkout     | `checkout.yaml`     | _(inherits login vars)_                                                                                   |
+| Return       | `return.yaml`       | _(inherits login vars)_                                                                                   |
+| QR scan      | `scan_qr.yaml`      | `MAESTRO_SCAN_CODE`                                                                                       |
+| Add property | `add_property.yaml` | `MAESTRO_PROPERTY_NAME`, `MAESTRO_PROPERTY_SUBURB`, `MAESTRO_PROPERTY_STATE`, `MAESTRO_PROPERTY_POSTCODE` |
+| Agent invite | `agent_invite.yaml` | _(needs a pending request pre-seeded)_                                                                    |
+
+Run a single flow:
+
+```bash
+maestro test .maestro/login.yaml
+```
+
+Run the full suite:
+
+```bash
+maestro test .maestro/
+```
+
 ---
 
 ## EAS setup (first time)
@@ -157,14 +195,14 @@ npm run build:production   # both platforms, auto-increments build number
 
 ### Submit to stores
 
-```bash
+```
 npm run submit:android
 npm run submit:ios
 ```
 
 ### OTA updates (EAS Update)
 
-```bash
+```
 npm run publish:preview      # → preview branch
 npm run publish:production   # → production branch
 ```
@@ -185,17 +223,17 @@ See [`supabase/README.md`](supabase/README.md) for:
 
 `user_push_tokens` tracks one row per device:
 
-| Column | Type | Notes |
-|---|---|---|
-| `id` | uuid | PK |
-| `user_id` | uuid | FK → `auth.users` |
-| `expo_push_token` | text | Expo token string |
-| `device_name` | text \| null | |
-| `platform` | text \| null | `ios` \| `android` |
-| `is_active` | bool \| null | Set to `false` on token error |
-| `created_at` | timestamptz | |
-| `updated_at` | timestamptz | NOT NULL DEFAULT now() |
-| `last_seen_at` | timestamptz \| null | Updated on each app open |
+| Column            | Type                | Notes                         |
+| ----------------- | ------------------- | ----------------------------- |
+| `id`              | uuid                | PK                            |
+| `user_id`         | uuid                | FK → `auth.users`             |
+| `expo_push_token` | text                | Expo token string             |
+| `device_name`     | text \| null        |                               |
+| `platform`        | text \| null        | `ios` \| `android`            |
+| `is_active`       | bool \| null        | Set to `false` on token error |
+| `created_at`      | timestamptz         |                               |
+| `updated_at`      | timestamptz         | NOT NULL DEFAULT now()        |
+| `last_seen_at`    | timestamptz \| null | Updated on each app open      |
 
 ---
 
@@ -205,3 +243,5 @@ See [`supabase/README.md`](supabase/README.md) for:
 - App store metadata and signing credentials must be configured in EAS before first store submit.
 - New Architecture (`newArchEnabled: true`) and React Compiler (`reactCompiler: true`) are both enabled.
 - The app uses `expo-secure-store` for session persistence and biometric state storage.
+- **Global error feedback** — `QueryCache` and `MutationCache` in `lib/query/queryClient.ts` carry an `onError` handler that (1) shows a `react-native-toast-message` error toast and (2) adds a Sentry breadcrumb. `<Toast />` is mounted at the root in `app/_layout.tsx`. 401 errors are silenced (handled by the auth redirect layer). Use `showErrorToast` / `showSuccessToast` / `showInfoToast` from `lib/utils/toast.ts` for ad-hoc toasts.
+- **Pre-commit quality gate** — `husky` + `lint-staged` run ESLint (auto-fix) and Prettier on every staged file before a commit lands.

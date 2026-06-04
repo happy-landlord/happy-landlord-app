@@ -1,0 +1,28 @@
+# Smoke test: QR scan flow
+# Run with: maestro test .maestro/scan_qr.yaml
+#
+# Depends on: login.yaml (active session required)
+# Prerequisites:
+#   MAESTRO_SCAN_CODE – the raw keyset code embedded in the test QR (e.g. "HL-001-A")
+#   At least one property with a keyset whose code matches MAESTRO_SCAN_CODE.
+
+appId: au.com.happylandlord.app
+
+---
+- runFlow: login.yaml
+
+# ── Open the Scan screen via the tab bar ─────────────────────────────────────
+- tapOn: "Scan"
+- assertVisible:
+    text: "Point at a QR code to scan"
+    timeout: 5000
+
+# ── Simulate a deep-link scan by navigating with a code param ─────────────────
+# Maestro cannot fire the device camera; we trigger the deep-link handler
+# that the CameraView onBarcodeScanned callback also uses.
+- openLink: "hlapp://scan?code=${MAESTRO_SCAN_CODE}"
+
+# ── Should navigate to the keyset detail screen ───────────────────────────────
+- assertVisible:
+    text: "Available"
+    timeout: 8000

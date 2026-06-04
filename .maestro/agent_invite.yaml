@@ -1,0 +1,33 @@
+# Smoke test: Agent invite / registration-request review flow
+# Run with: maestro test .maestro/agent_invite.yaml
+#
+# Depends on: login.yaml (active session, admin/owner role)
+# Prerequisites:
+#   At least one pending agent registration request must exist in the test
+#   account before this flow runs (create one via the agent signup flow first).
+
+appId: au.com.happylandlord.app
+
+---
+- runFlow: login.yaml
+
+# ── Navigate to the Agents screen ─────────────────────────────────────────────
+- tapOn: "Agents"
+- assertVisible:
+    text: "Agents"
+    timeout: 5000
+
+# ── Switch to the Requests tab ────────────────────────────────────────────────
+- tapOn: "Requests"
+- assertVisible:
+    text: "pending"
+    timeout: 5000
+
+# ── Approve the first pending request ─────────────────────────────────────────
+- tapOn:
+    index: 0
+    selector:
+      text: "Approve"
+- assertVisible:
+    text: "Approved"
+    timeout: 8000
