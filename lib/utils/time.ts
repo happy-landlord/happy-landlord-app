@@ -17,7 +17,10 @@ export function addDays(days: number, from: Date | number = Date.now()): Date {
 }
 
 /** Returns a new Date `hours` hours after `from` (default: now). */
-export function addHours(hours: number, from: Date | number = Date.now()): Date {
+export function addHours(
+  hours: number,
+  from: Date | number = Date.now(),
+): Date {
   const base = typeof from === "number" ? from : from.getTime();
   return new Date(base + hours * HOUR_MS);
 }
@@ -26,14 +29,48 @@ export function addHours(hours: number, from: Date | number = Date.now()): Date 
  * ISO timestamp `days` days in the future from `from` (default: now).
  * Convenience wrapper for the very common `due_back_at` calculation.
  */
-export function isoInDays(days: number, from: Date | number = Date.now()): string {
+export function isoInDays(
+  days: number,
+  from: Date | number = Date.now(),
+): string {
   return addDays(days, from).toISOString();
 }
 
 /**
  * ISO timestamp `hours` hours in the future from `from` (default: now).
  */
-export function isoInHours(hours: number, from: Date | number = Date.now()): string {
+export function isoInHours(
+  hours: number,
+  from: Date | number = Date.now(),
+): string {
   return addHours(hours, from).toISOString();
 }
 
+// ── Calendar-part helpers ────────────────────────────────────────────────────
+
+/** Returns a new Date with the year/month/day of `incoming` and time of `existing`. */
+export function setDatePart(existing: Date, incoming: Date): Date {
+  const d = new Date(existing);
+  d.setFullYear(incoming.getFullYear());
+  d.setMonth(incoming.getMonth());
+  d.setDate(incoming.getDate());
+  return d;
+}
+
+/** Returns a new Date with the hours/minutes of `incoming` and date of `existing`. */
+export function setTimePart(existing: Date, incoming: Date): Date {
+  const d = new Date(existing);
+  d.setHours(incoming.getHours());
+  d.setMinutes(incoming.getMinutes());
+  d.setSeconds(0, 0);
+  return d;
+}
+
+/** Round a date up to the next whole 30-minute mark. */
+export function nextHalfHour(base: Date | number = Date.now()): Date {
+  const d = new Date(base);
+  const minutes = d.getMinutes();
+  const delta = minutes < 30 ? 30 - minutes : 60 - minutes;
+  d.setMinutes(d.getMinutes() + delta, 0, 0);
+  return d;
+}

@@ -4,6 +4,7 @@ import { ArrowRightCircle, KeyRound } from "lucide-react-native";
 
 import { KEY_TYPE_ICON, theme } from "@/constants";
 import { TransferConfirmModal } from "@/components/keyset";
+import { useKeysetAvailability } from "@/components/keyset/useKeysetAvailability";
 import { EmptyState, Pill } from "@/components/ui";
 import { useTransferKeySet } from "@/lib/hooks";
 import {
@@ -11,6 +12,7 @@ import {
   getKeyName,
   getTotalKeyQuantity,
   isPastDue,
+  isReservedState,
 } from "@/lib/utils";
 import type { KeySetWithDetails } from "@/lib/services";
 
@@ -55,6 +57,7 @@ export function AgentKeysView({ keySets }: AgentKeysViewProps) {
 function AgentKeySetCard({ keySet }: { keySet: KeySetWithDetails }) {
   const [showTransferModal, setShowTransferModal] = useState(false);
   const transferMut = useTransferKeySet(keySet.property_id);
+  const availability = useKeysetAvailability(keySet.id);
 
   const handleTransfer = useCallback(() => {
     transferMut.mutate(
@@ -75,6 +78,8 @@ function AgentKeySetCard({ keySet }: { keySet: KeySetWithDetails }) {
     keySet.status === "handover_tenant" ||
     keySet.status === "handover_landlord";
 
+  const isReserved = isAvailable && isReservedState(availability?.state);
+
   const holderName = keySet.current_holder?.full_name;
   const holderType = keySet.current_holder?.holder_type;
   const holderPhone = keySet.current_holder?.phone;
@@ -84,12 +89,12 @@ function AgentKeySetCard({ keySet }: { keySet: KeySetWithDetails }) {
 
   const iconBg = overdue
     ? theme.colors.dangerSoft
-    : isAvailable
+    : isAvailable && !isReserved
       ? theme.colors.successSoft
       : theme.colors.warningSoft;
   const iconColor = overdue
     ? theme.colors.danger
-    : isAvailable
+    : isAvailable && !isReserved
       ? theme.colors.success
       : theme.colors.warning;
   const cardBorderColor = theme.colors.border;
@@ -110,6 +115,11 @@ function AgentKeySetCard({ keySet }: { keySet: KeySetWithDetails }) {
               {overdue && (
                 <Pill tone="danger" size="sm">
                   Overdue
+                </Pill>
+              )}
+              {isReserved && !overdue && (
+                <Pill tone="warning" size="sm">
+                  Reserved
                 </Pill>
               )}
               <Pill tone="neutral" size="sm">

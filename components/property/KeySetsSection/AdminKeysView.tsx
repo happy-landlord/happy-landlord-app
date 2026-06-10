@@ -12,9 +12,18 @@ import { ChevronDown, ChevronRight, KeyRound } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
 import { KEY_TYPE_ICON, theme } from "@/constants";
-import { KeyStatusChip } from "@/components/KeyStatusChip";
+import {
+  KeyStatusChip,
+  type KeyStatusChipStatus,
+} from "@/components/KeyStatusChip";
 import { EmptyState } from "@/components/ui";
-import { getKeyName, getKeySetTone, isPastDue } from "@/lib/utils";
+import { useKeysetAvailability } from "@/components/keyset/useKeysetAvailability";
+import {
+  getKeyName,
+  getKeySetTone,
+  isPastDue,
+  isReservedState,
+} from "@/lib/utils";
 import type { KeySetWithDetails, UnassignedKey } from "@/lib/services";
 
 import { KeySetHolderMeta, KeySetListCard } from "./KeySetListCard";
@@ -125,11 +134,14 @@ function AdminKeySetCard({
   keySet: KeySetWithDetails;
   onPress: () => void;
 }) {
+  const availability = useKeysetAvailability(keySet.id);
   const overdue =
     keySet.status === "overdue" ||
     (keySet.status === "checked_out" && keySet.due_back_at
       ? isPastDue(keySet.due_back_at)
       : false);
+  const isReserved =
+    keySet.status === "available" && isReservedState(availability?.state);
   const hasHolderMeta =
     keySet.status === "checked_out" ||
     keySet.status === "overdue" ||
@@ -139,7 +151,7 @@ function AdminKeySetCard({
   return (
     <KeySetListCard
       keySet={keySet}
-      tone={overdue ? "danger" : getKeySetTone(keySet)}
+      tone={overdue ? "danger" : isReserved ? "warning" : getKeySetTone(keySet)}
       showCode
       meta={
         hasHolderMeta && holderName ? (
@@ -150,7 +162,17 @@ function AdminKeySetCard({
           />
         ) : null
       }
-      status={<KeyStatusChip status={overdue ? "overdue" : keySet.status} />}
+      status={
+        <KeyStatusChip
+          status={
+            overdue
+              ? "overdue"
+              : isReserved
+                ? "reserved"
+                : (keySet.status as KeyStatusChipStatus)
+          }
+        />
+      }
       onPress={onPress}
     />
   );

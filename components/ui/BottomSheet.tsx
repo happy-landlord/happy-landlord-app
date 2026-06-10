@@ -26,6 +26,13 @@ type BottomSheetProps = {
   backdropColor?: string;
   /** Whether the modal sits over the system status bar. Default true. */
   statusBarTranslucent?: boolean;
+  /**
+   * Extra content rendered INSIDE the Modal but outside the sliding sheet.
+   * Use this to place absolutely-positioned overlays (e.g. a right-side picker
+   * panel) within the same Modal context, avoiding React Native's iOS
+   * restriction on nested Modals.
+   */
+  overlayChildren?: ReactNode;
 };
 
 /**
@@ -44,6 +51,7 @@ export function BottomSheet({
   hideHandle = false,
   backdropColor = "rgba(0,0,0,0.4)",
   statusBarTranslucent = true,
+  overlayChildren,
 }: BottomSheetProps) {
   const insets = useSafeAreaInsets();
 
@@ -114,6 +122,9 @@ export function BottomSheet({
         {!hideHandle && <View style={styles.handle} />}
         {children}
       </Animated.View>
+
+      {/* Optional overlay content (e.g. right-side picker panel) */}
+      {overlayChildren}
     </Modal>
   );
 }

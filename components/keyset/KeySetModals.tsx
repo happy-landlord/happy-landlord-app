@@ -5,14 +5,12 @@ import { ReportLostSheet } from "./ReportLostSheet";
 import { ReserveKeySetModal } from "./ReserveKeySetModal";
 import { ReturnConfirmModal } from "./ReturnConfirmModal";
 import { TransferConfirmModal } from "./TransferConfirmModal";
-import {
-  useCurrentUserId,
-  useKeySet,
-  useProperty,
-} from "@/lib/hooks";
+import { useCurrentUserId, useKeySet, useProperty } from "@/lib/hooks";
 import { useRole } from "@/hooks";
 import { useKeySetActions } from "./useKeySetActions";
 import { useKeysetAvailability } from "./useKeysetAvailability";
+import { DURATION_DAYS } from "@/constants";
+import { getAllowedCheckoutDays } from "@/lib/utils";
 
 // ── KeySetModals ─────────────────────────────────────────────────────────────
 // Single home for every keyset-action modal mounted on the detail screen.
@@ -36,25 +34,36 @@ export function KeySetModals() {
 
   if (!keySet) return null;
 
+  const allowedCheckoutDays = getAllowedCheckoutDays(availability);
+  const isCheckoutConstrained =
+    allowedCheckoutDays.length < DURATION_DAYS.length;
+
+  // Clamp selected days to the largest allowed option so the modal never
+  // shows a selection that exceeds the reservation boundary.
+  const rawCheckoutDays = modal.kind === "checkout" ? modal.days : 1;
+  const checkoutDays = allowedCheckoutDays.includes(rawCheckoutDays)
+    ? rawCheckoutDays
+    : (allowedCheckoutDays[allowedCheckoutDays.length - 1] ?? 1);
+
   return (
     <>
       {/* Checkout */}
       <KeySetDurationModal
         visible={modal.kind === "checkout"}
         title={`Checkout ${keySet.name}`}
-        subtitle="Select how long you need the keyset."
+        subtitle={
+          isCheckoutConstrained
+            ? "Duration limited by an upcoming reservation."
+            : "Select how long you need the keyset."
+        }
         keys={keySet.keys ?? []}
-        durationDays={modal.kind === "checkout" ? modal.days : 1}
+        durationDays={checkoutDays}
+        allowedDays={allowedCheckoutDays}
         baseIso={undefined}
         isPending={actions.isCheckoutPending}
         onDurationChange={setModalDays}
         onCancel={closeModal}
-        onConfirm={() =>
-          actions.checkout(
-            modal.kind === "checkout" ? modal.days : 1,
-            closeModal,
-          )
-        }
+        onConfirm={() => actions.checkout(checkoutDays, closeModal)}
         confirmLabel="Confirm"
       />
 
@@ -138,4 +147,3 @@ export function KeySetModals() {
     </>
   );
 }
-

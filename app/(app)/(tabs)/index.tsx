@@ -5,7 +5,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { KeyRound } from "lucide-react-native";
+import { CalendarClock, KeyRound } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
 import { KeyDashboardSummary } from "@/components/KeyDashboardSummary";
@@ -22,13 +22,16 @@ import {
 } from "@/components/ui";
 import {
   useCheckedOutKeySets,
+  useCurrentUserId,
   useKeySetsNeedingAttention,
   useMyActivity,
+  useMyReservations,
 } from "@/lib/hooks";
 import { useRole, useRefreshControl } from "@/hooks";
+
 import { theme, useBottomListPadding } from "@/constants";
 import { formatShortAddress, formatShortDate, isPastDue } from "@/lib/utils";
-import type { CheckedOutKeySet } from "@/lib/services";
+import type { CheckedOutKeySet, MyReservation } from "@/lib/services";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -48,14 +51,19 @@ export default function HomeScreen() {
   const listPaddingBottom = useBottomListPadding();
   const router = useRouter();
   const { isAdmin } = useRole();
+  const currentUserId = useCurrentUserId();
 
-  // useCheckedOutKeySets is now role-scoped server-side — admins see all,
-  // agents only their own holdings. The previous client-side filter is gone.
   const {
     data: checkedOut = [],
     isLoading: checkedOutLoading,
     refetch: refetchCheckedOut,
   } = useCheckedOutKeySets(isAdmin ? 20 : 50);
+
+  const {
+    data: myReservations = [],
+    isLoading: reservationsLoading,
+    refetch: refetchReservations,
+  } = useMyReservations(!isAdmin ? currentUserId : undefined);
 
   // Recent activity is only rendered for agents — skip the network call for
   // admins (rather than fetching and discarding).
@@ -75,12 +83,22 @@ export default function HomeScreen() {
 
   const { refreshing, onRefresh } = useRefreshControl(
     refetchCheckedOut,
+    refetchReservations,
     refetchActivity,
     refetchAttention,
   );
 
   const checkedOutKeySets = sortByDueDate(checkedOut);
+  // Only show reservations for keysets that are NOT currently checked out.
+  // Checked-out status takes priority — the same keyset shouldn't appear twice.
+  const checkedOutIds = new Set(checkedOutKeySets.map((ks) => ks.id));
+  const reservedKeySets = myReservations.filter(
+    (res) => res.key_set && !checkedOutIds.has(res.key_set.id),
+  );
   const recentActivity = activity.slice(0, 4);
+  const agentKeysetsLoading = checkedOutLoading || reservationsLoading;
+  const hasAgentKeysets =
+    checkedOutKeySets.length > 0 || reservedKeySets.length > 0;
 
   const goToKeyset = (id: string) =>
     router.push(`/(app)/properties/keyset/${id}` as never);
@@ -121,13 +139,17 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Currently checked out */}
-      {(checkedOutLoading || checkedOutKeySets.length > 0) && (
+      {/* Currently checked out + reserved (agents also see their reservations) */}
+      {(isAdmin
+        ? checkedOutLoading || checkedOutKeySets.length > 0
+        : agentKeysetsLoading || hasAgentKeysets) && (
         <View style={styles.section}>
-          <SectionHeader title="Keysets Checked Out" />
-          {checkedOutLoading ? (
+          <SectionHeader
+            title={isAdmin ? "Keysets Checked Out" : "My Keysets"}
+          />
+          {(isAdmin ? checkedOutLoading : agentKeysetsLoading) ? (
             <Card>
-              <Text style={styles.emptyText}>Loading checked out keysets…</Text>
+              <Text style={styles.emptyText}>Loading keysets…</Text>
             </Card>
           ) : (
             <View style={styles.cardList}>
@@ -139,6 +161,14 @@ export default function HomeScreen() {
                   onPress={() => goToKeyset(keySet.id)}
                 />
               ))}
+              {!isAdmin &&
+                reservedKeySets.map((res) => (
+                  <ReservedCard
+                    key={res.id}
+                    reservation={res}
+                    onPress={() => res.key_set && goToKeyset(res.key_set.id)}
+                  />
+                ))}
             </View>
           )}
         </View>
@@ -230,7 +260,6 @@ function CheckedOutCard({
   return (
     <PressableCard
       onPress={onPress}
-      tone={overdue ? "danger" : "default"}
       flush
       accessibilityRole="button"
       accessibilityLabel={keySet.name}
@@ -275,6 +304,64 @@ function CheckedOutCard({
           <MetaRow items={metaItems} />
         </View>
       ) : null}
+    </PressableCard>
+  );
+}
+
+// ── Reserved card ─────────────────────────────────────────────────────────────
+
+function ReservedCard({
+  reservation,
+  onPress,
+}: {
+  reservation: MyReservation;
+  onPress: () => void;
+}) {
+  const { key_set } = reservation;
+  const address = key_set?.property
+    ? formatShortAddress(key_set.property)
+    : null;
+  const keyLabels = key_set?.keys.map((k) => k.label) ?? [];
+
+  return (
+    <PressableCard
+      onPress={onPress}
+      flush
+      accessibilityRole="button"
+      accessibilityLabel={key_set?.name ?? "Reserved keyset"}
+    >
+      <View style={cardStyles.top}>
+        <IconBadge icon={CalendarClock} tone="warning" size="lg" />
+        <View style={cardStyles.info}>
+          <View style={cardStyles.titleRow}>
+            <Text style={cardStyles.name} numberOfLines={1}>
+              {key_set?.name ?? "Reserved keyset"}
+            </Text>
+            <Pill tone="warning" size="sm">
+              Reserved
+            </Pill>
+            {keyLabels.length > 0 && (
+              <Pill tone="neutral" size="sm">
+                {keyLabels.length} {keyLabels.length === 1 ? "key" : "keys"}
+              </Pill>
+            )}
+          </View>
+          {address && (
+            <Text style={cardStyles.subtitle} numberOfLines={1}>
+              {address}
+            </Text>
+          )}
+          {keyLabels.length > 0 && (
+            <View style={cardStyles.keyPills}>
+              {keyLabels.map((label, i) => (
+                <Pill key={i} tone="accent" variant="soft" size="sm">
+                  {label}
+                </Pill>
+              ))}
+            </View>
+          )}
+        </View>
+      </View>
     </PressableCard>
   );
 }

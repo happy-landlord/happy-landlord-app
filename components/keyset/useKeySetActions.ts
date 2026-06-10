@@ -126,9 +126,12 @@ export function useKeySetActions({
   const isAvailable = status === "available";
   const isMissingDamaged = status === "missing_damaged";
 
-  // Reservation-aware checkout / reserve visibility
-  const canCheckout = availability ? availability.canCheckout : isAvailable;
-  const canReserve = availability ? availability.canReserve : isAvailable;
+  // Reservation-aware checkout / reserve visibility.
+  // While `availability` is undefined (initial reservations fetch in flight),
+  // keep these false so the action buttons don't flicker between visible and
+  // hidden as TanStack streams data in.
+  const canCheckout = availability ? availability.canCheckout : false;
+  const canReserve = availability ? availability.canReserve : false;
   const canCancelReservation = availability?.canCancelReservation ?? false;
 
   // ── Visibility ─────────────────────────────────────────────────────────
@@ -136,7 +139,11 @@ export function useKeySetActions({
   const showAgentCheckout =
     !isAdmin && canCheckout && !myPropertyCheckout && !isHeldByMe;
   const showAgentReserve =
-    !isAdmin && canReserve && !myPropertyCheckout && !isHeldByMe;
+    !isAdmin &&
+    canReserve &&
+    !myPropertyCheckout &&
+    !isHeldByMe &&
+    !canCancelReservation;
   const showAgentCancelReservation = !isAdmin && canCancelReservation;
   const showAgentReturn = !isAdmin && isHeldByMe;
   const showAgentExtend = !isAdmin && isHeldByMe;
@@ -162,10 +169,20 @@ export function useKeySetActions({
       if (!keySet) return;
       checkoutMut.mutate(
         { keySetId: keySet.id, dueBackAt: isoInDays(days) },
-        { onSuccess: onClose },
+        {
+          onSuccess: () => {
+            // If the agent is checking out using their own active/upcoming
+            // reservation, cancel it so it doesn't linger after fulfilment.
+            const myRes = availability?.myReservation;
+            if (myRes) {
+              cancelReservationMut.mutate(myRes.id);
+            }
+            onClose();
+          },
+        },
       );
     },
-    [checkoutMut, keySet],
+    [checkoutMut, cancelReservationMut, keySet, availability],
   );
 
   const transfer = useCallback(

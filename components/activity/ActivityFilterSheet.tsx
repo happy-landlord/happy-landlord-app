@@ -1,11 +1,28 @@
-import { useState } from "react";
-import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
+import { useRef, useState } from "react";
+import {
+  Animated,
+  Pressable,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { CalendarDays, RotateCcw, UserRound, X } from "lucide-react-native";
+import {
+  CalendarDays,
+  ChevronLeft,
+  RotateCcw,
+  UserRound,
+  X,
+} from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BottomSheet } from "@/components/ui";
-import { theme } from "@/constants";
+import { Button } from "@/components/ui/Button";
+import { theme, OVERLAY_PANEL_SLIDE_OUT } from "@/constants";
 import { formatShortDate } from "@/lib/utils";
+
+// ── Constants ─────────────────────────────────────────────────────────────────
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -39,16 +56,129 @@ export function ActivityFilterSheet({
   onChange,
   onReset,
 }: Props) {
-  // Track which date picker is open (only one at a time)
+  const insets = useSafeAreaInsets();
   const [activePicker, setActivePicker] = useState<"from" | "to" | null>(null);
+  // Local picker value — committed on Done, discarded on Cancel
+  const [pickerValue, setPickerValue] = useState<Date>(new Date());
+
+  const slideY = useRef(new Animated.Value(OVERLAY_PANEL_SLIDE_OUT)).current;
 
   const hasFilters =
     filters.myActivityOnly ||
     filters.dateFrom !== null ||
     filters.dateTo !== null;
 
+  const openPicker = (field: "from" | "to") => {
+    const current =
+      field === "from"
+        ? (filters.dateFrom ?? new Date())
+        : (filters.dateTo ?? new Date());
+    setPickerValue(current);
+    setActivePicker(field);
+    Animated.timing(slideY, {
+      toValue: 0,
+      duration: 260,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const closePicker = () => {
+    Animated.timing(slideY, {
+      toValue: OVERLAY_PANEL_SLIDE_OUT,
+      duration: 220,
+      useNativeDriver: true,
+    }).start(() => setActivePicker(null));
+  };
+
+  const applyAndClose = () => {
+    if (activePicker === "from") onChange({ dateFrom: pickerValue });
+    else if (activePicker === "to") onChange({ dateTo: pickerValue });
+    closePicker();
+  };
+
+  // ── Picker overlay (inside same Modal via overlayChildren) ─────────────────
+
+  const pickerPanel = (
+    <>
+      {activePicker && (
+        <Pressable style={StyleSheet.absoluteFill} onPress={closePicker} />
+      )}
+      <Animated.View
+        style={[
+          styles.bottomPanel,
+          { paddingBottom: insets.bottom + theme.spacing.md },
+          { transform: [{ translateY: slideY }] },
+        ]}
+        pointerEvents={activePicker ? "box-none" : "none"}
+      >
+        <View style={styles.panelHeader}>
+          <Pressable
+            onPress={closePicker}
+            hitSlop={10}
+            style={({ pressed }) => [
+              styles.backBtn,
+              pressed && { opacity: 0.6 },
+            ]}
+          >
+            <ChevronLeft
+              size={20}
+              color={theme.colors.text}
+              strokeWidth={2.5}
+            />
+          </Pressable>
+          <Text style={styles.panelTitle}>
+            {activePicker === "from" ? "From date" : "To date"}
+          </Text>
+        </View>
+
+        {activePicker && (
+          <DateTimePicker
+            value={pickerValue}
+            mode="date"
+            display="spinner"
+            textColor={theme.colors.text}
+            themeVariant="light"
+            minimumDate={
+              activePicker === "to"
+                ? (filters.dateFrom ?? undefined)
+                : undefined
+            }
+            maximumDate={
+              activePicker === "from"
+                ? (filters.dateTo ?? new Date())
+                : new Date()
+            }
+            onChange={(_, selected) => {
+              if (selected) setPickerValue(selected);
+            }}
+            style={styles.picker}
+          />
+        )}
+
+        <View style={styles.panelActions}>
+          <Button
+            title="Cancel"
+            variant="ghost"
+            onPress={closePicker}
+            style={styles.panelBtn}
+          />
+          <Button
+            title="Done"
+            variant="primary"
+            onPress={applyAndClose}
+            style={styles.panelBtn}
+          />
+        </View>
+      </Animated.View>
+    </>
+  );
+
   return (
-    <BottomSheet visible={visible} onClose={onClose}>
+    <BottomSheet
+      visible={visible}
+      onClose={onClose}
+      overlayChildren={pickerPanel}
+    >
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <View style={styles.header}>
         <Text style={styles.title}>Filters</Text>
@@ -124,80 +254,36 @@ export function ActivityFilterSheet({
       <Text style={styles.sectionLabel}>Date range</Text>
 
       <View style={styles.dateRow}>
-        {/* From */}
         <DateField
           label="From"
           value={filters.dateFrom}
           active={activePicker === "from"}
-          onPress={() => setActivePicker((p) => (p === "from" ? null : "from"))}
+          onPress={() => openPicker("from")}
           onClear={() => {
             onChange({ dateFrom: null });
-            setActivePicker(null);
+            closePicker();
           }}
         />
-
-        {/* To — defaults to today when unset */}
         <DateField
           label="To"
           value={filters.dateTo}
           fallbackValue={new Date()}
           active={activePicker === "to"}
-          onPress={() => setActivePicker((p) => (p === "to" ? null : "to"))}
+          onPress={() => openPicker("to")}
           onClear={() => {
             onChange({ dateTo: null });
-            setActivePicker(null);
+            closePicker();
           }}
         />
       </View>
 
-      {/* Native date pickers — only show one at a time.
-          Both platforms use display="spinner" (inline) because the sheet is
-          already inside a React Native Modal; launching a second native dialog
-          from within a Modal silently fails on Android.
-          The wrapper enforces a visible height so the spinner doesn't collapse. */}
-      {activePicker !== null && (
-        <View style={styles.pickerWrap}>
-          <DateTimePicker
-            value={
-              (activePicker === "from" ? filters.dateFrom : filters.dateTo) ??
-              new Date()
-            }
-            mode="date"
-            display="spinner"
-            textColor={theme.colors.text}
-            themeVariant="light"
-            minimumDate={
-              activePicker === "to"
-                ? (filters.dateFrom ?? undefined)
-                : undefined
-            }
-            maximumDate={
-              activePicker === "from"
-                ? (filters.dateTo ?? new Date())
-                : new Date()
-            }
-            onChange={(_, selected) => {
-              if (!selected) return;
-              if (activePicker === "from") onChange({ dateFrom: selected });
-              else onChange({ dateTo: selected });
-            }}
-            style={styles.picker}
-          />
-        </View>
-      )}
-
       {/* ── Apply button ────────────────────────────────────────────────── */}
-      <Pressable
-        style={({ pressed }) => [
-          styles.applyBtn,
-          pressed && styles.applyBtnPressed,
-        ]}
+      <Button
+        title="Apply"
+        variant="primary"
         onPress={onClose}
-        accessibilityRole="button"
-        accessibilityLabel="Apply filters"
-      >
-        <Text style={styles.applyBtnLabel}>Apply</Text>
-      </Pressable>
+        style={styles.applyBtn}
+      />
     </BottomSheet>
   );
 }
@@ -266,11 +352,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: theme.spacing.md,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: theme.colors.text,
-  },
+  title: { fontSize: 18, fontWeight: "700", color: theme.colors.text },
   resetBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -308,9 +390,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.primary,
     backgroundColor: theme.colors.primarySoft,
   },
-  myActivityCardPressed: {
-    opacity: 0.82,
-  },
+  myActivityCardPressed: { opacity: 0.82 },
   myActivityIcon: {
     width: 36,
     height: 36,
@@ -325,9 +405,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     borderColor: theme.colors.primary,
   },
-  myActivityTextWrap: {
-    flex: 1,
-  },
+  myActivityTextWrap: { flex: 1 },
   myActivityTitle: {
     fontSize: 15,
     fontWeight: "700",
@@ -385,40 +463,46 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
     marginTop: 1,
   },
-  dateFieldValueActive: {
-    color: theme.colors.primary,
-    fontWeight: "600",
-  },
-
-  // ── Inline picker ────────────────────────────────────────────────────────
-  pickerWrap: {
-    marginBottom: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.lg,
-    backgroundColor: theme.colors.background,
-    overflow: "hidden",
-    alignItems: "stretch",
-  },
-  picker: {
-    width: "100%",
-    height: 200,
-    backgroundColor: theme.colors.background,
-  },
+  dateFieldValueActive: { color: theme.colors.primary, fontWeight: "600" },
 
   // ── Apply button ─────────────────────────────────────────────────────────
   applyBtn: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.radius.lg,
-    paddingVertical: 14,
-    alignItems: "center",
-    justifyContent: "center",
     marginTop: theme.spacing.sm,
   },
-  applyBtnPressed: { opacity: 0.8 },
-  applyBtnLabel: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: theme.colors.primaryText,
+
+  // ── Bottom picker panel ───────────────────────────────────────────────────
+  bottomPanel: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: theme.colors.surface,
+    borderTopLeftRadius: theme.radius.xl,
+    borderTopRightRadius: theme.radius.xl,
+    paddingTop: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.screen,
+    gap: theme.spacing.md,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 20,
   },
+  panelHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
+  backBtn: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.neutralSoft,
+  },
+  panelTitle: { fontSize: 16, fontWeight: "700", color: theme.colors.text },
+  picker: { width: "100%" },
+  panelActions: { flexDirection: "row", gap: theme.spacing.sm },
+  panelBtn: { flex: 1 },
 });

@@ -9,6 +9,8 @@
 import type { KeySetWithDetails } from "@/lib/services/keySets.service";
 import type { Reservation } from "@/lib/services/reservations.service";
 import { formatTime } from "@/lib/utils/format";
+import { DAY_MS, HOUR_MS } from "@/lib/utils/time";
+import { DURATION_DAYS } from "@/constants";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -28,13 +30,86 @@ export type KeysetAvailability = {
   state: AvailabilityState;
   canReserve: boolean;
   canCheckout: boolean;
-  /** True only when the current user has an active reservation on this keyset. */
+  /** True when the current user has any active or upcoming reservation on this keyset. */
   canCancelReservation: boolean;
   /** The reservation that is active right now (starts_at <= now < ends_at). */
   activeReservation?: Reservation;
-  /** The next upcoming reservation (starts_at > now). */
+  /** The next upcoming reservation by anyone (starts_at > now). */
   nextReservation?: Reservation;
+  /**
+   * The current user's own reservation (active or upcoming).
+   * Prefer this over `activeReservation`/`nextReservation` when you need to
+   * cancel — those may belong to another user.
+   */
+  myReservation?: Reservation;
 };
+
+// ── Grace period ──────────────────────────────────────────────────────────────
+
+/**
+ * How long after `starts_at` a reservation is considered "voided" if the agent
+ * has not yet checked out the keyset. Mirrors a server-side cleanup job — the
+ * client filters these out so the UI doesn't keep blocking the keyset after a
+ * no-show.
+ */
+export const RESERVATION_NO_SHOW_GRACE_MS = 8 * HOUR_MS;
+
+export function isReservationVoidedByGrace(
+  reservation: Reservation,
+  nowMs: number = Date.now(),
+): boolean {
+  const startMs = new Date(reservation.starts_at).getTime();
+  return nowMs > startMs + RESERVATION_NO_SHOW_GRACE_MS;
+}
+
+/** True for any of the three reservation-active states. */
+export function isReservedState(state: AvailabilityState | undefined): boolean {
+  return (
+    state === "reserved_by_me_now" ||
+    state === "reserved_by_other_now" ||
+    state === "reserved_later"
+  );
+}
+
+/**
+ * Returns the subset of `DURATION_DAYS` that won't push the due date past the
+ * next relevant reservation boundary.
+ *
+ * - `reserved_by_me_now`    → no cap (it's my reservation — full choice)
+ * - `reserved_by_other_now` → cap at the other agent's reservation ends_at
+ * - `reserved_later`        → cap at the next reservation's starts_at
+ * - otherwise               → all options
+ *
+ * Always returns at least one option (defaults to the shortest duration when
+ * all options would be filtered out).
+ */
+export function getAllowedCheckoutDays(
+  availability: KeysetAvailability | undefined,
+  durations: readonly number[] = DURATION_DAYS,
+): readonly number[] {
+  if (!availability) return durations;
+
+  const now = Date.now();
+  let limitMs: number | null = null;
+
+  if (
+    availability.state === "reserved_by_other_now" &&
+    availability.activeReservation
+  ) {
+    limitMs = new Date(availability.activeReservation.ends_at).getTime();
+  } else if (
+    availability.state === "reserved_later" &&
+    availability.nextReservation
+  ) {
+    limitMs = new Date(availability.nextReservation.starts_at).getTime();
+  }
+
+  if (limitMs === null) return durations;
+
+  const maxDays = Math.floor((limitMs - now) / DAY_MS);
+  const filtered = durations.filter((d) => d <= maxDays);
+  return filtered.length > 0 ? filtered : durations.slice(0, 1);
+}
 
 // ── Helper ────────────────────────────────────────────────────────────────────
 
@@ -75,6 +150,12 @@ export function getKeysetAvailability({
   now?: Date;
 }): KeysetAvailability {
   const nowMs = now.getTime();
+
+  // Filter out reservations that have exceeded the no-show grace window —
+  // they're effectively voided even if the backend hasn't cleaned them up yet.
+  reservations = reservations.filter(
+    (r) => !isReservationVoidedByGrace(r, nowMs),
+  );
 
   // ── Hard status overrides ─────────────────────────────────────────────────
   if (keySet.status === "inactive") {
@@ -140,10 +221,15 @@ export function getKeysetAvailability({
       new Date(r.ends_at).getTime() > nowMs,
   );
 
+  // Find the current user's own reservation (active window first, then upcoming)
+  const myActiveReservation =
+    myProfileId != null &&
+    activeReservation?.reserved_by?.profile_id === myProfileId
+      ? activeReservation
+      : undefined;
+
   if (activeReservation) {
-    const isMyReservation =
-      myProfileId != null &&
-      activeReservation.reserved_by?.profile_id === myProfileId;
+    const isMyReservation = myActiveReservation != null;
 
     if (isMyReservation) {
       return {
@@ -153,6 +239,7 @@ export function getKeysetAvailability({
         canCheckout: true,
         canCancelReservation: true,
         activeReservation,
+        myReservation: activeReservation,
       };
     }
 
@@ -162,7 +249,10 @@ export function getKeysetAvailability({
       label: `Reserved by ${holderName}`,
       state: "reserved_by_other_now",
       canReserve: false,
-      canCheckout: false,
+      // Another agent has the active reservation, but the keyset is still
+      // physically available — allow checkout with a capped duration so it
+      // is returned before the conflicting reservation window ends.
+      canCheckout: true,
       canCancelReservation: false,
       activeReservation,
     };
@@ -180,10 +270,17 @@ export function getKeysetAvailability({
 
   const nextReservation = upcomingReservations[0];
 
+  // Find the current user's own upcoming reservation (may not be the first one)
+  const myUpcomingReservation =
+    myProfileId != null
+      ? upcomingReservations.find(
+          (r) => r.reserved_by?.profile_id === myProfileId,
+        )
+      : undefined;
+
   if (nextReservation) {
     const range = formatReservationRange(nextReservation);
     const isMyNextReservation =
-      myProfileId != null &&
       nextReservation.reserved_by?.profile_id === myProfileId;
 
     return {
@@ -193,8 +290,9 @@ export function getKeysetAvailability({
       state: "reserved_later",
       canReserve: true,
       canCheckout: true, // Backend is final authority on overlap
-      canCancelReservation: isMyNextReservation,
+      canCancelReservation: myUpcomingReservation != null,
       nextReservation,
+      myReservation: myUpcomingReservation,
     };
   }
 

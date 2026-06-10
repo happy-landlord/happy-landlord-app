@@ -38,6 +38,12 @@ export type ConfirmSheetProps = {
   keyboardShouldPersistTaps?: "always" | "handled" | "never";
   onCancel: () => void;
   onConfirm: () => void;
+  /**
+   * Passed through to BottomSheet's `overlayChildren` — rendered inside the
+   * same Modal but outside the sheet panel. Use for absolutely-positioned
+   * overlays such as a right-side picker, avoiding nested-Modal issues on iOS.
+   */
+  overlayContent?: React.ReactNode;
 };
 
 const TONE_VARIANT: Record<ConfirmSheetTone, "primary" | "success" | "danger"> =
@@ -60,11 +66,16 @@ export function ConfirmSheet({
   keyboardShouldPersistTaps,
   onCancel,
   onConfirm,
+  overlayContent,
 }: ConfirmSheetProps) {
   const handleClose = isPending ? () => {} : onCancel;
 
   return (
-    <BottomSheet visible={visible} onClose={handleClose}>
+    <BottomSheet
+      visible={visible}
+      onClose={handleClose}
+      overlayChildren={overlayContent}
+    >
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerText}>
@@ -151,4 +162,3 @@ const styles = StyleSheet.create({
   },
   actionBtn: { flex: 1 },
 });
-

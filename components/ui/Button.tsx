@@ -20,7 +20,8 @@ type ButtonVariant =
   | "danger"
   | "success"
   | "successOutline"
-  | "dangerOutline";
+  | "dangerOutline"
+  | "warningOutline";
 
 type ButtonProps = Omit<PressableProps, "style"> & {
   title: string;
@@ -151,5 +152,14 @@ const variantStyles: Record<
     },
     label: { color: theme.colors.danger },
     spinner: theme.colors.danger,
+  },
+  warningOutline: {
+    container: {
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1.5,
+      borderColor: theme.colors.warning,
+    },
+    label: { color: theme.colors.warning },
+    spinner: theme.colors.warning,
   },
 };

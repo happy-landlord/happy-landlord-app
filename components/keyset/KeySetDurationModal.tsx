@@ -27,6 +27,11 @@ type Props = {
   confirmTone?: ConfirmSheetTone;
   /** Optional key summary shown above the duration picker. */
   keys?: KeyInSet[];
+  /**
+   * When provided, only these day values are shown as chips.
+   * Defaults to `DURATION_DAYS` when omitted.
+   */
+  allowedDays?: readonly number[];
 };
 
 /**
@@ -49,7 +54,9 @@ export function KeySetDurationModal({
   confirmLabel,
   confirmTone = "success",
   keys = [],
+  allowedDays,
 }: Props) {
+  const daysToShow = allowedDays ?? DURATION_DAYS;
   const newDueIso = isoInDays(
     durationDays,
     baseIso ? new Date(baseIso) : Date.now(),
@@ -76,7 +83,7 @@ export function KeySetDurationModal({
       )}
 
       <View style={styles.grid}>
-        {DURATION_DAYS.map((days) => {
+        {daysToShow.map((days) => {
           const selected = days === durationDays;
           return (
             <Pressable

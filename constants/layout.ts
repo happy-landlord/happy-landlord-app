@@ -15,6 +15,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 export const BOTTOM_NAV_HEIGHT = 96;
 
 /**
+ * Translate-Y offset used to slide a bottom overlay panel fully off-screen
+ * when hidden. Large enough to clear any device's panel content height.
+ */
+export const OVERLAY_PANEL_SLIDE_OUT = 500;
+
+/**
  * Returns the contentContainer paddingBottom needed for a scrollable screen
  * to clear the bottom-nav while respecting the device's safe-area inset.
  *
@@ -27,4 +33,3 @@ export function useBottomListPadding(extra: number = 0): number {
     [insets.bottom, extra],
   );
 }
-

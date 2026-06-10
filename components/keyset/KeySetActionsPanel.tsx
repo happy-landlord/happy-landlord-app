@@ -1,15 +1,20 @@
 import { Alert, StyleSheet, Text, View } from "react-native";
-import { CalendarClock, CalendarX } from "lucide-react-native";
+import { CalendarClock, CalendarX, UserRound } from "lucide-react-native";
 
 import { CountdownTimer } from "./CountdownTimer";
 import { useKeySetScreen } from "./KeySetScreenContext";
-import { Button } from "@/components/ui";
+import { Button, SectionHeader } from "@/components/ui";
 import { theme } from "@/constants";
-import { useCurrentUserId, useKeySet } from "@/lib/hooks";
+import {
+  useCurrentUserId,
+  useKeySet,
+  useKeySetReservations,
+} from "@/lib/hooks";
 import { useRole } from "@/hooks";
 import { useKeySetActions } from "./useKeySetActions";
 import { useKeysetAvailability } from "./useKeysetAvailability";
-import { formatDueAt } from "@/lib/utils";
+import { formatDueAt, formatShortDate } from "@/lib/utils";
+import type { Reservation } from "@/lib/services/reservations.service";
 
 // ── KeySetActionsPanel ───────────────────────────────────────────────────────
 // Self-contained action button stack for the keyset detail screen.
@@ -22,6 +27,7 @@ export function KeySetActionsPanel() {
   const currentUserId = useCurrentUserId();
   const { isAdmin } = useRole();
   const availability = useKeysetAvailability(keySetId);
+  const { data: allReservations = [] } = useKeySetReservations(keySetId);
   const actions = useKeySetActions({
     keySet,
     currentUserId,
@@ -49,7 +55,7 @@ export function KeySetActionsPanel() {
     isBusy,
   } = actions;
 
-  if (!hasActions) return null;
+  if (!hasActions && !(isAdmin && allReservations.length > 0)) return null;
 
   const showDueSummary =
     isAdmin &&
@@ -57,21 +63,10 @@ export function KeySetActionsPanel() {
     !isMissingDamaged &&
     (isHeldByMe || isHeldByOther || showAdminReturn);
 
-  // The reservation to cancel is whichever active/upcoming reservation belongs to me
-  const myReservation = (() => {
-    if (!availability) return undefined;
-    if (
-      availability.activeReservation?.reserved_by?.profile_id === currentUserId
-    ) {
-      return availability.activeReservation;
-    }
-    if (
-      availability.nextReservation?.reserved_by?.profile_id === currentUserId
-    ) {
-      return availability.nextReservation;
-    }
-    return undefined;
-  })();
+  // The reservation to cancel is whichever active/upcoming reservation belongs to me.
+  // `availability.myReservation` already resolves the correct one (even when it's
+  // not the earliest upcoming reservation on the keyset).
+  const myReservation = availability?.myReservation;
 
   const handleCancelReservation = () => {
     if (!myReservation) return;
@@ -114,6 +109,21 @@ export function KeySetActionsPanel() {
         />
       )}
 
+      {/* Admin: one cancel card per active reservation */}
+      {isAdmin && allReservations.length > 0 && (
+        <>
+          <SectionHeader title="Reservations" />
+          {allReservations.map((res) => (
+            <AdminReservationCard
+              key={res.id}
+              reservation={res}
+              isBusy={isBusy}
+              onCancel={() => actions.cancelReservation(res.id, () => {})}
+            />
+          ))}
+        </>
+      )}
+
       {showAgentReturn && dueBackAt && !overdue && (
         <CountdownTimer endAt={dueBackAt} />
       )}
@@ -125,6 +135,35 @@ export function KeySetActionsPanel() {
             Was due <Text style={styles.dueDate}>{formatDueAt(dueBackAt)}</Text>
           </Text>
         </View>
+      )}
+
+      {showAgentCancelReservation && myReservation && (
+        <View style={styles.reservationRow}>
+          <CalendarClock
+            size={14}
+            color={theme.colors.warning}
+            strokeWidth={2}
+          />
+          <Text style={styles.reservationText}>
+            Reserved{" "}
+            <Text style={styles.reservationDate}>
+              {formatShortDate(myReservation.starts_at)}
+            </Text>
+            {" → "}
+            <Text style={styles.reservationDate}>
+              {formatShortDate(myReservation.ends_at)}
+            </Text>
+          </Text>
+        </View>
+      )}
+
+      {showAgentCancelReservation && (
+        <Button
+          title="Cancel Reservation"
+          variant="warningOutline"
+          disabled={isBusy}
+          onPress={handleCancelReservation}
+        />
       )}
 
       {showAgentCheckout && (
@@ -143,20 +182,6 @@ export function KeySetActionsPanel() {
           disabled={isBusy}
           onPress={() => openModal({ kind: "reserve" })}
         />
-      )}
-
-      {showAgentCancelReservation && (
-        <View style={styles.cancelRow}>
-          <CalendarX size={14} color={theme.colors.warning} strokeWidth={2} />
-          <Text style={styles.cancelLabel}>You have a reservation</Text>
-          <Button
-            title="Cancel"
-            variant="dangerOutline"
-            disabled={isBusy}
-            onPress={handleCancelReservation}
-            style={styles.cancelBtn}
-          />
-        </View>
       )}
 
       {showAgentExtend && (
@@ -198,6 +223,75 @@ export function KeySetActionsPanel() {
   );
 }
 
+// ── AdminReservationCard ──────────────────────────────────────────────────────
+
+function AdminReservationCard({
+  reservation,
+  isBusy,
+  onCancel,
+}: {
+  reservation: Reservation;
+  isBusy: boolean;
+  onCancel: () => void;
+}) {
+  const name = reservation.reserved_by?.full_name ?? "Unknown agent";
+
+  const handleCancel = () => {
+    Alert.alert(
+      "Cancel reservation?",
+      `Cancel ${name}'s reservation? The keyset will become available again.`,
+      [
+        { text: "Keep", style: "cancel" },
+        { text: "Cancel Reservation", style: "destructive", onPress: onCancel },
+      ],
+    );
+  };
+
+  return (
+    <View style={styles.resCard}>
+      <View style={styles.resCardHeader}>
+        <View style={styles.resCardIcon}>
+          <CalendarClock
+            size={14}
+            color={theme.colors.warning}
+            strokeWidth={2}
+          />
+        </View>
+        <View style={styles.resCardInfo}>
+          <View style={styles.resCardNameRow}>
+            <UserRound
+              size={12}
+              color={theme.colors.textMuted}
+              strokeWidth={2}
+            />
+            <Text style={styles.resCardName} numberOfLines={1}>
+              {name}
+            </Text>
+          </View>
+          <Text style={styles.resCardDates}>
+            {formatShortDate(reservation.starts_at)}
+            {" → "}
+            {formatShortDate(reservation.ends_at)}
+          </Text>
+          {reservation.notes ? (
+            <Text style={styles.resCardNotes} numberOfLines={2}>
+              {reservation.notes}
+            </Text>
+          ) : null}
+        </View>
+        <Button
+          title="Cancel"
+          variant="dangerOutline"
+          disabled={isBusy}
+          onPress={handleCancel}
+          style={styles.resCardBtn}
+        />
+      </View>
+    </View>
+  );
+}
+
+// ── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   section: { gap: theme.spacing.sm },
   dueRow: {
@@ -216,26 +310,67 @@ const styles = StyleSheet.create({
   dueTextOverdue: { color: theme.colors.danger },
   dueTextNeutral: { color: theme.colors.textMuted },
   dueDate: { fontWeight: "700" },
-  cancelRow: {
+  reservationRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    alignSelf: "center",
+    gap: 7,
     backgroundColor: theme.colors.warningSoft,
     borderRadius: theme.radius.md,
-    paddingLeft: 12,
-    paddingVertical: 6,
-    paddingRight: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
-  cancelLabel: {
-    flex: 1,
+  reservationText: { fontSize: 13, color: theme.colors.warning },
+  reservationDate: { fontWeight: "700" },
+
+  // Admin reservation card
+  resCard: {
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.sm,
+  },
+  resCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
+  resCardIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: theme.radius.sm,
+    backgroundColor: theme.colors.warningSoft,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  resCardInfo: { flex: 1, gap: 2 },
+  resCardNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  resCardName: {
     fontSize: 13,
-    color: theme.colors.warning,
-    fontWeight: "600",
+    fontWeight: "700",
+    color: theme.colors.text,
+    flex: 1,
   },
-  cancelBtn: {
-    minHeight: 36,
+  resCardDates: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: theme.colors.warning,
+  },
+  resCardNotes: {
+    fontSize: 12,
+    color: theme.colors.textMuted,
+    fontStyle: "italic",
+  },
+  resCardBtn: {
+    minHeight: 34,
     paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: theme.radius.pill,
+    paddingHorizontal: 12,
+    flexShrink: 0,
   },
 });

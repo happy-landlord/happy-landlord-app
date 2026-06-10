@@ -1,9 +1,11 @@
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { Camera, KeyRound } from "lucide-react-native";
 
-import { KeyStatusChip } from "@/components/KeyStatusChip";
+import {
+  KeyStatusChip,
+  type KeyStatusChipStatus,
+} from "@/components/KeyStatusChip";
 import { PhoneLink, Pill, ShareQrButton } from "@/components/ui";
-import { ReservationStatusChip } from "./ReservationStatusChip";
 import { KeySetKeysList } from "./KeySetKeysList";
 import { useKeySetScreen } from "./KeySetScreenContext";
 import { theme } from "@/constants";
@@ -14,7 +16,7 @@ import {
 } from "@/lib/hooks";
 import { useRole } from "@/hooks";
 import { useKeysetAvailability } from "./useKeysetAvailability";
-import { getTotalKeyQuantity, isPastDue } from "@/lib/utils";
+import { getTotalKeyQuantity, isPastDue, isReservedState } from "@/lib/utils";
 
 // ── KeySetIdentityCard ───────────────────────────────────────────────────────
 // Hero card on the keyset detail screen. Self-sufficient: pulls `keySet`,
@@ -43,6 +45,8 @@ export function KeySetIdentityCard() {
     (status === "checked_out" && keySet.due_back_at
       ? isPastDue(keySet.due_back_at)
       : false);
+
+  const isReserved = isReservedState(availability?.state);
 
   const totalKeys = getTotalKeyQuantity(keySet);
   const holderName = keySet.current_holder?.full_name;
@@ -86,7 +90,7 @@ export function KeySetIdentityCard() {
               isAdmin ? styles.iconWrapLg : styles.iconWrap,
               overdue || isMissingDamaged
                 ? styles.iconOverdue
-                : isAvailable
+                : isAvailable && !isReserved
                   ? styles.iconAvailable
                   : styles.iconOut,
             ]}
@@ -96,7 +100,7 @@ export function KeySetIdentityCard() {
               color={
                 overdue || isMissingDamaged
                   ? theme.colors.danger
-                  : isAvailable
+                  : isAvailable && !isReserved
                     ? theme.colors.success
                     : theme.colors.warning
               }
@@ -107,10 +111,15 @@ export function KeySetIdentityCard() {
           <View style={styles.info}>
             <View style={styles.statusRow}>
               {isAdmin && (
-                <KeyStatusChip status={overdue ? "overdue" : keySet.status} />
-              )}
-              {!isAdmin && availability && (
-                <ReservationStatusChip availability={availability} />
+                <KeyStatusChip
+                  status={
+                    overdue
+                      ? "overdue"
+                      : isReserved
+                        ? "reserved"
+                        : (keySet.status as KeyStatusChipStatus)
+                  }
+                />
               )}
               {isAdmin && (
                 <Pill tone="neutral" size="sm">

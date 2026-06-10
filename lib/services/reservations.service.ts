@@ -26,6 +26,32 @@ export type Reservation = {
   } | null;
 };
 
+/**
+ * A reservation belonging to the current agent, enriched with
+ * keyset + property details for display on the home screen.
+ */
+export type MyReservation = {
+  id: string;
+  key_set_id: string;
+  starts_at: string;
+  ends_at: string;
+  status: "active";
+  key_set: {
+    id: string;
+    name: string;
+    code: string;
+    keys: { label: string }[];
+    property: {
+      unit_number: string | null;
+      address: string;
+      formatted_address: string | null;
+      suburb: string;
+      city: string;
+      postcode: string | null;
+    } | null;
+  } | null;
+};
+
 // ── Fetch helpers ─────────────────────────────────────────────────────────────
 
 /**
@@ -85,9 +111,7 @@ export async function reserveKeySet({
  * Cancels an existing reservation owned by the calling agent.
  * Calls `public.cancel_reservation(p_reservation_id)`.
  */
-export async function cancelReservation(
-  reservationId: string,
-): Promise<void> {
+export async function cancelReservation(reservationId: string): Promise<void> {
   const { error } = await supabase.rpc("cancel_reservation", {
     p_reservation_id: reservationId,
   });
@@ -95,3 +119,34 @@ export async function cancelReservation(
   if (error) throw error;
 }
 
+/**
+ * Fetches all active, non-expired reservations belonging to the given agent
+ * (matched by their auth `profile_id`), enriched with keyset + property info.
+ * Used to display the agent's upcoming / in-progress reservations on the
+ * home screen alongside checked-out keysets.
+ */
+export async function fetchMyReservations(
+  profileId: string,
+): Promise<MyReservation[]> {
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("reservations")
+    .select(
+      `
+      id, key_set_id, starts_at, ends_at, status,
+      holder:reserved_by_holder_id!inner(profile_id),
+      key_set:key_set_id(
+        id, name, code,
+        keys(label),
+        property:property_id(unit_number, address, formatted_address, suburb, city, postcode)
+      )
+    `,
+    )
+    .eq("holder.profile_id", profileId)
+    .eq("status", "active")
+    .gt("ends_at", now)
+    .order("starts_at", { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []) as unknown as MyReservation[];
+}
