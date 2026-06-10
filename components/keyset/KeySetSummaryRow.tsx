@@ -26,7 +26,7 @@ export function SummaryRow({
 }) {
   return (
     <View style={summaryStyles.row}>
-      <IconBadge icon={icon} tone="primary" size="sm" />
+      <IconBadge icon={icon} tone="accent" size="sm" />
       <View style={summaryStyles.textBlock}>
         <Text style={summaryStyles.label}>{label}</Text>
         <Text
@@ -77,7 +77,7 @@ export const summaryStyles = StyleSheet.create({
     color: theme.colors.text,
   },
   valuePrimary: {
-    color: theme.colors.primaryDark,
+    color: theme.colors.accent,
     fontWeight: "800",
   },
   divider: {
@@ -90,4 +90,3 @@ export const summaryStyles = StyleSheet.create({
     backgroundColor: theme.colors.border,
   },
 });
-

@@ -13,6 +13,7 @@ import "react-native-reanimated";
 
 import { queryClient } from "@/lib/query";
 import { useDevOverridesStore } from "@/lib/state";
+import { theme } from "@/constants";
 import * as Sentry from "@sentry/react-native";
 
 Sentry.init({
@@ -73,19 +74,23 @@ const errorStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
-    backgroundColor: "#FAF9F5",
+    backgroundColor: theme.colors.background,
     gap: 12,
   },
-  title: { fontSize: 20, fontWeight: "700", color: "#1A1A1A" },
-  message: { fontSize: 14, color: "#5C5C5C", textAlign: "center" },
+  title: { fontSize: 20, fontWeight: "700", color: theme.colors.text },
+  message: {
+    fontSize: 14,
+    color: theme.colors.accentLight,
+    textAlign: "center",
+  },
   button: {
     marginTop: 16,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: "#A38449",
+    backgroundColor: theme.colors.primary,
   },
-  buttonText: { color: "#FFF", fontWeight: "600" },
+  buttonText: { color: theme.colors.primaryText, fontWeight: "600" },
 });
 
 // GooglePlacesAutocomplete renders a FlatList inside the add-property ScrollView.
@@ -95,7 +100,7 @@ LogBox.ignoreLogs(["VirtualizedLists should never be nested"]);
 
 // Set the native root background colour BEFORE JS mounts so there is no white
 // flash between the splash screen and the first React render.
-SystemUI.setBackgroundColorAsync("#FAF9F5").catch(() => {
+SystemUI.setBackgroundColorAsync(theme.colors.background).catch(() => {
   // No-op: not fatal if it fails (e.g. on web).
 });
 
@@ -103,7 +108,7 @@ const AppTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    background: "#FAF9F5",
+    background: theme.colors.background,
   },
 };
 

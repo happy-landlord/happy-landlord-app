@@ -172,7 +172,7 @@ export function PhotoPicker({
                 accessibilityRole="button"
                 accessibilityLabel={`Remove photo ${index + 1}`}
               >
-                <X size={11} color="#fff" strokeWidth={3} />
+                <X size={11} color={theme.colors.textInverse} strokeWidth={3} />
               </Pressable>
               <View style={[styles.badge, compact && styles.badgeCompact]}>
                 <Text
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: "#E53935",
+    backgroundColor: theme.colors.danger,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 2,
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#fff",
+    color: theme.colors.textInverse,
     lineHeight: 13,
   },
   badgeTextCompact: {

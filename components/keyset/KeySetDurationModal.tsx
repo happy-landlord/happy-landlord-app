@@ -100,11 +100,7 @@ export function KeySetDurationModal({
       </View>
 
       <View style={styles.dueRow}>
-        <CalendarClock
-          size={14}
-          color={theme.colors.primary}
-          strokeWidth={2}
-        />
+        <CalendarClock size={14} color={theme.colors.primary} strokeWidth={2} />
         <Text style={styles.dueText}>
           {baseIso ? "New due date:" : "Return by"}{" "}
           <Text style={styles.dueDate}>{formatDueAt(newDueIso)}</Text>
@@ -129,28 +125,27 @@ const styles = StyleSheet.create({
   },
   grid: {
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: 8,
     justifyContent: "center",
   },
   chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     borderRadius: theme.radius.pill,
     backgroundColor: theme.colors.neutralSoft,
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
   chipSelected: {
-    backgroundColor: theme.colors.primarySoft,
-    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.accentSoft,
+    borderColor: theme.colors.accent,
   },
   chipText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
     color: theme.colors.textMuted,
   },
-  chipTextSelected: { color: theme.colors.primary, fontWeight: "700" },
+  chipTextSelected: { color: theme.colors.accent, fontWeight: "700" },
   dueRow: {
     maxWidth: "100%",
     flexDirection: "row",
@@ -158,7 +153,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignSelf: "center",
     gap: 6,
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.accentSoft,
     borderRadius: theme.radius.md,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: 10,

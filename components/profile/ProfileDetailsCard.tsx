@@ -1,12 +1,5 @@
 import { useState } from "react";
-import {
-  Alert,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { Check, Pencil, Phone, User, X } from "lucide-react-native";
 
 import { theme } from "@/constants";
@@ -46,8 +39,6 @@ export function ProfileDetailsCard() {
     };
     updateMutation.mutate(edits, {
       onSuccess: () => setEditing(false),
-      onError: () =>
-        Alert.alert("Error", "Could not save changes. Please try again."),
     });
   };
 
@@ -57,7 +48,9 @@ export function ProfileDetailsCard() {
 
       <View style={styles.card}>
         <DetailRow
-          icon={<User size={16} color={theme.colors.primary} strokeWidth={1.9} />}
+          icon={
+            <User size={16} color={theme.colors.accent} strokeWidth={1.9} />
+          }
           label="Name"
         >
           {editing ? (
@@ -80,7 +73,9 @@ export function ProfileDetailsCard() {
         </DetailRow>
 
         <DetailRow
-          icon={<Phone size={16} color={theme.colors.primary} strokeWidth={1.9} />}
+          icon={
+            <Phone size={16} color={theme.colors.accent} strokeWidth={1.9} />
+          }
           label="Phone"
         >
           {editing ? (
@@ -114,7 +109,11 @@ export function ProfileDetailsCard() {
           <ActionButton
             variant="primary"
             icon={
-              <Check size={16} color={theme.colors.textInverse} strokeWidth={2} />
+              <Check
+                size={16}
+                color={theme.colors.textInverse}
+                strokeWidth={2}
+              />
             }
             label={updateMutation.isPending ? "Saving…" : "Save changes"}
             onPress={saveEdit}
@@ -125,7 +124,9 @@ export function ProfileDetailsCard() {
         <ActionButton
           variant="outline"
           full
-          icon={<Pencil size={16} color={theme.colors.text} strokeWidth={1.9} />}
+          icon={
+            <Pencil size={16} color={theme.colors.text} strokeWidth={1.9} />
+          }
           label="Edit profile"
           onPress={startEdit}
         />
@@ -188,7 +189,9 @@ function ActionButton({
       {icon}
       <Text
         style={
-          variant === "primary" ? styles.btnPrimaryLabel : styles.btnOutlineLabel
+          variant === "primary"
+            ? styles.btnPrimaryLabel
+            : styles.btnOutlineLabel
         }
       >
         {label}
@@ -227,7 +230,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: theme.radius.md - 2,
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.accentSoft,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
@@ -296,4 +299,3 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
   },
 });
-

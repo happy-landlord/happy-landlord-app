@@ -1,4 +1,10 @@
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { KeyRound } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
@@ -21,7 +27,7 @@ import {
 } from "@/lib/hooks";
 import { useRole, useRefreshControl } from "@/hooks";
 import { theme, useBottomListPadding } from "@/constants";
-import { formatShortDate, isPastDue } from "@/lib/utils";
+import { formatShortAddress, formatShortDate, isPastDue } from "@/lib/utils";
 import type { CheckedOutKeySet } from "@/lib/services";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -45,17 +51,27 @@ export default function HomeScreen() {
 
   // useCheckedOutKeySets is now role-scoped server-side — admins see all,
   // agents only their own holdings. The previous client-side filter is gone.
-  const { data: checkedOut = [], isLoading: checkedOutLoading, refetch: refetchCheckedOut } =
-    useCheckedOutKeySets(isAdmin ? 20 : 50);
+  const {
+    data: checkedOut = [],
+    isLoading: checkedOutLoading,
+    refetch: refetchCheckedOut,
+  } = useCheckedOutKeySets(isAdmin ? 20 : 50);
 
   // Recent activity is only rendered for agents — skip the network call for
   // admins (rather than fetching and discarding).
-  const { data: activity = [], isLoading: activityLoading, refetch: refetchActivity } = useMyActivity({
+  const {
+    data: activity = [],
+    isLoading: activityLoading,
+    refetch: refetchActivity,
+  } = useMyActivity({
     enabled: !isAdmin,
   });
 
-  const { data: needsAttention = [], isLoading: attentionLoading, refetch: refetchAttention } =
-    useKeySetsNeedingAttention();
+  const {
+    data: needsAttention = [],
+    isLoading: attentionLoading,
+    refetch: refetchAttention,
+  } = useKeySetsNeedingAttention();
 
   const { refreshing, onRefresh } = useRefreshControl(
     refetchCheckedOut,
@@ -179,11 +195,7 @@ function CheckedOutCard({
   isAdmin: boolean;
   onPress: () => void;
 }) {
-  const address =
-    keySet.property?.address ??
-    keySet.property?.formatted_address ??
-    "Property";
-  const suburb = keySet.property?.suburb;
+  const address = formatShortAddress(keySet.property);
   const overdue = isPastDue(keySet.due_back_at);
   const tone: IconBadgeTone = overdue ? "danger" : "warning";
 
@@ -231,6 +243,11 @@ function CheckedOutCard({
             <Text style={cardStyles.name} numberOfLines={1}>
               {keySet.name}
             </Text>
+            {overdue && (
+              <Pill tone="danger" size="sm">
+                Overdue
+              </Pill>
+            )}
             {keyLabels.length > 0 && (
               <Pill tone="neutral" size="sm">
                 {keyLabels.length} {keyLabels.length === 1 ? "key" : "keys"}
@@ -240,15 +257,10 @@ function CheckedOutCard({
           <Text style={cardStyles.subtitle} numberOfLines={1}>
             {address}
           </Text>
-          {suburb ? (
-            <Text style={cardStyles.subtitle} numberOfLines={1}>
-              {suburb}
-            </Text>
-          ) : null}
           {keyLabels.length > 0 && (
             <View style={cardStyles.keyPills}>
               {keyLabels.map((label, i) => (
-                <Pill key={i} tone="primary" variant="soft" size="sm">
+                <Pill key={i} tone="accent" variant="soft" size="sm">
                   {label}
                 </Pill>
               ))}

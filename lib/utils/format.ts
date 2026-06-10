@@ -110,13 +110,16 @@ export type Remaining = {
   seconds: number;
 };
 
-export function getRemainingTime(endAt: string, now: number = Date.now()): Remaining {
+export function getRemainingTime(
+  endAt: string,
+  now: number = Date.now(),
+): Remaining {
   const total = new Date(endAt).getTime() - now;
   const clamped = Math.max(0, total);
   return {
     total,
-    days:    Math.floor(clamped / 1000 / 60 / 60 / 24),
-    hours:   Math.floor((clamped / 1000 / 60 / 60) % 24),
+    days: Math.floor(clamped / 1000 / 60 / 60 / 24),
+    hours: Math.floor((clamped / 1000 / 60 / 60) % 24),
     minutes: Math.floor((clamped / 1000 / 60) % 60),
     seconds: Math.floor((clamped / 1000) % 60),
   };
@@ -132,10 +135,30 @@ export function formatHMS({ hours, minutes, seconds }: Remaining): string {
  * "2d 4h" | "4h 30m" | "45m 30s" | "< 1m"
  */
 export function formatCountdown(r: Remaining): string {
-  if (r.days >= 1)    return `${r.days}d ${r.hours}h`;
-  if (r.hours >= 1)   return `${r.hours}h ${r.minutes}m`;
+  if (r.days >= 1) return `${r.days}d ${r.hours}h`;
+  if (r.hours >= 1) return `${r.hours}h ${r.minutes}m`;
   if (r.minutes >= 1) return `${r.minutes}m ${r.seconds}s`;
   return "< 1m";
+}
+
+/**
+ * Human-readable "Overdue by X" label from a past-due ISO timestamp.
+ * Returns null if not actually overdue.
+ */
+export function formatOverdueBy(
+  dueBackAt: string | null | undefined,
+): string | null {
+  if (!dueBackAt) return null;
+  const diff = Date.now() - new Date(dueBackAt).getTime();
+  if (diff <= 0) return null;
+  const totalMinutes = Math.floor(diff / 60_000);
+  const days = Math.floor(totalMinutes / 60 / 24);
+  const hours = Math.floor((totalMinutes / 60) % 24);
+  const minutes = totalMinutes % 60;
+  if (days >= 1) return `Overdue by ${days}d ${hours}h`;
+  if (hours >= 1) return `Overdue by ${hours}h ${minutes}m`;
+  if (minutes >= 1) return `Overdue by ${minutes}m`;
+  return "Overdue by < 1m";
 }
 
 /**
@@ -144,11 +167,14 @@ export function formatCountdown(r: Remaining): string {
  * Falls back to "Property" when no data is available.
  */
 export function formatShortAddress(
-  property: {
-    unit_number?: string | null;
-    address?: string | null;
-    suburb?: string | null;
-  } | null | undefined,
+  property:
+    | {
+        unit_number?: string | null;
+        address?: string | null;
+        suburb?: string | null;
+      }
+    | null
+    | undefined,
 ): string {
   if (!property) return "Property";
 
@@ -254,11 +280,13 @@ export function formatUntilTime(iso: string): string {
   tomorrow.setDate(now.getDate() + 1);
   if (isSameCalendarDay(date, tomorrow)) return `tomorrow at ${time}`;
 
-  return date.toLocaleDateString(LOCALE, {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  }) + ` at ${time}`;
+  return (
+    date.toLocaleDateString(LOCALE, {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    }) + ` at ${time}`
+  );
 }
 
 /**

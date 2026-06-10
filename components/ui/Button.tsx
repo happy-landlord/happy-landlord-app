@@ -93,8 +93,8 @@ const variantStyles: Record<
 > = {
   primary: {
     container: { backgroundColor: theme.colors.primary },
-    label: { color: theme.colors.textInverse },
-    spinner: theme.colors.textInverse,
+    label: { color: theme.colors.primaryText },
+    spinner: theme.colors.primaryText,
   },
   primaryOutline: {
     container: {
@@ -107,8 +107,8 @@ const variantStyles: Record<
   },
   accent: {
     container: { backgroundColor: theme.colors.accent },
-    label: { color: theme.colors.text },
-    spinner: theme.colors.text,
+    label: { color: theme.colors.textInverse },
+    spinner: theme.colors.textInverse,
   },
   outline: {
     container: {

@@ -4,13 +4,13 @@ import { ArrowRightCircle, KeyRound } from "lucide-react-native";
 
 import { KEY_TYPE_ICON, theme } from "@/constants";
 import { TransferConfirmModal } from "@/components/keyset";
-import { EmptyState } from "@/components/ui";
+import { EmptyState, Pill } from "@/components/ui";
 import { useTransferKeySet } from "@/lib/hooks";
 import {
-  alertError,
-  formatDate,
+  formatDueAt,
   getKeyName,
   getTotalKeyQuantity,
+  isPastDue,
 } from "@/lib/utils";
 import type { KeySetWithDetails } from "@/lib/services";
 
@@ -59,16 +59,18 @@ function AgentKeySetCard({ keySet }: { keySet: KeySetWithDetails }) {
   const handleTransfer = useCallback(() => {
     transferMut.mutate(
       { keySetId: keySet.id },
-      {
-        onSuccess: () => setShowTransferModal(false),
-        onError: (err) => alertError("Transfer failed", err),
-      },
+      { onSuccess: () => setShowTransferModal(false) },
     );
   }, [transferMut, keySet.id]);
 
-  const overdue = keySet.status === "overdue";
+  const overdue =
+    keySet.status === "overdue" ||
+    (keySet.status === "checked_out" && keySet.due_back_at
+      ? isPastDue(keySet.due_back_at)
+      : false);
   const isAvailable = keySet.status === "available";
-  const isCheckedOut = keySet.status === "checked_out" || overdue;
+  const isCheckedOut =
+    keySet.status === "checked_out" || keySet.status === "overdue" || overdue;
   const isHandover =
     keySet.status === "handover_tenant" ||
     keySet.status === "handover_landlord";
@@ -90,7 +92,7 @@ function AgentKeySetCard({ keySet }: { keySet: KeySetWithDetails }) {
     : isAvailable
       ? theme.colors.success
       : theme.colors.warning;
-  const cardBorderColor = overdue ? theme.colors.danger : theme.colors.border;
+  const cardBorderColor = theme.colors.border;
 
   return (
     <>
@@ -105,9 +107,14 @@ function AgentKeySetCard({ keySet }: { keySet: KeySetWithDetails }) {
               <Text style={styles.name} numberOfLines={2}>
                 {keySet.name}
               </Text>
-              <View style={styles.countPill}>
-                <Text style={styles.countText}>{keyCountLabel}</Text>
-              </View>
+              {overdue && (
+                <Pill tone="danger" size="sm">
+                  Overdue
+                </Pill>
+              )}
+              <Pill tone="neutral" size="sm">
+                {keyCountLabel}
+              </Pill>
             </View>
 
             {keys.length > 0 && (
@@ -119,7 +126,7 @@ function AgentKeySetCard({ keySet }: { keySet: KeySetWithDetails }) {
                     <View key={k.id} style={styles.keyPill}>
                       <Icon
                         size={12}
-                        color={theme.colors.primary}
+                        color={theme.colors.accent}
                         strokeWidth={1.8}
                       />
                       <Text style={styles.keyPillText} numberOfLines={1}>
@@ -148,10 +155,7 @@ function AgentKeySetCard({ keySet }: { keySet: KeySetWithDetails }) {
               <View style={styles.metaItem}>
                 <Text style={styles.metaLabel}>With</Text>
                 <Text
-                  style={[
-                    styles.metaValue,
-                    overdue && styles.metaValueDanger,
-                  ]}
+                  style={[styles.metaValue, overdue && styles.metaValueDanger]}
                   numberOfLines={1}
                 >
                   {holderName}
@@ -163,10 +167,7 @@ function AgentKeySetCard({ keySet }: { keySet: KeySetWithDetails }) {
               <View style={styles.metaItem}>
                 <Text style={styles.metaLabel}>Contact</Text>
                 <Text
-                  style={[
-                    styles.metaValue,
-                    overdue && styles.metaValueDanger,
-                  ]}
+                  style={[styles.metaValue, overdue && styles.metaValueDanger]}
                   numberOfLines={1}
                 >
                   {holderPhone ?? "No contact"}
@@ -178,30 +179,26 @@ function AgentKeySetCard({ keySet }: { keySet: KeySetWithDetails }) {
 
         <View style={styles.actionWrap}>
           {keySet.due_back_at && (
-            <Text
-              style={[
-                styles.dueDateText,
-                overdue && styles.dueDateTextOverdue,
-              ]}
-              numberOfLines={1}
-            >
-              {overdue ? "Was due" : "Due"} {formatDate(keySet.due_back_at)}
+            <Text style={styles.dueDateText} numberOfLines={1}>
+              {overdue ? "Was due" : "Due"} {formatDueAt(keySet.due_back_at)}
             </Text>
           )}
           <Pressable
             style={({ pressed }) => [
               styles.transferButton,
               transferMut.isPending && styles.transferButtonDisabled,
-              pressed &&
-                !transferMut.isPending &&
-                styles.transferButtonPressed,
+              pressed && !transferMut.isPending && styles.transferButtonPressed,
             ]}
             onPress={() => setShowTransferModal(true)}
             disabled={transferMut.isPending}
             accessibilityRole="button"
             accessibilityLabel={`Transfer ${keySet.name} to me`}
           >
-            <ArrowRightCircle size={16} color="#fff" strokeWidth={2} />
+            <ArrowRightCircle
+              size={16}
+              color={theme.colors.primaryText}
+              strokeWidth={2}
+            />
             <Text style={styles.transferButtonText}>
               {transferMut.isPending ? "Transferring…" : "Transfer to Me"}
             </Text>
@@ -266,19 +263,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: theme.spacing.sm,
   },
-  countPill: {
-    minHeight: 20,
-    flexShrink: 0,
-    borderRadius: theme.radius.pill,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    backgroundColor: theme.colors.neutralSoft,
-  },
-  countText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: theme.colors.textMuted,
-  },
   name: {
     flex: 1,
     fontSize: 17,
@@ -296,13 +280,13 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.sm,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.accentSoft,
   },
   keyPillText: {
     maxWidth: 130,
     fontSize: 12,
     fontWeight: "700",
-    color: theme.colors.primaryDark,
+    color: theme.colors.accent,
   },
   keyPillQty: {
     minWidth: 18,
@@ -316,7 +300,7 @@ const styles = StyleSheet.create({
   keyPillQtyText: {
     fontSize: 11,
     fontWeight: "800",
-    color: theme.colors.primaryDark,
+    color: theme.colors.accent,
   },
   meta: { paddingHorizontal: theme.spacing.md },
   metaDivider: {
@@ -348,9 +332,8 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 13,
     fontWeight: "700",
-    color: theme.colors.warning,
+    color: theme.colors.textMuted,
   },
-  dueDateTextOverdue: { color: theme.colors.danger },
   transferButton: {
     minHeight: 46,
     flexDirection: "row",
@@ -362,6 +345,9 @@ const styles = StyleSheet.create({
   },
   transferButtonPressed: { opacity: 0.75 },
   transferButtonDisabled: { opacity: 0.55 },
-  transferButtonText: { fontSize: 15, fontWeight: "700", color: "#fff" },
+  transferButtonText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: theme.colors.primaryText,
+  },
 });
-

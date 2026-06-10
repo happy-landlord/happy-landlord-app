@@ -11,7 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Eye, EyeOff, Fingerprint, ShieldCheck } from "lucide-react-native";
 
-import { Input , Logo } from "@/components/ui";
+import { Input, Logo } from "@/components/ui";
 import { theme } from "@/constants";
 import { supabase } from "@/lib/supabase";
 import { useLockStore } from "@/lib/state";
@@ -129,7 +129,10 @@ export function LockScreen({ userName, userEmail }: LockScreenProps) {
     } catch (err) {
       // An exception here usually means the permission is missing entirely
       // (e.g. NSFaceIDUsageDescription absent in Expo Go). Fall back gracefully.
-      logger.error("[LockScreen] biometric auth error", err instanceof Error ? err : new Error(String(err)));
+      logger.error(
+        "[LockScreen] biometric auth error",
+        err instanceof Error ? err : new Error(String(err)),
+      );
       setMode("password");
     } finally {
       setIsAuthenticating(false);
@@ -296,13 +299,13 @@ export function LockScreen({ userName, userEmail }: LockScreenProps) {
               {isVerifying ? (
                 <ActivityIndicator
                   size="small"
-                  color={theme.colors.textInverse}
+                  color={theme.colors.primaryText}
                 />
               ) : (
                 <>
                   <ShieldCheck
                     size={17}
-                    color={theme.colors.textInverse}
+                    color={theme.colors.primaryText}
                     strokeWidth={2}
                   />
                   <Text style={styles.unlockBtnText}>Unlock</Text>
@@ -458,6 +461,6 @@ const styles = StyleSheet.create({
   unlockBtnText: {
     fontSize: 16,
     fontWeight: "700",
-    color: theme.colors.textInverse,
+    color: theme.colors.primaryText,
   },
 });

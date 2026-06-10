@@ -22,8 +22,10 @@ function isSilentError(error: unknown): boolean {
 function handleGlobalError(
   error: unknown,
   context: { type: "query" | "mutation"; key?: readonly unknown[] },
+  silent = false,
 ) {
   if (isSilentError(error)) return;
+  if (silent) return;
 
   const message = getErrorMessage(error, "An unexpected error occurred.");
 
@@ -58,7 +60,12 @@ export const queryClient = new QueryClient({
       }),
   }),
   mutationCache: new MutationCache({
-    onError: (error) => handleGlobalError(error, { type: "mutation" }),
+    onError: (error, _vars, _ctx, mutation) =>
+      handleGlobalError(
+        error,
+        { type: "mutation" },
+        !!(mutation.meta as Record<string, unknown> | undefined)?.silentError,
+      ),
   }),
   defaultOptions: {
     queries: {

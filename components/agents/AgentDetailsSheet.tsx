@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { Image } from "expo-image";
 import {
-  AlertTriangle,
-  KeyRound,
-  Mail,
-  X,
-} from "lucide-react-native";
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { Image } from "expo-image";
+import { AlertTriangle, KeyRound, Mail, X } from "lucide-react-native";
 
 import { BottomSheet, Button, PhoneLink } from "@/components/ui";
 import { theme } from "@/constants";
@@ -17,7 +19,6 @@ import {
 } from "@/lib/hooks";
 import type { CheckedOutKeySet } from "@/lib/services";
 import type { AgentProfile } from "@/lib/services/profile.service";
-import { alertError } from "@/lib/utils";
 
 type Props = {
   agent: AgentProfile | null;
@@ -43,8 +44,7 @@ export function AgentDetailsSheet({ agent, onClose }: Props) {
     agent?.key_holder_full_name?.trim() ||
     "Unknown name";
   const initial = (name || agent?.email || "?")[0].toUpperCase();
-  const phone =
-    agent?.phone?.trim() || agent?.key_holder_phone?.trim() || null;
+  const phone = agent?.phone?.trim() || agent?.key_holder_phone?.trim() || null;
 
   const handleClose = deactivate.isPending ? () => {} : onClose;
 
@@ -64,8 +64,6 @@ export function AgentDetailsSheet({ agent, onClose }: Props) {
           setConfirming(false);
           deactivate.mutate(agent.id, {
             onSuccess: onClose,
-            onError: (err) =>
-              alertError("Error", err, "Failed to deactivate agent."),
           });
         },
       },
@@ -128,7 +126,9 @@ export function AgentDetailsSheet({ agent, onClose }: Props) {
       <View style={styles.sectionHeading}>
         <Text style={styles.sectionTitle}>Currently holding</Text>
         <Text style={styles.sectionCount}>
-          {isLoading ? "…" : `${holdingCount} ${holdingCount === 1 ? "keyset" : "keysets"}`}
+          {isLoading
+            ? "…"
+            : `${holdingCount} ${holdingCount === 1 ? "keyset" : "keysets"}`}
         </Text>
       </View>
 
@@ -192,11 +192,7 @@ function KeySetRow({ keySet }: { keySet: CheckedOutKeySet }) {
   return (
     <View style={[styles.row, overdue && styles.rowOverdue]}>
       <View style={styles.rowIcon}>
-        <KeyRound
-          size={14}
-          color={theme.colors.primary}
-          strokeWidth={1.8}
-        />
+        <KeyRound size={14} color={theme.colors.primary} strokeWidth={1.8} />
       </View>
       <View style={styles.rowInfo}>
         <Text style={styles.rowName} numberOfLines={1}>
@@ -233,7 +229,7 @@ const styles = StyleSheet.create({
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.accentSoft,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
@@ -302,7 +298,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: theme.radius.sm,
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.accentSoft,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
@@ -344,4 +340,3 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 });
-

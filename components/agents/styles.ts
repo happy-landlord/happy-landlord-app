@@ -21,10 +21,10 @@ export const sharedStyles = StyleSheet.create({
   retryBtn: {
     paddingVertical: theme.spacing.sm,
     paddingHorizontal: theme.spacing.lg,
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.accentSoft,
     borderRadius: theme.radius.pill,
   },
-  retryLabel: { color: theme.colors.primary, fontWeight: "600" },
+  retryLabel: { color: theme.colors.accent, fontWeight: "600" },
   emptyIcon: {
     width: 68,
     height: 68,
@@ -53,4 +53,3 @@ export const sharedStyles = StyleSheet.create({
   },
   separator: { height: theme.spacing.sm },
 });
-

@@ -97,7 +97,11 @@ export function BottomNav({ state, navigation }: BottomTabBarProps) {
               accessibilityRole="button"
               accessibilityLabel="Scan"
             >
-              <ScanLine size={30} color="#fff" strokeWidth={2.2} />
+              <ScanLine
+                size={30}
+                color={theme.colors.primaryText}
+                strokeWidth={2.2}
+              />
             </Pressable>
           </View>
 
@@ -160,7 +164,7 @@ const styles = StyleSheet.create({
   shadowShell: {
     borderRadius: theme.radius.card,
     backgroundColor: theme.colors.surface,
-    shadowColor: theme.colors.charcoal,
+    shadowColor: theme.colors.accent,
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.34,
     shadowRadius: 28,

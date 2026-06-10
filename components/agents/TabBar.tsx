@@ -29,13 +29,16 @@ type Props<K extends string> = {
  * Generic, data-driven tab bar with an animated underline indicator.
  * Caller owns selection state; badge data is passed via `tabs`.
  */
-export function TabBar<K extends string>({ tabs, activeKey, onChange }: Props<K>) {
+export function TabBar<K extends string>({
+  tabs,
+  activeKey,
+  onChange,
+}: Props<K>) {
   const { width: screenWidth } = useWindowDimensions();
   const indicatorAnim = useRef(new Animated.Value(0)).current;
 
   const tabBarWidth = Math.max(0, screenWidth - theme.spacing.screen * 2);
   const tabWidth = tabs.length > 0 ? tabBarWidth / tabs.length : 0;
-
 
   const handlePress = (key: K, index: number) => {
     Animated.spring(indicatorAnim, {
@@ -51,8 +54,7 @@ export function TabBar<K extends string>({ tabs, activeKey, onChange }: Props<K>
     <View style={styles.tabBar}>
       {tabs.map((tab, index) => {
         const isActive = tab.key === activeKey;
-        const showBadge =
-          tab.alwaysShowBadge || (tab.badgeCount ?? 0) > 0;
+        const showBadge = tab.alwaysShowBadge || (tab.badgeCount ?? 0) > 0;
         const danger = tab.badgeVariant === "danger";
 
         return (
@@ -144,10 +146,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 4,
   },
-  tabBadgePrimary: { backgroundColor: theme.colors.primarySoft },
+  tabBadgePrimary: { backgroundColor: theme.colors.accentSoft },
   tabBadgeDanger: { backgroundColor: theme.colors.danger },
   tabBadgeText: { fontSize: 10, fontWeight: "700" },
-  tabBadgeTextPrimary: { color: theme.colors.primary },
+  tabBadgeTextPrimary: { color: theme.colors.primaryText },
   tabBadgeTextDanger: { color: theme.colors.surface },
   tabIndicator: {
     position: "absolute",
@@ -157,4 +159,3 @@ const styles = StyleSheet.create({
     borderRadius: 1,
   },
 });
-

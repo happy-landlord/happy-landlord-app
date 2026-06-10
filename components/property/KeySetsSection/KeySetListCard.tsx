@@ -2,7 +2,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ChevronRight, KeyRound } from "lucide-react-native";
 import type { ReactNode } from "react";
 
-import { formatDateTime, getTotalKeyQuantity } from "@/lib/utils";
+import { Pill } from "@/components/ui";
+import { formatDueAt, getTotalKeyQuantity } from "@/lib/utils";
 import type { KeySetCardTone } from "@/lib/utils";
 import { theme } from "@/constants";
 import type { KeySetWithDetails } from "@/lib/services";
@@ -15,6 +16,7 @@ import type { KeySetWithDetails } from "@/lib/services";
 export type KeySetListCardProps = {
   keySet: KeySetWithDetails;
   tone: KeySetCardTone;
+  overdue?: boolean;
   showCode?: boolean;
   meta?: ReactNode;
   status?: ReactNode;
@@ -25,6 +27,7 @@ export type KeySetListCardProps = {
 export function KeySetListCard({
   keySet,
   tone,
+  overdue = false,
   showCode = false,
   meta,
   status,
@@ -50,7 +53,14 @@ export function KeySetListCard({
         <View style={styles.cardInfo}>
           <View style={styles.cardStatusRow}>
             {status}
-            <KeyCountPill label={keyCountLabel} />
+            {overdue && (
+              <Pill tone="danger" size="sm">
+                Overdue
+              </Pill>
+            )}
+            <Pill tone="neutral" size="sm">
+              {keyCountLabel}
+            </Pill>
           </View>
           <View style={styles.cardTitleBlock}>
             <Text style={styles.cardName} numberOfLines={2}>
@@ -87,14 +97,6 @@ export function KeySetListCard({
 
 // ── Sub-pieces ───────────────────────────────────────────────────────────────
 
-export function KeyCountPill({ label }: { label: string }) {
-  return (
-    <View style={styles.rightCountPill}>
-      <Text style={styles.rightCountText}>{label}</Text>
-    </View>
-  );
-}
-
 export function KeySetHolderMeta({
   holderName,
   dueBackAt,
@@ -117,14 +119,14 @@ export function KeySetHolderMeta({
       </View>
       {dueBackAt && (
         <View style={styles.metaItem}>
-          <Text style={styles.metaLabel}>Due Date</Text>
+          <Text style={styles.metaLabel}>
+            {overdue ? "Was Due" : "Due Date"}
+          </Text>
           <Text
             style={[styles.metaValue, overdue && styles.metaValueDanger]}
             numberOfLines={1}
           >
-            {overdue
-              ? `Overdue · ${formatDateTime(dueBackAt)}`
-              : formatDateTime(dueBackAt)}
+            {formatDueAt(dueBackAt)}
           </Text>
         </View>
       )}
@@ -229,20 +231,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexShrink: 0,
   },
-  rightCountPill: {
-    minHeight: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.neutralSoft,
-  },
-  rightCountText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: theme.colors.textMuted,
-  },
   metaItem: { flex: 1, gap: 2 },
   metaLabel: {
     fontSize: 11,
@@ -254,4 +242,3 @@ const styles = StyleSheet.create({
   metaValue: { fontSize: 13, fontWeight: "600", color: theme.colors.text },
   metaValueDanger: { color: theme.colors.danger },
 });
-

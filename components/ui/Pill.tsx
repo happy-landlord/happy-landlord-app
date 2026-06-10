@@ -1,5 +1,11 @@
 import type { ReactNode } from "react";
-import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from "react-native";
 
 import { theme } from "@/constants";
 
@@ -10,6 +16,7 @@ import { theme } from "@/constants";
 
 export type PillTone =
   | "primary"
+  | "accent"
   | "success"
   | "warning"
   | "danger"
@@ -19,10 +26,17 @@ export type PillTone =
 export type PillVariant = "soft" | "solid";
 export type PillSize = "sm" | "md";
 
-const TONE: Record<PillTone, { soft: { bg: string; fg: string }; solid: { bg: string; fg: string } }> = {
+const TONE: Record<
+  PillTone,
+  { soft: { bg: string; fg: string }; solid: { bg: string; fg: string } }
+> = {
   primary: {
-    soft: { bg: theme.colors.primarySoft, fg: theme.colors.primary },
-    solid: { bg: theme.colors.primary, fg: theme.colors.textInverse },
+    soft: { bg: theme.colors.primarySoft, fg: theme.colors.primaryDark },
+    solid: { bg: theme.colors.primary, fg: theme.colors.primaryText },
+  },
+  accent: {
+    soft: { bg: theme.colors.accentSoft, fg: theme.colors.accent },
+    solid: { bg: theme.colors.accent, fg: theme.colors.textInverse },
   },
   success: {
     soft: { bg: theme.colors.successSoft, fg: theme.colors.success },
@@ -46,7 +60,10 @@ const TONE: Record<PillTone, { soft: { bg: string; fg: string }; solid: { bg: st
   },
 };
 
-const SIZE_STYLE: Record<PillSize, { paddingHorizontal: number; paddingVertical: number; fontSize: number }> = {
+const SIZE_STYLE: Record<
+  PillSize,
+  { paddingHorizontal: number; paddingVertical: number; fontSize: number }
+> = {
   sm: { paddingHorizontal: 7, paddingVertical: 2, fontSize: 11 },
   md: { paddingHorizontal: 10, paddingVertical: 3, fontSize: 12 },
 };
@@ -86,10 +103,7 @@ export function Pill({
     >
       {leading}
       <Text
-        style={[
-          styles.label,
-          { color: colors.fg, fontSize: sz.fontSize },
-        ]}
+        style={[styles.label, { color: colors.fg, fontSize: sz.fontSize }]}
         numberOfLines={1}
       >
         {children}
@@ -110,4 +124,3 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 });
-

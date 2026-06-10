@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surfaceWarm,
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.xl,
-    shadowColor: theme.colors.charcoal,
+    shadowColor: theme.colors.accent,
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.06,
     shadowRadius: 24,
@@ -104,4 +104,3 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.lg,
   },
 });
-

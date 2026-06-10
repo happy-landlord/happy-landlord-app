@@ -77,7 +77,11 @@ export default function PropertyDetailScreen() {
               ]}
               onPress={() => setTenantSheetOpen(true)}
             >
-              <Users size={15} color="#fff" strokeWidth={2} />
+              <Users
+                size={15}
+                color={theme.colors.primaryText}
+                strokeWidth={2}
+              />
               <Text style={styles.handoverBtnText}>Handover to Tenant</Text>
             </Pressable>
 
@@ -90,7 +94,9 @@ export default function PropertyDetailScreen() {
               onPress={() => setLandlordSheetOpen(true)}
             >
               <Building2 size={15} color={theme.colors.text} strokeWidth={2} />
-              <Text style={styles.handoverLandlordBtnText}>Handover to Landlord</Text>
+              <Text style={styles.handoverLandlordBtnText}>
+                Handover to Landlord
+              </Text>
             </Pressable>
           </View>
         )}
@@ -106,7 +112,11 @@ export default function PropertyDetailScreen() {
               ]}
               onPress={() => setCollectSheetOpen(true)}
             >
-              <Users size={15} color="#fff" strokeWidth={2} />
+              <Users
+                size={15}
+                color={theme.colors.primaryText}
+                strokeWidth={2}
+              />
               <Text style={styles.handoverBtnText}>Collect from Tenant</Text>
             </Pressable>
           </View>
@@ -172,7 +182,7 @@ const styles = StyleSheet.create({
   handoverBtnText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#fff",
+    color: theme.colors.primaryText,
   },
   handoverLandlordBtnText: {
     fontSize: 13,

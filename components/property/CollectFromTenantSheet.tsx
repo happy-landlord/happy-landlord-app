@@ -4,7 +4,6 @@ import { CheckCheck, KeyRound } from "lucide-react-native";
 import { ConfirmSheet } from "@/components/ui";
 import { theme } from "@/constants";
 import { useCollectFromTenant, useKeySets } from "@/lib/hooks";
-import { alertError } from "@/lib/utils";
 
 type Props = {
   visible: boolean;
@@ -25,8 +24,6 @@ export function CollectFromTenantSheet({
   function handleConfirm() {
     collectMut.mutate(undefined, {
       onSuccess: onClose,
-      onError: (err) =>
-        alertError("Error", err, "Failed to collect keys from tenant."),
     });
   }
 

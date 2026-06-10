@@ -80,7 +80,11 @@ export function PropertiesFilterBar({
             accessibilityRole="button"
             accessibilityLabel="Add property"
           >
-            <Plus size={20} color={theme.colors.textInverse} strokeWidth={2.4} />
+            <Plus
+              size={20}
+              color={theme.colors.primaryText}
+              strokeWidth={2.4}
+            />
           </Pressable>
         </RoleGate>
       </View>
@@ -165,8 +169,8 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   tabBtnActive: {
-    backgroundColor: theme.colors.primarySoft,
-    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.accentSoft,
+    borderColor: theme.colors.accent,
   },
   tabLabel: {
     fontSize: 14,
@@ -174,7 +178,6 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
   },
   tabLabelActive: {
-    color: theme.colors.primary,
+    color: theme.colors.accent,
   },
 });
-

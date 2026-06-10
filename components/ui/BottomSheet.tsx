@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: theme.radius.xl,
     paddingTop: theme.spacing.sm,
     paddingHorizontal: theme.spacing.screen,
-    shadowColor: theme.colors.charcoal,
+    shadowColor: theme.colors.accent,
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.1,
     shadowRadius: 16,

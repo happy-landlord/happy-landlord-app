@@ -13,7 +13,6 @@ import { Check, KeyRound } from "lucide-react-native";
 import { BottomSheet, OutlinedField } from "@/components/ui";
 import { KEY_TYPE_ICON, theme } from "@/constants";
 import { useHandoverToTenant, useKeySets } from "@/lib/hooks";
-import { alertError } from "@/lib/utils";
 import type { KeyType } from "@/types";
 
 type Props = {
@@ -51,15 +50,17 @@ export function HandoverTenantSheet({ visible, onClose, propertyId }: Props) {
   function handleComplete() {
     const ids = [...selected];
     if (ids.length === 0 || !tenantName.trim()) return;
-    handoverMut.mutate({ keySetIds: ids, tenantName, tenantPhone }, {
-      onSuccess: () => {
-        setSelected(new Set());
-        setTenantName("");
-        setTenantPhone("");
-        onClose();
+    handoverMut.mutate(
+      { keySetIds: ids, tenantName, tenantPhone },
+      {
+        onSuccess: () => {
+          setSelected(new Set());
+          setTenantName("");
+          setTenantPhone("");
+          onClose();
+        },
       },
-      onError: (err) => alertError("Error", err, "Failed to complete handover."),
-    });
+    );
   }
 
   return (
@@ -117,14 +118,31 @@ export function HandoverTenantSheet({ visible, onClose, propertyId }: Props) {
                 style={[styles.row, isSelected && styles.rowSelected]}
                 onPress={() => toggle(ks.id)}
               >
-                <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
-                  {isSelected && <Check size={13} color="#fff" strokeWidth={3} />}
+                <View
+                  style={[
+                    styles.checkbox,
+                    isSelected && styles.checkboxSelected,
+                  ]}
+                >
+                  {isSelected && (
+                    <Check
+                      size={13}
+                      color={theme.colors.primaryText}
+                      strokeWidth={3}
+                    />
+                  )}
                 </View>
                 <View style={styles.rowIconCircle}>
-                  <KeyRound size={14} color={theme.colors.primary} strokeWidth={1.8} />
+                  <KeyRound
+                    size={14}
+                    color={theme.colors.primary}
+                    strokeWidth={1.8}
+                  />
                 </View>
                 <View style={styles.rowInfo}>
-                  <Text style={styles.rowName} numberOfLines={1}>{ks.name}</Text>
+                  <Text style={styles.rowName} numberOfLines={1}>
+                    {ks.name}
+                  </Text>
                   <Text style={styles.rowMeta}>
                     {keyCount} {keyCount === 1 ? "key" : "keys"} · {ks.code}
                   </Text>
@@ -133,7 +151,11 @@ export function HandoverTenantSheet({ visible, onClose, propertyId }: Props) {
                   const Icon = KEY_TYPE_ICON[k.key_type as KeyType] ?? KeyRound;
                   return (
                     <View key={k.id} style={styles.keyIcon}>
-                      <Icon size={12} color={theme.colors.textMuted} strokeWidth={1.8} />
+                      <Icon
+                        size={12}
+                        color={theme.colors.textMuted}
+                        strokeWidth={1.8}
+                      />
                     </View>
                   );
                 })}
@@ -147,7 +169,10 @@ export function HandoverTenantSheet({ visible, onClose, propertyId }: Props) {
 
       <View style={styles.footer}>
         <Pressable
-          style={({ pressed }) => [styles.cancelBtn, pressed && { opacity: 0.7 }]}
+          style={({ pressed }) => [
+            styles.cancelBtn,
+            pressed && { opacity: 0.7 },
+          ]}
           onPress={onClose}
         >
           <Text style={styles.cancelBtnText}>Cancel</Text>
@@ -155,14 +180,19 @@ export function HandoverTenantSheet({ visible, onClose, propertyId }: Props) {
         <Pressable
           style={({ pressed }) => [
             styles.confirmBtn,
-            (selected.size === 0 || !tenantName.trim()) && styles.confirmBtnDisabled,
-            pressed && selected.size > 0 && tenantName.trim() && { opacity: 0.82 },
+            (selected.size === 0 || !tenantName.trim()) &&
+              styles.confirmBtnDisabled,
+            pressed &&
+              selected.size > 0 &&
+              tenantName.trim() && { opacity: 0.82 },
           ]}
           onPress={handleComplete}
-          disabled={selected.size === 0 || !tenantName.trim() || handoverMut.isPending}
+          disabled={
+            selected.size === 0 || !tenantName.trim() || handoverMut.isPending
+          }
         >
           {handoverMut.isPending ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={theme.colors.primaryText} />
           ) : (
             <Text style={styles.confirmBtnText}>
               Complete ({selected.size})
@@ -290,8 +320,6 @@ const styles = StyleSheet.create({
   confirmBtnText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#fff",
+    color: theme.colors.primaryText,
   },
 });
-
-

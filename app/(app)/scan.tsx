@@ -61,7 +61,10 @@ type ScanState =
 export default function ScanScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { returnTo, code: deepLinkCode } = useLocalSearchParams<{ returnTo?: string; code?: string }>();
+  const { returnTo, code: deepLinkCode } = useLocalSearchParams<{
+    returnTo?: string;
+    code?: string;
+  }>();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanState, setScanState] = useState<ScanState>({ status: "scanning" });
   const processingRef = useRef(false);
@@ -83,7 +86,7 @@ export default function ScanScreen() {
   useEffect(() => {
     if (!deepLinkCode) return;
     handleBarCodeScanned({ data: deepLinkCode } as never);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deepLinkCode]);
 
   const handleBarCodeScanned = useCallback(
@@ -182,7 +185,7 @@ export default function ScanScreen() {
             {scanState.status === "loading" && (
               <ActivityIndicator
                 size="large"
-                color="#fff"
+                color={theme.colors.textInverse}
                 style={styles.spinnerInner}
               />
             )}
@@ -227,7 +230,11 @@ export default function ScanScreen() {
           ]}
         >
           <Pressable style={styles.retryBtn} onPress={reset}>
-            <RefreshCw size={16} color="#fff" strokeWidth={2} />
+            <RefreshCw
+              size={16}
+              color={theme.colors.textInverse}
+              strokeWidth={2}
+            />
             <Text style={styles.retryLabel}>Scan again</Text>
           </Pressable>
         </View>
@@ -239,7 +246,7 @@ export default function ScanScreen() {
         onPress={close}
         hitSlop={12}
       >
-        <X size={20} color="#fff" strokeWidth={2} />
+        <X size={20} color={theme.colors.textInverse} strokeWidth={2} />
       </Pressable>
     </View>
   );
@@ -279,7 +286,11 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.xl,
   },
-  btnLabel: { fontSize: 16, fontWeight: "700", color: "#fff" },
+  btnLabel: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: theme.colors.primaryText,
+  },
 
   maskTop: { flex: 1, backgroundColor: MASK_COLOR },
   maskRow: { flexDirection: "row", height: FINDER_SIZE },
@@ -291,7 +302,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: CORNER_SIZE,
     height: CORNER_SIZE,
-    borderColor: "#fff",
+    borderColor: theme.colors.textInverse,
   },
   cornerTL: {
     top: 0,
@@ -349,7 +360,11 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.sm + 2,
     paddingHorizontal: theme.spacing.lg,
   },
-  retryLabel: { fontSize: 15, fontWeight: "700", color: "#fff" },
+  retryLabel: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: theme.colors.primaryText,
+  },
 
   closeBtn: {
     position: "absolute",

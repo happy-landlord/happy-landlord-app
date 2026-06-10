@@ -9,8 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Eye, EyeOff } from "lucide-react-native";
 
-import { Button , Input , Logo } from "@/components/ui";
-
+import { Button, Input, Logo } from "@/components/ui";
 
 import { theme } from "@/constants";
 import { supabase } from "@/lib/supabase";
@@ -66,6 +65,7 @@ export default function SignUpScreen() {
   });
 
   const signUpMutation = useMutation({
+    meta: { silentError: true },
     mutationFn: async (f: SignUpForm) => {
       const { error } = await supabase.auth.signUp({
         email: f.email.trim(),
@@ -98,9 +98,7 @@ export default function SignUpScreen() {
           <Text style={styles.successMessage}>
             We sent a verification link to
           </Text>
-          <Text style={styles.successEmail}>
-            {getValues("email").trim()}
-          </Text>
+          <Text style={styles.successEmail}>{getValues("email").trim()}</Text>
 
           <View style={styles.steps}>
             <Step number={1} label="Verify your email address" active />
@@ -235,9 +233,17 @@ export default function SignUpScreen() {
                     }
                   >
                     {showPassword ? (
-                      <EyeOff size={18} color={theme.colors.textLight} strokeWidth={2} />
+                      <EyeOff
+                        size={18}
+                        color={theme.colors.textLight}
+                        strokeWidth={2}
+                      />
                     ) : (
-                      <Eye size={18} color={theme.colors.textLight} strokeWidth={2} />
+                      <Eye
+                        size={18}
+                        color={theme.colors.textLight}
+                        strokeWidth={2}
+                      />
                     )}
                   </Pressable>
                 }
@@ -271,9 +277,17 @@ export default function SignUpScreen() {
                     }
                   >
                     {showConfirm ? (
-                      <EyeOff size={18} color={theme.colors.textLight} strokeWidth={2} />
+                      <EyeOff
+                        size={18}
+                        color={theme.colors.textLight}
+                        strokeWidth={2}
+                      />
                     ) : (
-                      <Eye size={18} color={theme.colors.textLight} strokeWidth={2} />
+                      <Eye
+                        size={18}
+                        color={theme.colors.textLight}
+                        strokeWidth={2}
+                      />
                     )}
                   </Pressable>
                 }
@@ -413,7 +427,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surfaceWarm,
     padding: theme.spacing.lg,
     gap: theme.spacing.md,
-    shadowColor: theme.colors.charcoal,
+    shadowColor: theme.colors.accent,
     shadowOffset: { width: 0, height: 16 },
     shadowOpacity: 0.12,
     shadowRadius: 28,

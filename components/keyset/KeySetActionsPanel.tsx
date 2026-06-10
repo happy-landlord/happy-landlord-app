@@ -5,10 +5,7 @@ import { CountdownTimer } from "./CountdownTimer";
 import { useKeySetScreen } from "./KeySetScreenContext";
 import { Button } from "@/components/ui";
 import { theme } from "@/constants";
-import {
-  useCurrentUserId,
-  useKeySet,
-} from "@/lib/hooks";
+import { useCurrentUserId, useKeySet } from "@/lib/hooks";
 import { useRole } from "@/hooks";
 import { useKeySetActions } from "./useKeySetActions";
 import { useKeysetAvailability } from "./useKeysetAvailability";
@@ -117,7 +114,18 @@ export function KeySetActionsPanel() {
         />
       )}
 
-      {showAgentReturn && dueBackAt && <CountdownTimer endAt={dueBackAt} />}
+      {showAgentReturn && dueBackAt && !overdue && (
+        <CountdownTimer endAt={dueBackAt} />
+      )}
+
+      {showAgentReturn && dueBackAt && overdue && (
+        <View style={[styles.dueRow, styles.dueRowNeutral]}>
+          <CalendarX size={14} color={theme.colors.textMuted} strokeWidth={2} />
+          <Text style={[styles.dueText, styles.dueTextNeutral]}>
+            Was due <Text style={styles.dueDate}>{formatDueAt(dueBackAt)}</Text>
+          </Text>
+        </View>
+      )}
 
       {showAgentCheckout && (
         <Button
@@ -139,11 +147,7 @@ export function KeySetActionsPanel() {
 
       {showAgentCancelReservation && (
         <View style={styles.cancelRow}>
-          <CalendarX
-            size={14}
-            color={theme.colors.warning}
-            strokeWidth={2}
-          />
+          <CalendarX size={14} color={theme.colors.warning} strokeWidth={2} />
           <Text style={styles.cancelLabel}>You have a reservation</Text>
           <Button
             title="Cancel"
@@ -207,8 +211,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   dueRowOverdue: { backgroundColor: theme.colors.dangerSoft },
+  dueRowNeutral: { backgroundColor: theme.colors.neutralSoft },
   dueText: { fontSize: 13, color: theme.colors.warning },
   dueTextOverdue: { color: theme.colors.danger },
+  dueTextNeutral: { color: theme.colors.textMuted },
   dueDate: { fontWeight: "700" },
   cancelRow: {
     flexDirection: "row",

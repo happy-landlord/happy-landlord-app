@@ -20,9 +20,14 @@ import {
 } from "lucide-react-native";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BottomSheet, PickerModal } from "@/components/ui";
-import { KEY_TYPE_ICON, KEY_TYPE_LABEL, PROPERTY_TYPES, theme } from "@/constants";
+import {
+  KEY_TYPE_ICON,
+  KEY_TYPE_LABEL,
+  PROPERTY_TYPES,
+  theme,
+} from "@/constants";
 import { useDebouncedValue } from "@/hooks";
-import { alertError, getKeyName, getKeySignature } from "@/lib/utils";
+import { getKeyName, getKeySignature } from "@/lib/utils";
 import {
   useAllPropertyKeys,
   useCreateKeys,
@@ -48,7 +53,6 @@ const ALL_KEY_TYPE_OPTIONS = (Object.keys(KEY_TYPE_LABEL) as KeyType[]).map(
 );
 
 type ComparableKey = Pick<EnrichedKey, "key_type" | "label" | "code">;
-
 
 // -- PropertyKeysSection -------------------------------------------------------
 type PropertyKeysSectionProps = {
@@ -99,8 +103,6 @@ function PropertyKeysSection({
         },
         {
           onSuccess: resetPendingKey,
-          onError: (err: unknown) =>
-            alertError("Error", err, "Failed to update key."),
           onSettled: () => setAdding(false),
         },
       );
@@ -117,27 +119,16 @@ function PropertyKeysSection({
     };
     createMut.mutate([insert], {
       onSuccess: resetPendingKey,
-      onError: (err) =>
-        alertError("Error", err, "Failed to add key."),
       onSettled: () => setAdding(false),
     });
   }
   function handleQtyChange(key: EnrichedKey, delta: number) {
     const next = Math.max(1, (key.quantity ?? 1) + delta);
     if (next === (key.quantity ?? 1)) return;
-    updateMut.mutate(
-      { keyId: key.id, patch: { quantity: next } },
-      {
-        onError: (err: unknown) =>
-          alertError("Error", err, "Failed to update."),
-      },
-    );
+    updateMut.mutate({ keyId: key.id, patch: { quantity: next } }, {});
   }
   function handleDelete(key: EnrichedKey) {
-    deleteMut.mutate(key.id, {
-      onError: (err: unknown) =>
-        alertError("Error", err, "Failed to delete."),
-    });
+    deleteMut.mutate(key.id);
   }
   return (
     <View style={styles.keysCard}>
@@ -151,7 +142,7 @@ function PropertyKeysSection({
         return (
           <View key={k.id} style={styles.keyRow}>
             <View style={styles.keyIconCircle}>
-              <Icon size={13} color={theme.colors.primary} strokeWidth={1.8} />
+              <Icon size={13} color={theme.colors.accent} strokeWidth={1.8} />
             </View>
             <View style={styles.keyInfo}>
               <Text style={styles.keyLabel} numberOfLines={1}>
@@ -282,7 +273,7 @@ function PropertyKeysSection({
                     {selected && (
                       <Check
                         size={13}
-                        color={theme.colors.primary}
+                        color={theme.colors.accent}
                         strokeWidth={2.5}
                       />
                     )}
@@ -327,7 +318,7 @@ function PropertyKeysSection({
           disabled={addBusy}
         >
           {addBusy ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={theme.colors.primaryText} />
           ) : (
             <Text style={styles.addKeyBtnText}>Add</Text>
           )}
@@ -381,9 +372,10 @@ export function PropertyEditSheet({ property, visible, onClose }: Props) {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["propertyTenant", property.id] });
+      queryClient.invalidateQueries({
+        queryKey: ["propertyTenant", property.id],
+      });
     },
-    onError: (err) => alertError("Error", err, "Failed to save tenant details."),
   });
 
   const lastSavedTenantRef = useRef({
@@ -449,8 +441,7 @@ export function PropertyEditSheet({ property, visible, onClose }: Props) {
     }
     updateDetailsMut.mutate(
       {
-        patch:
-          next.type !== last.type ? { property_type: next.type } : {},
+        patch: next.type !== last.type ? { property_type: next.type } : {},
         landlord: {
           holderId: property.landlord?.id ?? null,
           name: debouncedName,
@@ -458,8 +449,9 @@ export function PropertyEditSheet({ property, visible, onClose }: Props) {
         },
       },
       {
-        onSuccess: () => { lastSavedRef.current = next; },
-        onError: (err) => alertError("Error", err, "Failed to save changes."),
+        onSuccess: () => {
+          lastSavedRef.current = next;
+        },
       },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -476,7 +468,11 @@ export function PropertyEditSheet({ property, visible, onClose }: Props) {
     if (next.name === last.name && next.phone === last.phone) return;
     tenantUpdateMut.mutate(
       { name: debouncedTenantName, phone: debouncedTenantPhone },
-      { onSuccess: () => { lastSavedTenantRef.current = next; } },
+      {
+        onSuccess: () => {
+          lastSavedTenantRef.current = next;
+        },
+      },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedTenantName, debouncedTenantPhone, visible]);
@@ -616,7 +612,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.screen,
     paddingBottom: theme.spacing.sm,
   },
-  headerTitle: { flex: 1, fontSize: 17, fontWeight: "700", color: theme.colors.text },
+  headerTitle: {
+    flex: 1,
+    fontSize: 17,
+    fontWeight: "700",
+    color: theme.colors.text,
+  },
   closeBtn: {
     width: 32,
     height: 32,
@@ -672,7 +673,7 @@ const styles = StyleSheet.create({
   keysCard: {
     backgroundColor: theme.colors.surface,
     borderWidth: 1.5,
-    borderColor: theme.colors.primarySoft,
+    borderColor: theme.colors.accentSoft,
     borderRadius: theme.radius.lg,
     padding: theme.spacing.md,
     gap: theme.spacing.sm,
@@ -702,7 +703,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: theme.radius.sm,
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.accentSoft,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
@@ -714,16 +715,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.accentSoft,
     borderWidth: 1,
-    borderColor: theme.colors.primary + "44",
+    borderColor: theme.colors.accent + "44",
     maxWidth: 80,
     flexShrink: 1,
   },
   keySetNameBadgeText: {
     fontSize: 10,
     fontWeight: "700",
-    color: theme.colors.primary,
+    color: theme.colors.accent,
   },
   stepper: {
     flexDirection: "row",
@@ -776,8 +777,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   typePickerOpen: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primarySoft,
+    borderColor: theme.colors.accent,
+    backgroundColor: theme.colors.accentSoft,
   },
   typePickerText: { flex: 1, fontSize: 13, color: theme.colors.text },
   inlinePicker: {
@@ -792,7 +793,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
     borderRadius: theme.radius.md,
     backgroundColor: theme.colors.surface,
-    shadowColor: theme.colors.charcoal,
+    shadowColor: theme.colors.accent,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 8,
@@ -806,10 +807,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
-  inlinePickerOptionSelected: { backgroundColor: theme.colors.primarySoft },
+  inlinePickerOptionSelected: { backgroundColor: theme.colors.accentSoft },
   inlinePickerIcon: { width: 22, alignItems: "center" },
   inlinePickerLabel: { flex: 1, fontSize: 14, color: theme.colors.text },
-  inlinePickerLabelSelected: { color: theme.colors.primary, fontWeight: "600" },
+  inlinePickerLabelSelected: { color: theme.colors.accent, fontWeight: "600" },
   addKeyBtn: {
     height: 44,
     paddingHorizontal: theme.spacing.md,
@@ -819,7 +820,11 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     minWidth: 60,
   },
-  addKeyBtnText: { fontSize: 14, fontWeight: "700", color: "#fff" },
+  addKeyBtnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: theme.colors.primaryText,
+  },
   codeInput: {
     height: 40,
     borderWidth: 1,

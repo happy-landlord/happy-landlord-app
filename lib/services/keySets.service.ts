@@ -51,6 +51,7 @@ export type CheckedOutKeySet = {
     phone: string | null;
   } | null;
   property: {
+    unit_number: string | null;
     address: string;
     formatted_address: string | null;
     suburb: string;
@@ -72,6 +73,7 @@ export type KeySetNeedingAttention = {
     holder_type: "agent" | "tenant" | "landlord";
   } | null;
   property: {
+    unit_number: string | null;
     address: string;
     suburb: string;
     city: string;
@@ -163,7 +165,7 @@ export async function fetchCheckedOutKeySets({
       `
       id, property_id, name, code, status, due_back_at, current_holder_id,
       current_holder:current_holder_id!inner(full_name, holder_type, profile_id, phone),
-      property:property_id(address, formatted_address, suburb, city, postcode),
+      property:property_id(unit_number, address, formatted_address, suburb, city, postcode),
       keys(label)
     `,
     )
@@ -193,7 +195,7 @@ export async function fetchKeySetsNeedingAttention(): Promise<
       `
       id, property_id, name, status,
       current_holder:current_holder_id(full_name, holder_type, profile_id),
-      property:property_id(address, suburb, city, postcode)
+      property:property_id(unit_number, address, suburb, city, postcode)
     `,
     )
     .in("status", ["overdue", "missing_damaged"])
@@ -422,7 +424,10 @@ export async function uploadKeySetImages(
 
     const { error } = await supabase.storage
       .from("properties")
-      .upload(storagePath, arrayBuffer, { contentType: "image/jpeg", upsert: true });
+      .upload(storagePath, arrayBuffer, {
+        contentType: "image/jpeg",
+        upsert: true,
+      });
 
     if (error) {
       throw new Error(
@@ -456,7 +461,11 @@ export async function handoverKeysetsToTenant(
   // Create a key_holder record for the tenant
   const { data: holder, error: holderErr } = await supabase
     .from("key_holders")
-    .insert({ holder_type: "tenant", full_name: tenantName.trim(), phone: tenantPhone.trim() || null })
+    .insert({
+      holder_type: "tenant",
+      full_name: tenantName.trim(),
+      phone: tenantPhone.trim() || null,
+    })
     .select("id")
     .single();
   if (holderErr) throw holderErr;
@@ -509,7 +518,9 @@ export async function collectKeysetsFromTenant(
  * Handover to landlord: marks all active keysets as `handover_landlord`
  * and sets the property status to `inactive`.
  */
-export async function handoverPropertyToLandlord(propertyId: string): Promise<void> {
+export async function handoverPropertyToLandlord(
+  propertyId: string,
+): Promise<void> {
   const { error: ksErr } = await supabase
     .from("key_sets")
     .update({ status: "handover_landlord" })

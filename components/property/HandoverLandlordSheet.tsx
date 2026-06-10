@@ -1,10 +1,15 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { AlertTriangle } from "lucide-react-native";
 
 import { BottomSheet } from "@/components/ui";
 import { theme } from "@/constants";
 import { useHandoverToLandlord } from "@/lib/hooks";
-import { alertError } from "@/lib/utils";
 import { useRouter } from "expo-router";
 
 type Props = {
@@ -23,14 +28,17 @@ export function HandoverLandlordSheet({ visible, onClose, propertyId }: Props) {
         onClose();
         router.back();
       },
-      onError: (err) => alertError("Error", err, "Failed to complete handover."),
     });
   }
 
   return (
     <BottomSheet visible={visible} onClose={onClose}>
       <View style={styles.iconWrap}>
-        <AlertTriangle size={28} color={theme.colors.warning} strokeWidth={1.8} />
+        <AlertTriangle
+          size={28}
+          color={theme.colors.warning}
+          strokeWidth={1.8}
+        />
       </View>
 
       <Text style={styles.title}>Handover to Landlord</Text>
@@ -43,7 +51,10 @@ export function HandoverLandlordSheet({ visible, onClose, propertyId }: Props) {
 
       <View style={styles.footer}>
         <Pressable
-          style={({ pressed }) => [styles.cancelBtn, pressed && { opacity: 0.7 }]}
+          style={({ pressed }) => [
+            styles.cancelBtn,
+            pressed && { opacity: 0.7 },
+          ]}
           onPress={onClose}
         >
           <Text style={styles.cancelBtnText}>Cancel</Text>
@@ -58,7 +69,7 @@ export function HandoverLandlordSheet({ visible, onClose, propertyId }: Props) {
           disabled={handoverMut.isPending}
         >
           {handoverMut.isPending ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={theme.colors.textInverse} />
           ) : (
             <Text style={styles.confirmBtnText}>Confirm Handover</Text>
           )}
@@ -127,7 +138,6 @@ const styles = StyleSheet.create({
   confirmBtnText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#fff",
+    color: theme.colors.textInverse,
   },
 });
-

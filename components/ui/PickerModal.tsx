@@ -5,7 +5,11 @@ import { Check } from "lucide-react-native";
 import { theme } from "@/constants";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 
-type PickerOption<T extends string> = { value: T; label: string; icon?: ReactNode };
+type PickerOption<T extends string> = {
+  value: T;
+  label: string;
+  icon?: ReactNode;
+};
 
 type PickerModalProps<T extends string> = {
   visible: boolean;
@@ -42,13 +46,16 @@ export function PickerModal<T extends string>({
             <View style={styles.optionLeft}>
               {opt.icon && <View style={styles.optionIcon}>{opt.icon}</View>}
               <Text
-                style={[styles.optionText, selected && styles.optionTextSelected]}
+                style={[
+                  styles.optionText,
+                  selected && styles.optionTextSelected,
+                ]}
               >
                 {opt.label}
               </Text>
             </View>
             {selected && (
-              <Check size={16} color={theme.colors.primary} strokeWidth={2.5} />
+              <Check size={16} color={theme.colors.accent} strokeWidth={2.5} />
             )}
           </Pressable>
         );
@@ -86,7 +93,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   optionSelected: {
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.accentSoft,
     marginHorizontal: -theme.spacing.screen,
     paddingHorizontal: theme.spacing.screen,
   },
@@ -95,7 +102,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
   },
   optionTextSelected: {
-    color: theme.colors.primary,
+    color: theme.colors.accent,
     fontWeight: "600",
   },
   cancelBtn: {

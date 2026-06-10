@@ -58,10 +58,10 @@ export function ActivityFilterChips({
           accessibilityLabel="Clear keyset filter"
         >
           <Pill
-            tone="primary"
+            tone="accent"
             variant="soft"
             leading={
-              <KeyRound size={13} color={theme.colors.primary} strokeWidth={2} />
+              <KeyRound size={13} color={theme.colors.accent} strokeWidth={2} />
             }
           >
             {`${keySetName ?? "Keyset"}   ✕`}
@@ -75,7 +75,7 @@ export function ActivityFilterChips({
           accessibilityRole="button"
           accessibilityLabel="Remove my activity filter"
         >
-          <Pill tone="primary" variant="soft">
+          <Pill tone="accent" variant="soft">
             {"My activity   ✕"}
           </Pill>
         </Pressable>
@@ -119,4 +119,3 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
   },
 });
-

@@ -8,6 +8,7 @@ import { theme } from "@/constants";
 
 export type IconBadgeTone =
   | "primary"
+  | "accent"
   | "success"
   | "warning"
   | "danger"
@@ -31,6 +32,7 @@ const ICON_SIZE: Record<IconBadgeSize, number> = {
 
 const TONE_BG: Record<IconBadgeTone, string> = {
   primary: theme.colors.primarySoft,
+  accent: theme.colors.accentSoft,
   success: theme.colors.successSoft,
   warning: theme.colors.warningSoft,
   danger: theme.colors.dangerSoft,
@@ -40,6 +42,7 @@ const TONE_BG: Record<IconBadgeTone, string> = {
 
 const TONE_FG: Record<IconBadgeTone, string> = {
   primary: theme.colors.primary,
+  accent: theme.colors.accent,
   success: theme.colors.success,
   warning: theme.colors.warning,
   danger: theme.colors.danger,
@@ -108,4 +111,3 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
 });
-

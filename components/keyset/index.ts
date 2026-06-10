@@ -12,7 +12,6 @@
  */
 export { KeySetActionsPanel } from "./KeySetActionsPanel";
 export { KeySetIdentityCard } from "./KeySetIdentityCard";
-export { KeySetKeysList } from "./KeySetKeysList";
 export { KeySetLastActivity } from "./KeySetLastActivity";
 export { KeySetModals } from "./KeySetModals";
 export { KeySetScreenProvider } from "./KeySetScreenContext";

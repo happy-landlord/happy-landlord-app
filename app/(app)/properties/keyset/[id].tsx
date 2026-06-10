@@ -5,7 +5,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   KeySetActionsPanel,
   KeySetIdentityCard,
-  KeySetKeysList,
   KeySetLastActivity,
   KeySetModals,
   KeySetScreenProvider,
@@ -13,11 +12,7 @@ import {
 import { PropertyHeader } from "@/components/property";
 import { ErrorState, LoadingState } from "@/components/ui";
 import { useRole } from "@/hooks";
-import {
-  useCurrentUserId,
-  useKeySet,
-  useProperty,
-} from "@/lib/hooks";
+import { useCurrentUserId, useKeySet, useProperty } from "@/lib/hooks";
 import { theme } from "@/constants";
 
 // -- Keyset detail screen ----------------------------------------------------
@@ -75,7 +70,6 @@ export default function KeySetDetailScreen() {
       >
         {property && <PropertyHeader property={property} hideEdit />}
         <KeySetIdentityCard />
-        <KeySetKeysList />
         {showLastActivity && (
           <KeySetLastActivity keySetId={keySet.id} keySetName={keySet.name} />
         )}

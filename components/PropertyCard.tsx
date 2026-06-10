@@ -44,9 +44,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
   const { isAdmin } = useRole();
   const currentUserId = useCurrentUserId();
 
-  const location = [property.suburb, property.city, property.postcode]
-    .filter(Boolean)
-    .join(", ");
+  const location = property.suburb || property.city || "";
 
   const title = property.unit_number
     ? `${property.unit_number}/${property.address}`
@@ -81,8 +79,9 @@ export function PropertyCard({ property }: PropertyCardProps) {
   return (
     <PressableCard onPress={handlePress} flush style={styles.row}>
       <View style={styles.body}>
-        <Pill tone="primary" size="sm">
-          {PROPERTY_TYPE_LABEL[property.property_type] ?? property.property_type}
+        <Pill tone="accent" size="sm">
+          {PROPERTY_TYPE_LABEL[property.property_type] ??
+            property.property_type}
         </Pill>
 
         <Text style={styles.address} numberOfLines={1}>

@@ -12,7 +12,6 @@ import { FlaskConical } from "lucide-react-native";
 
 import { theme } from "@/constants";
 import { useAdminSendTestNotification, useCurrentUserId } from "@/lib/hooks";
-import { alertError } from "@/lib/utils";
 import type { NotificationType } from "@/lib/services";
 import {
   NOTIFICATION_TYPE_LIST,
@@ -50,8 +49,8 @@ export function AdminPushTestPanel() {
         "✅ Test sent",
         "Notification created and push dispatched to your device.",
       );
-    } catch (err) {
-      alertError("Error", err);
+    } catch {
+      // Error handled by global toast via MutationCache
     }
   }
 
@@ -148,7 +147,10 @@ export function AdminPushTestPanel() {
             accessibilityLabel="Send test push notification"
           >
             {sendTest.isPending ? (
-              <ActivityIndicator size="small" color={theme.colors.textInverse} />
+              <ActivityIndicator
+                size="small"
+                color={theme.colors.textInverse}
+              />
             ) : (
               <Text style={styles.sendBtnText}>Send test push →</Text>
             )}
@@ -264,4 +266,3 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.xs,
   },
 });
-

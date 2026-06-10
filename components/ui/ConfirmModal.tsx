@@ -46,6 +46,12 @@ const TONE_BG: Record<ConfirmModalTone, string> = {
   danger: theme.colors.danger,
 };
 
+const TONE_TEXT: Record<ConfirmModalTone, string> = {
+  primary: theme.colors.primaryText,
+  success: theme.colors.textInverse,
+  danger: theme.colors.textInverse,
+};
+
 export function ConfirmModal({
   visible,
   title,
@@ -61,6 +67,7 @@ export function ConfirmModal({
 }: ConfirmModalProps) {
   const handleDismiss = isPending ? undefined : onCancel;
   const confirmBg = confirmColor ?? TONE_BG[confirmTone];
+  const confirmTextColor = TONE_TEXT[confirmTone];
 
   return (
     <Modal
@@ -114,9 +121,11 @@ export function ConfirmModal({
               accessibilityRole="button"
               accessibilityState={{ disabled: isPending }}
             >
-              {isPending ? <ActivityIndicator size="small" color="#fff" /> : null}
+              {isPending ? (
+                <ActivityIndicator size="small" color={confirmTextColor} />
+              ) : null}
               <Text
-                style={styles.btnConfirmLabel}
+                style={[styles.btnConfirmLabel, { color: confirmTextColor }]}
                 numberOfLines={1}
                 adjustsFontSizeToFit
                 minimumFontScale={0.88}
@@ -151,7 +160,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
     padding: theme.spacing.lg,
     gap: theme.spacing.md,
-    shadowColor: theme.colors.charcoal,
+    shadowColor: theme.colors.accent,
     shadowOffset: { width: 0, height: 18 },
     shadowOpacity: 0.2,
     shadowRadius: 28,
@@ -204,4 +213,3 @@ const styles = StyleSheet.create({
     color: theme.colors.textInverse,
   },
 });
-

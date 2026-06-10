@@ -8,8 +8,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Eye, EyeOff, MailCheck } from "lucide-react-native";
 
-import { Button , Input , Logo } from "@/components/ui";
-import { theme , FEATURES } from "@/constants";
+import { Button, Input, Logo } from "@/components/ui";
+import { theme, FEATURES } from "@/constants";
 import { supabase } from "@/lib/supabase";
 import { useLockStore } from "@/lib/state";
 
@@ -46,6 +46,7 @@ export default function LoginScreen() {
   });
 
   const loginMutation = useMutation({
+    meta: { silentError: true },
     mutationFn: async ({ email, password }: LoginForm) => {
       const { error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
@@ -65,6 +66,7 @@ export default function LoginScreen() {
   });
 
   const resendMutation = useMutation({
+    meta: { silentError: true },
     mutationFn: async () => {
       const { error } = await supabase.auth.resend({
         type: "signup",
@@ -99,8 +101,8 @@ export default function LoginScreen() {
           <Text style={styles.eyebrow}>HAPPY LANDLORD</Text>
           <Text style={styles.title}>Welcome back</Text>
           <Text style={styles.subtitle}>
-            Sign in to manage properties, keysets, and handovers from one
-            secure place.
+            Sign in to manage properties, keysets, and handovers from one secure
+            place.
           </Text>
         </View>
 
@@ -314,7 +316,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surfaceWarm,
     padding: theme.spacing.lg,
     gap: theme.spacing.md,
-    shadowColor: theme.colors.charcoal,
+    shadowColor: theme.colors.accent,
     shadowOffset: { width: 0, height: 16 },
     shadowOpacity: 0.12,
     shadowRadius: 28,

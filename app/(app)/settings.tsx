@@ -26,15 +26,15 @@ import {
 import * as Sentry from "@sentry/react-native";
 import * as Device from "expo-device";
 
-import { theme , FEATURES } from "@/constants";
+import { theme, FEATURES } from "@/constants";
 import {
   useMarkAllNotificationsRead,
   usePushStatus,
   useTogglePush,
   useUnreadNotificationCount,
-
   useBiometricSettings,
-  useToggleBiometric} from "@/lib/hooks";
+  useToggleBiometric,
+} from "@/lib/hooks";
 import { getBiometricLabel } from "@/lib/services";
 import { useDevOverridesStore } from "@/lib/state";
 import { useRole } from "@/hooks";
@@ -169,11 +169,11 @@ export default function SettingsScreen() {
               Icon={Fingerprint}
               iconBg={
                 biometricEnabled
-                  ? theme.colors.primarySoft
+                  ? theme.colors.accentSoft
                   : theme.colors.neutralSoft
               }
               iconColor={
-                biometricEnabled ? theme.colors.primary : theme.colors.neutral
+                biometricEnabled ? theme.colors.accent : theme.colors.neutral
               }
               title={`${biometricLabel} login`}
               subtitle={
@@ -229,9 +229,9 @@ export default function SettingsScreen() {
         <SettingRow
           Icon={pushEnabled ? BellRing : BellOff}
           iconBg={
-            pushEnabled ? theme.colors.primarySoft : theme.colors.neutralSoft
+            pushEnabled ? theme.colors.accentSoft : theme.colors.neutralSoft
           }
-          iconColor={pushEnabled ? theme.colors.primary : theme.colors.neutral}
+          iconColor={pushEnabled ? theme.colors.accent : theme.colors.neutral}
           title="Push notifications"
           subtitle="Alerts for keyset checkouts, due dates, overdue keysets and recalls"
           disabled={pushLoading || togglePush.isPending}
@@ -372,9 +372,7 @@ function DeveloperSection() {
         <SettingRow
           Icon={Wrench}
           iconBg={
-            adminOverride
-              ? theme.colors.warningSoft
-              : theme.colors.neutralSoft
+            adminOverride ? theme.colors.warningSoft : theme.colors.neutralSoft
           }
           iconColor={
             adminOverride ? theme.colors.warning : theme.colors.neutral
@@ -401,8 +399,16 @@ function DeveloperSection() {
           iconColor={theme.colors.danger}
           title="Test Sentry"
           subtitle="Capture a test exception to verify Sentry is working"
-          onPress={() => Sentry.captureException(new Error("Test Sentry error"))}
-          right={<ChevronRight size={16} color={theme.colors.textLight} strokeWidth={2} />}
+          onPress={() =>
+            Sentry.captureException(new Error("Test Sentry error"))
+          }
+          right={
+            <ChevronRight
+              size={16}
+              color={theme.colors.textLight}
+              strokeWidth={2}
+            />
+          }
         />
       </SectionCard>
     </>

@@ -1,12 +1,17 @@
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
-import { AlertTriangle, Camera, KeyRound } from "lucide-react-native";
+import { Camera, KeyRound } from "lucide-react-native";
 
 import { KeyStatusChip } from "@/components/KeyStatusChip";
-import { PhoneLink, ShareQrButton } from "@/components/ui";
+import { PhoneLink, Pill, ShareQrButton } from "@/components/ui";
 import { ReservationStatusChip } from "./ReservationStatusChip";
+import { KeySetKeysList } from "./KeySetKeysList";
 import { useKeySetScreen } from "./KeySetScreenContext";
 import { theme } from "@/constants";
-import { useCurrentUserId, useFirstKeySetImageUrl, useKeySet } from "@/lib/hooks";
+import {
+  useCurrentUserId,
+  useFirstKeySetImageUrl,
+  useKeySet,
+} from "@/lib/hooks";
 import { useRole } from "@/hooks";
 import { useKeysetAvailability } from "./useKeysetAvailability";
 import { getTotalKeyQuantity, isPastDue } from "@/lib/utils";
@@ -32,9 +37,12 @@ export function KeySetIdentityCard() {
   const isHeldByMe = isCheckedOut && holderProfileId === currentUserId;
   const isHeldByOther = isCheckedOut && holderProfileId !== currentUserId;
   const isAvailable = status === "available";
+  const isMissingDamaged = status === "missing_damaged";
   const overdue =
     status === "overdue" ||
-    (keySet.due_back_at ? isPastDue(keySet.due_back_at) : false);
+    (status === "checked_out" && keySet.due_back_at
+      ? isPastDue(keySet.due_back_at)
+      : false);
 
   const totalKeys = getTotalKeyQuantity(keySet);
   const holderName = keySet.current_holder?.full_name;
@@ -44,18 +52,9 @@ export function KeySetIdentityCard() {
 
   return (
     <View style={styles.wrap}>
-      {/* Overdue banner */}
-      {overdue && (
-        <View style={styles.overdueBanner}>
-          <AlertTriangle size={16} color="#fff" strokeWidth={2} />
-          <Text style={styles.overdueBannerText}>This keyset is overdue</Text>
-        </View>
-      )}
-
       <Pressable
         style={({ pressed }) => [
           styles.card,
-          overdue && styles.cardOverdue,
           isAdmin && pressed && styles.cardPressed,
         ]}
         onPress={isAdmin ? () => openModal({ kind: "editKeys" }) : undefined}
@@ -71,7 +70,11 @@ export function KeySetIdentityCard() {
               resizeMode="cover"
             />
             <View style={styles.bannerBadge}>
-              <Camera size={12} color="#fff" strokeWidth={2} />
+              <Camera
+                size={12}
+                color={theme.colors.textInverse}
+                strokeWidth={2}
+              />
             </View>
           </View>
         ) : null}
@@ -80,8 +83,8 @@ export function KeySetIdentityCard() {
         <View style={styles.top}>
           <View
             style={[
-              styles.iconWrap,
-              overdue
+              isAdmin ? styles.iconWrapLg : styles.iconWrap,
+              overdue || isMissingDamaged
                 ? styles.iconOverdue
                 : isAvailable
                   ? styles.iconAvailable
@@ -89,9 +92,9 @@ export function KeySetIdentityCard() {
             ]}
           >
             <KeyRound
-              size={22}
+              size={isAdmin ? 18 : 15}
               color={
-                overdue
+                overdue || isMissingDamaged
                   ? theme.colors.danger
                   : isAvailable
                     ? theme.colors.success
@@ -103,20 +106,34 @@ export function KeySetIdentityCard() {
 
           <View style={styles.info}>
             <View style={styles.statusRow}>
-              {isAdmin && <KeyStatusChip status={keySet.status} />}
+              {isAdmin && (
+                <KeyStatusChip status={overdue ? "overdue" : keySet.status} />
+              )}
               {!isAdmin && availability && (
                 <ReservationStatusChip availability={availability} />
               )}
-              <View style={styles.countPill}>
-                <Text style={styles.countText}>
+              {isAdmin && (
+                <Pill tone="neutral" size="sm">
                   {totalKeys} {totalKeys === 1 ? "key" : "keys"}
-                </Text>
-              </View>
+                </Pill>
+              )}
             </View>
-            <Text style={styles.name}>{keySet.name}</Text>
-            {isAdmin ? (
-              <Text style={styles.code}>{keySet.code}</Text>
-            ) : null}
+            <View style={styles.nameRow}>
+              <Text style={styles.name} numberOfLines={1}>
+                {keySet.name}
+              </Text>
+              {!isAdmin && overdue && (
+                <Pill tone="danger" size="sm">
+                  Overdue
+                </Pill>
+              )}
+              {!isAdmin && (
+                <Pill tone="neutral" size="sm">
+                  {totalKeys} {totalKeys === 1 ? "key" : "keys"}
+                </Pill>
+              )}
+            </View>
+            {isAdmin ? <Text style={styles.code}>{keySet.code}</Text> : null}
           </View>
 
           {isAdmin && (
@@ -136,10 +153,7 @@ export function KeySetIdentityCard() {
               <View style={styles.metaItem}>
                 <Text style={styles.metaLabel}>With</Text>
                 <Text
-                  style={[
-                    styles.metaValue,
-                    overdue && styles.metaValueDanger,
-                  ]}
+                  style={[styles.metaValue, overdue && styles.metaValueDanger]}
                   numberOfLines={1}
                 >
                   {isHeldByMe ? "You" : (holderName ?? "Unknown")}
@@ -164,6 +178,14 @@ export function KeySetIdentityCard() {
             </View>
           </View>
         )}
+
+        {/* Keys list — embedded inside this card */}
+        {keySet.keys && keySet.keys.length > 0 && (
+          <>
+            <View style={styles.keysDivider} />
+            <KeySetKeysList />
+          </>
+        )}
       </Pressable>
     </View>
   );
@@ -172,22 +194,6 @@ export function KeySetIdentityCard() {
 const styles = StyleSheet.create({
   wrap: { gap: theme.spacing.md },
 
-  overdueBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-    backgroundColor: theme.colors.danger,
-    borderRadius: theme.radius.md,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  overdueBannerText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#fff",
-    flex: 1,
-  },
-
   card: {
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
@@ -195,7 +201,6 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.lg,
     overflow: "hidden",
   },
-  cardOverdue: { borderColor: theme.colors.danger },
   cardPressed: { opacity: 0.85 },
 
   banner: { width: "100%", height: 160 },
@@ -215,9 +220,17 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
   },
   iconWrap: {
-    width: 48,
-    height: 48,
+    width: 34,
+    height: 34,
     borderRadius: theme.radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  iconWrapLg: {
+    width: 44,
+    height: 44,
+    borderRadius: theme.radius.lg,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
@@ -233,19 +246,18 @@ const styles = StyleSheet.create({
     gap: 6,
     flexWrap: "wrap",
   },
-  countPill: {
-    minHeight: 20,
-    borderRadius: theme.radius.pill,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    backgroundColor: theme.colors.neutralSoft,
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing.sm,
   },
-  countText: {
-    fontSize: 11,
+  name: {
+    flex: 1,
+    fontSize: 17,
     fontWeight: "700",
-    color: theme.colors.textMuted,
+    color: theme.colors.text,
   },
-  name: { fontSize: 17, fontWeight: "700", color: theme.colors.text },
   code: { fontSize: 13, color: theme.colors.textMuted },
 
   editBtnPressed: { opacity: 0.6 },
@@ -278,4 +290,9 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
   },
   metaValueDanger: { color: theme.colors.danger },
+
+  keysDivider: {
+    height: 1,
+    backgroundColor: theme.colors.border,
+  },
 });

@@ -1,9 +1,15 @@
 import { Text, View, StyleSheet } from "react-native";
-import { AlertTriangle, Building2, ChevronRight, Clock3 } from "lucide-react-native";
+import {
+  AlertTriangle,
+  Building2,
+  ChevronRight,
+  Clock3,
+} from "lucide-react-native";
 import { useRouter } from "expo-router";
 
 import { Card, IconBadge, PressableCard } from "@/components/ui";
 import { theme } from "@/constants";
+import { formatShortAddress } from "@/lib/utils";
 import type { KeySetNeedingAttention } from "@/lib/services";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -21,16 +27,6 @@ function sortAttentionKeysets(
     });
 }
 
-function uniqueLocation(parts: (string | null | undefined)[]): string {
-  return parts
-    .filter((v): v is string => Boolean(v))
-    .filter(
-      (v, i, arr) =>
-        arr.findIndex((x) => x.toLowerCase() === v.toLowerCase()) === i,
-    )
-    .join(", ");
-}
-
 // ── Row ──────────────────────────────────────────────────────────────────────
 
 function AttentionRow({
@@ -41,11 +37,6 @@ function AttentionRow({
   onPress: () => void;
 }) {
   const property = item.property;
-  const location = uniqueLocation([
-    property?.suburb,
-    property?.city,
-    property?.postcode,
-  ]);
   const isMissing = item.status === "missing_damaged";
   const holderName = item.current_holder?.full_name ?? null;
 
@@ -63,18 +54,17 @@ function AttentionRow({
           {item.name}
         </Text>
         <Text style={styles.propertyAddress} numberOfLines={1}>
-          {property?.address ?? "Property"}
+          {formatShortAddress(property)}
         </Text>
-        {location ? (
-          <Text style={styles.location} numberOfLines={1}>
-            {location}
-          </Text>
-        ) : null}
 
         <View style={styles.alertRow}>
           {isMissing ? (
             <>
-              <AlertTriangle size={12} color={theme.colors.danger} strokeWidth={2} />
+              <AlertTriangle
+                size={12}
+                color={theme.colors.danger}
+                strokeWidth={2}
+              />
               <Text style={styles.alertLabelDanger}>Missing or damaged</Text>
             </>
           ) : (
@@ -187,4 +177,3 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
   },
 });
-

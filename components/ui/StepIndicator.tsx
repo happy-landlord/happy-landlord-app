@@ -33,15 +33,12 @@ export function StepIndicator({ steps, current }: StepIndicatorProps) {
               {done ? (
                 <Check
                   size={12}
-                  color={theme.colors.textInverse}
+                  color={theme.colors.primaryText}
                   strokeWidth={3}
                 />
               ) : (
                 <Text
-                  style={[
-                    styles.circleText,
-                    active && styles.circleTextActive,
-                  ]}
+                  style={[styles.circleText, active && styles.circleTextActive]}
                 >
                   {step}
                 </Text>
@@ -113,7 +110,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textLight,
   },
   circleTextActive: {
-    color: theme.colors.textInverse,
+    color: theme.colors.primaryText,
   },
   label: {
     marginTop: theme.spacing.xs,
@@ -130,4 +127,3 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
   },
 });
-

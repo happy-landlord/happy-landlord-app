@@ -1,11 +1,5 @@
 import { useState } from "react";
-import {
-  Pressable,
-  StyleSheet,
-  Switch,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { CalendarDays, RotateCcw, UserRound, X } from "lucide-react-native";
 
@@ -45,7 +39,6 @@ export function ActivityFilterSheet({
   onChange,
   onReset,
 }: Props) {
-
   // Track which date picker is open (only one at a time)
   const [activePicker, setActivePicker] = useState<"from" | "to" | null>(null);
 
@@ -67,7 +60,11 @@ export function ActivityFilterSheet({
             accessibilityRole="button"
             accessibilityLabel="Reset all filters"
           >
-            <RotateCcw size={14} color={theme.colors.textMuted} strokeWidth={2} />
+            <RotateCcw
+              size={14}
+              color={theme.colors.textMuted}
+              strokeWidth={2}
+            />
             <Text style={styles.resetLabel}>Reset</Text>
           </Pressable>
         )}
@@ -95,7 +92,7 @@ export function ActivityFilterSheet({
             size={18}
             color={
               filters.myActivityOnly
-                ? theme.colors.textInverse
+                ? theme.colors.primaryText
                 : theme.colors.primary
             }
             strokeWidth={2}
@@ -115,7 +112,9 @@ export function ActivityFilterSheet({
             true: theme.colors.primary,
           }}
           thumbColor={
-            filters.myActivityOnly ? theme.colors.surface : theme.colors.textLight
+            filters.myActivityOnly
+              ? theme.colors.surface
+              : theme.colors.textLight
           }
           ios_backgroundColor={theme.colors.neutralSoft}
         />
@@ -168,11 +167,13 @@ export function ActivityFilterSheet({
             textColor={theme.colors.text}
             themeVariant="light"
             minimumDate={
-              activePicker === "to" ? filters.dateFrom ?? undefined : undefined
+              activePicker === "to"
+                ? (filters.dateFrom ?? undefined)
+                : undefined
             }
             maximumDate={
               activePicker === "from"
-                ? filters.dateTo ?? new Date()
+                ? (filters.dateTo ?? new Date())
                 : new Date()
             }
             onChange={(_, selected) => {
@@ -297,7 +298,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
     borderRadius: theme.radius.lg,
     backgroundColor: theme.colors.surfaceWarm,
-    shadowColor: theme.colors.charcoal,
+    shadowColor: theme.colors.accent,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -418,7 +419,6 @@ const styles = StyleSheet.create({
   applyBtnLabel: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: theme.colors.primaryText,
   },
 });
-

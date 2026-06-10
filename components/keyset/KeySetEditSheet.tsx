@@ -26,7 +26,7 @@ import {
   fetchKeySetById,
   fetchUnassignedKeysForProperty,
 } from "@/lib/services";
-import { alertError, getKeyName, getKeySignature } from "@/lib/utils";
+import { getKeyName, getKeySignature } from "@/lib/utils";
 import type { KeyType } from "@/types";
 import type { KeyInSet, UnassignedKey } from "@/lib/services";
 
@@ -82,8 +82,9 @@ export function KeySetEditSheet({
     updateKeySetMut.mutate(
       { name: trimmed },
       {
-        onSuccess: () => { lastSavedNameRef.current = trimmed; },
-        onError: (err) => alertError("Error", err, "Failed to save name."),
+        onSuccess: () => {
+          lastSavedNameRef.current = trimmed;
+        },
       },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -106,14 +107,15 @@ export function KeySetEditSheet({
     return (ks?.keys ?? []) as KeyInSet[];
   }
 
-  function matchBySig<T extends { key_type: string; label?: string | null; code?: string | null }>(
+  function matchBySig<
+    T extends { key_type: string; label?: string | null; code?: string | null },
+  >(
     list: T[],
     target: { key_type: string; label?: string | null; code?: string | null },
   ): T | undefined {
     const sig = getKeySignature(target);
     return list.find((x) => getKeySignature(x) === sig);
   }
-
 
   /**
    * Move ONE unit of `source` into `destKeySetId` (null = unassigned pool).
@@ -172,14 +174,12 @@ export function KeySetEditSheet({
     }
   }
 
-  async function runLocked(fn: () => Promise<void>, errMsg: string) {
+  async function runLocked(fn: () => Promise<void>) {
     if (actingRef.current) return;
     actingRef.current = true;
     setActing(true);
     try {
       await fn();
-    } catch (err) {
-      alertError("Error", err, errMsg);
     } finally {
       actingRef.current = false;
       setActing(false);
@@ -194,7 +194,7 @@ export function KeySetEditSheet({
       if (!src) return;
       const assigned = await freshAssigned();
       await moveOne(src, assigned, keySetId);
-    }, "Failed to assign key.");
+    });
   }
 
   function handleUnassign(initial: KeyInSet) {
@@ -204,9 +204,8 @@ export function KeySetEditSheet({
       if (!src) return;
       const pool = await freshUnassigned();
       await moveOne(src, pool, null);
-    }, "Failed to unassign key.");
+    });
   }
-
 
   const busy =
     acting ||
@@ -232,7 +231,7 @@ export function KeySetEditSheet({
           maxLength={60}
         />
         {updateKeySetMut.isPending && (
-          <ActivityIndicator size="small" color={theme.colors.primary} />
+          <ActivityIndicator size="small" color={theme.colors.accent} />
         )}
       </View>
 
@@ -255,7 +254,11 @@ export function KeySetEditSheet({
             return (
               <View key={k.id} style={styles.keyRow}>
                 <View style={styles.keyIconCircle}>
-                  <Icon size={14} color={theme.colors.primary} strokeWidth={1.8} />
+                  <Icon
+                    size={14}
+                    color={theme.colors.accent}
+                    strokeWidth={1.8}
+                  />
                 </View>
                 <View style={styles.keyInfo}>
                   <Text style={styles.keyLabel} numberOfLines={1}>
@@ -303,7 +306,11 @@ export function KeySetEditSheet({
               return (
                 <View key={k.id} style={styles.keyRow}>
                   <View style={styles.keyIconCircle}>
-                    <Icon size={14} color={theme.colors.primary} strokeWidth={1.8} />
+                    <Icon
+                      size={14}
+                      color={theme.colors.accent}
+                      strokeWidth={1.8}
+                    />
                   </View>
                   <View style={styles.keyInfo}>
                     <Text style={styles.keyLabel} numberOfLines={1}>
@@ -329,7 +336,11 @@ export function KeySetEditSheet({
                       pressed && { opacity: 0.65 },
                     ]}
                   >
-                    <Plus size={14} color={theme.colors.success} strokeWidth={2.5} />
+                    <Plus
+                      size={14}
+                      color={theme.colors.success}
+                      strokeWidth={2.5}
+                    />
                   </Pressable>
                 </View>
               );
@@ -381,7 +392,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: theme.radius.sm,
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.accentSoft,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
@@ -393,7 +404,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
-  keyLabel: { fontSize: 13, fontWeight: "600", color: theme.colors.text, flexShrink: 1 },
+  keyLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.text,
+    flexShrink: 1,
+  },
   keyCode: { fontSize: 11, color: theme.colors.textMuted },
   codeChip: {
     paddingHorizontal: 6,

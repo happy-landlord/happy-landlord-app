@@ -44,15 +44,7 @@ export function ProfileAvatar() {
     const uri = result.assets[0]?.uri;
     if (!uri) return;
 
-    upload.mutate(uri, {
-      onError: (err) =>
-        Alert.alert(
-          "Upload failed",
-          err instanceof Error
-            ? err.message
-            : "Could not upload photo. Please try again.",
-        ),
-    });
+    upload.mutate(uri);
   };
 
   return (
@@ -78,9 +70,9 @@ export function ProfileAvatar() {
 
       <View style={styles.badge}>
         {busy ? (
-          <ActivityIndicator size="small" color="#fff" />
+          <ActivityIndicator size="small" color={theme.colors.primaryText} />
         ) : (
-          <Camera size={14} color="#fff" strokeWidth={2} />
+          <Camera size={14} color={theme.colors.primaryText} strokeWidth={2} />
         )}
       </View>
     </Pressable>
@@ -147,7 +139,7 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 30,
     fontWeight: "800",
-    color: theme.colors.textInverse,
+    color: theme.colors.primaryText,
   },
   badge: {
     position: "absolute",

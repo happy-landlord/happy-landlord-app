@@ -65,7 +65,8 @@ const QUICK_ACTIONS: QuickAction[] = [
     iconColor: theme.colors.primary,
     title: "Contact Manager",
     description: "Send a message to your property manager",
-    onPress: () => Alert.alert("Contact Manager", "This feature is coming soon."),
+    onPress: () =>
+      Alert.alert("Contact Manager", "This feature is coming soon."),
   },
   {
     id: "report",
@@ -74,7 +75,8 @@ const QUICK_ACTIONS: QuickAction[] = [
     iconColor: theme.colors.danger,
     title: "Report an Issue",
     description: "Let us know about a problem",
-    onPress: () => Alert.alert("Report an Issue", "This feature is coming soon."),
+    onPress: () =>
+      Alert.alert("Report an Issue", "This feature is coming soon."),
   },
   {
     id: "requests",
@@ -97,7 +99,11 @@ const QUICK_ACTIONS: QuickAction[] = [
         "Emergency Help",
         "If you are in immediate danger, call 000. Otherwise contact your property manager directly.",
         [
-          { text: "Call 000", onPress: () => Linking.openURL("tel:000"), style: "destructive" },
+          {
+            text: "Call 000",
+            onPress: () => Linking.openURL("tel:000"),
+            style: "destructive",
+          },
           { text: "Close", style: "cancel" },
         ],
       ),
@@ -109,25 +115,29 @@ const POPULAR_TOPICS: PopularTopic[] = [
     id: "scanner",
     icon: "scan-outline",
     title: "Scanner not working",
-    onPress: () => Alert.alert("Scanner not working", "Help article coming soon."),
+    onPress: () =>
+      Alert.alert("Scanner not working", "Help article coming soon."),
   },
   {
     id: "missing-key",
     icon: "key-outline",
     title: "Keyset is missing",
-    onPress: () => Alert.alert("Keyset is missing", "Help article coming soon."),
+    onPress: () =>
+      Alert.alert("Keyset is missing", "Help article coming soon."),
   },
   {
     id: "access",
     icon: "lock-closed-outline",
     title: "I can't access a property",
-    onPress: () => Alert.alert("Can't access a property", "Help article coming soon."),
+    onPress: () =>
+      Alert.alert("Can't access a property", "Help article coming soon."),
   },
   {
     id: "return",
     icon: "return-down-back-outline",
     title: "How to return a keyset",
-    onPress: () => Alert.alert("How to return a keyset", "Help article coming soon."),
+    onPress: () =>
+      Alert.alert("How to return a keyset", "Help article coming soon."),
   },
   {
     id: "password",
@@ -139,7 +149,8 @@ const POPULAR_TOPICS: PopularTopic[] = [
     id: "notifications",
     icon: "notifications-off-outline",
     title: "Notifications not showing",
-    onPress: () => Alert.alert("Notifications not showing", "Help article coming soon."),
+    onPress: () =>
+      Alert.alert("Notifications not showing", "Help article coming soon."),
   },
 ];
 
@@ -154,17 +165,20 @@ const BROWSE_SECTIONS: BrowseSection[] = [
       {
         id: "a1",
         question: "How do I reset my password?",
-        answer: 'Tap "Forgot password" on the login screen and follow the email link to create a new password.',
+        answer:
+          'Tap "Forgot password" on the login screen and follow the email link to create a new password.',
       },
       {
         id: "a2",
         question: "How do I enable biometric login?",
-        answer: "Go to Settings → Security and toggle on Face ID / Fingerprint login.",
+        answer:
+          "Go to Settings → Security and toggle on Face ID / Fingerprint login.",
       },
       {
         id: "a3",
         question: "Why is my account pending approval?",
-        answer: "New accounts require approval from your property manager before you can access keysets and properties.",
+        answer:
+          "New accounts require approval from your property manager before you can access keysets and properties.",
       },
     ],
   },
@@ -178,22 +192,26 @@ const BROWSE_SECTIONS: BrowseSection[] = [
       {
         id: "k1",
         question: "How do I check out a keyset?",
-        answer: "Scan the QR or NFC tag on the keyset, then confirm checkout. The keyset will be assigned to you.",
+        answer:
+          "Scan the QR or NFC tag on the keyset, then confirm checkout. The keyset will be assigned to you.",
       },
       {
         id: "k2",
         question: "How do I return a keyset?",
-        answer: "Scan the keyset tag again while it is checked out to you. Confirm the return to complete the handover.",
+        answer:
+          "Scan the keyset tag again while it is checked out to you. Confirm the return to complete the handover.",
       },
       {
         id: "k3",
         question: "What does 'overdue' mean?",
-        answer: "A keyset is overdue when its scheduled return date has passed and it has not been returned. Contact your manager.",
+        answer:
+          "A keyset is overdue when its scheduled return date has passed and it has not been returned. Contact your manager.",
       },
       {
         id: "k4",
         question: "How do I report a lost keyset?",
-        answer: "Open the keyset detail screen, tap the options menu, and select 'Report Lost'. Your manager will be notified.",
+        answer:
+          "Open the keyset detail screen, tap the options menu, and select 'Report Lost'. Your manager will be notified.",
       },
     ],
   },
@@ -207,17 +225,20 @@ const BROWSE_SECTIONS: BrowseSection[] = [
       {
         id: "s1",
         question: "The scanner isn't reading the tag. What do I do?",
-        answer: "Ensure the tag is clean and undamaged. Hold your phone steady, 5–10 cm from the tag. Check that camera permissions are enabled in Settings.",
+        answer:
+          "Ensure the tag is clean and undamaged. Hold your phone steady, 5–10 cm from the tag. Check that camera permissions are enabled in Settings.",
       },
       {
         id: "s2",
         question: "Can I scan NFC and QR codes?",
-        answer: "Yes. The scanner supports both QR codes via the camera and NFC tags by tapping your phone against the tag.",
+        answer:
+          "Yes. The scanner supports both QR codes via the camera and NFC tags by tapping your phone against the tag.",
       },
       {
         id: "s3",
         question: "My phone doesn't support NFC. Can I still use the app?",
-        answer: "Yes. You can use QR code scanning instead. All keyset tags include a QR code as a fallback.",
+        answer:
+          "Yes. You can use QR code scanning instead. All keyset tags include a QR code as a fallback.",
       },
     ],
   },
@@ -231,17 +252,20 @@ const BROWSE_SECTIONS: BrowseSection[] = [
       {
         id: "c1",
         question: "How does a keyset handover work?",
-        answer: "The current holder initiates a handover, and the recipient scans the keyset tag to accept and confirm transfer.",
+        answer:
+          "The current holder initiates a handover, and the recipient scans the keyset tag to accept and confirm transfer.",
       },
       {
         id: "c2",
         question: "Can I hand a keyset to someone who isn't in the app?",
-        answer: "No. Both parties must have an active account. The recipient must be registered and approved.",
+        answer:
+          "No. Both parties must have an active account. The recipient must be registered and approved.",
       },
       {
         id: "c3",
         question: "What happens if a handover is not confirmed?",
-        answer: "The keyset remains assigned to the original holder until the recipient scans and confirms. Contact your manager if you are stuck.",
+        answer:
+          "The keyset remains assigned to the original holder until the recipient scans and confirms. Contact your manager if you are stuck.",
       },
     ],
   },
@@ -255,17 +279,20 @@ const BROWSE_SECTIONS: BrowseSection[] = [
       {
         id: "r1",
         question: "How do I request access to a property?",
-        answer: "Go to the property listing and tap 'Request Access'. Your manager will review and approve or decline.",
+        answer:
+          "Go to the property listing and tap 'Request Access'. Your manager will review and approve or decline.",
       },
       {
         id: "r2",
         question: "How long does approval take?",
-        answer: "Approval times depend on your property manager. You will receive a notification when your request is reviewed.",
+        answer:
+          "Approval times depend on your property manager. You will receive a notification when your request is reviewed.",
       },
       {
         id: "r3",
         question: "Can I cancel a booking?",
-        answer: "Yes. Open the request from My Requests and tap 'Cancel'. If the keyset is already checked out, you must return it first.",
+        answer:
+          "Yes. Open the request from My Requests and tap 'Cancel'. If the keyset is already checked out, you must return it first.",
       },
     ],
   },
@@ -279,12 +306,14 @@ const BROWSE_SECTIONS: BrowseSection[] = [
       {
         id: "n1",
         question: "I'm not receiving push notifications.",
-        answer: "Go to Settings → Notifications and make sure Push Notifications is enabled. Also check your device's notification permissions in System Settings.",
+        answer:
+          "Go to Settings → Notifications and make sure Push Notifications is enabled. Also check your device's notification permissions in System Settings.",
       },
       {
         id: "n2",
         question: "Can I turn off specific notification types?",
-        answer: "Notification preferences are managed in Settings. Your property manager may control some alert types.",
+        answer:
+          "Notification preferences are managed in Settings. Your property manager may control some alert types.",
       },
     ],
   },
@@ -298,17 +327,20 @@ const BROWSE_SECTIONS: BrowseSection[] = [
       {
         id: "ad1",
         question: "How do I add a new property?",
-        answer: "Admins can add properties from the Properties tab by tapping the '+' button and completing the property details form.",
+        answer:
+          "Admins can add properties from the Properties tab by tapping the '+' button and completing the property details form.",
       },
       {
         id: "ad2",
         question: "How do I approve a new agent?",
-        answer: "Open the Pending Requests screen. Tap on the request and select Approve or Reject.",
+        answer:
+          "Open the Pending Requests screen. Tap on the request and select Approve or Reject.",
       },
       {
         id: "ad3",
         question: "How do I generate and print key tags?",
-        answer: "Open the Key detail screen, tap More Options, and select 'Print Tag'. PDF generation requires a PDF-capable printer.",
+        answer:
+          "Open the Key detail screen, tap More Options, and select 'Print Tag'. PDF generation requires a PDF-capable printer.",
       },
     ],
   },
@@ -339,8 +371,12 @@ function QuickActionCard({ item }: { item: QuickAction }) {
       <View style={[styles.qaIconWrap, { backgroundColor: item.iconBg }]}>
         <Ionicons name={item.icon} size={22} color={item.iconColor} />
       </View>
-      <Text style={styles.qaTitle} numberOfLines={1}>{item.title}</Text>
-      <Text style={styles.qaDesc} numberOfLines={2}>{item.description}</Text>
+      <Text style={styles.qaTitle} numberOfLines={1}>
+        {item.title}
+      </Text>
+      <Text style={styles.qaDesc} numberOfLines={2}>
+        {item.description}
+      </Text>
     </Pressable>
   );
 }
@@ -358,7 +394,11 @@ function TopicRow({ item, isLast }: { item: PopularTopic; isLast: boolean }) {
           <Ionicons name={item.icon} size={18} color={theme.colors.primary} />
         </View>
         <Text style={styles.topicTitle}>{item.title}</Text>
-        <Ionicons name="chevron-forward" size={16} color={theme.colors.textLight} />
+        <Ionicons
+          name="chevron-forward"
+          size={16}
+          color={theme.colors.textLight}
+        />
       </Pressable>
       {!isLast && <Divider indent={52} />}
     </>
@@ -378,11 +418,16 @@ function AccordionSection({
     <View style={styles.accordionCard}>
       <Pressable
         onPress={onToggle}
-        style={({ pressed }) => [styles.accordionHeader, pressed && styles.rowPressed]}
+        style={({ pressed }) => [
+          styles.accordionHeader,
+          pressed && styles.rowPressed,
+        ]}
         accessibilityRole="button"
         accessibilityLabel={`${isOpen ? "Collapse" : "Expand"} ${section.title}`}
       >
-        <View style={[styles.accordionIcon, { backgroundColor: section.iconBg }]}>
+        <View
+          style={[styles.accordionIcon, { backgroundColor: section.iconBg }]}
+        >
           <Ionicons name={section.icon} size={18} color={section.iconColor} />
         </View>
         <Text style={styles.accordionTitle}>{section.title}</Text>
@@ -432,10 +477,19 @@ function InfoRow({
           size={18}
           color={isDestructive ? theme.colors.danger : theme.colors.textMuted}
         />
-        <Text style={[styles.infoLabel, isDestructive && styles.infoLabelDestructive]}>
+        <Text
+          style={[
+            styles.infoLabel,
+            isDestructive && styles.infoLabelDestructive,
+          ]}
+        >
           {label}
         </Text>
-        <Ionicons name="chevron-forward" size={15} color={theme.colors.textLight} />
+        <Ionicons
+          name="chevron-forward"
+          size={15}
+          color={theme.colors.textLight}
+        />
       </Pressable>
       {!isLast && <Divider indent={46} />}
     </>
@@ -453,7 +507,11 @@ export default function HelpScreen() {
   function toggleSection(id: string) {
     setOpenSections((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
   }
@@ -500,7 +558,11 @@ export default function HelpScreen() {
 
       {/* ── Search bar ────────────────────────────────────────────────────── */}
       <View style={styles.searchBar}>
-        <Ionicons name="search-outline" size={18} color={theme.colors.textLight} />
+        <Ionicons
+          name="search-outline"
+          size={18}
+          color={theme.colors.textLight}
+        />
         <TextInput
           style={styles.searchInput}
           placeholder="Search help topics"
@@ -513,8 +575,16 @@ export default function HelpScreen() {
           autoCapitalize="none"
         />
         {searchQuery.length > 0 && (
-          <Pressable onPress={() => setSearchQuery("")} hitSlop={8} accessibilityLabel="Clear search">
-            <Ionicons name="close-circle" size={18} color={theme.colors.textLight} />
+          <Pressable
+            onPress={() => setSearchQuery("")}
+            hitSlop={8}
+            accessibilityLabel="Clear search"
+          >
+            <Ionicons
+              name="close-circle"
+              size={18}
+              color={theme.colors.textLight}
+            />
           </Pressable>
         )}
       </View>
@@ -534,7 +604,9 @@ export default function HelpScreen() {
       {/* ── Popular topics ─────────────────────────────────────────────────── */}
       {filteredTopics.length > 0 && (
         <>
-          <SectionLabel title={searchQuery.trim() ? "Matching Topics" : "Popular Topics"} />
+          <SectionLabel
+            title={searchQuery.trim() ? "Matching Topics" : "Popular Topics"}
+          />
           <View style={styles.listCard}>
             {filteredTopics.map((topic, index) => (
               <TopicRow
@@ -565,28 +637,39 @@ export default function HelpScreen() {
       )}
 
       {/* ── No results ────────────────────────────────────────────────────── */}
-      {searchQuery.trim() && filteredTopics.length === 0 && filteredSections.length === 0 && (
-        <View style={styles.emptySearch}>
-          <Ionicons name="search-outline" size={36} color={theme.colors.textLight} />
-          <Text style={styles.emptySearchTitle}>No results found</Text>
-          <Text style={styles.emptySearchBody}>
-            Try a different keyword or browse by topic below.
-          </Text>
-        </View>
-      )}
+      {searchQuery.trim() &&
+        filteredTopics.length === 0 &&
+        filteredSections.length === 0 && (
+          <View style={styles.emptySearch}>
+            <Ionicons
+              name="search-outline"
+              size={36}
+              color={theme.colors.textLight}
+            />
+            <Text style={styles.emptySearchTitle}>No results found</Text>
+            <Text style={styles.emptySearchBody}>
+              Try a different keyword or browse by topic below.
+            </Text>
+          </View>
+        )}
 
       {/* ── Emergency card ─────────────────────────────────────────────────── */}
       {!searchQuery.trim() && (
         <View style={styles.emergencyCard}>
           <View style={styles.emergencyHeader}>
             <View style={styles.emergencyIconWrap}>
-              <Ionicons name="alert-circle-outline" size={20} color={theme.colors.danger} />
+              <Ionicons
+                name="alert-circle-outline"
+                size={20}
+                color={theme.colors.danger}
+              />
             </View>
             <Text style={styles.emergencyTitle}>Urgent issue?</Text>
           </View>
           <Text style={styles.emergencyBody}>
-            If you are locked out, feel unsafe, or there is an emergency at the property,
-            contact your property manager or emergency services directly.
+            If you are locked out, feel unsafe, or there is an emergency at the
+            property, contact your property manager or emergency services
+            directly.
           </Text>
           <Pressable
             onPress={() =>
@@ -594,16 +677,27 @@ export default function HelpScreen() {
                 "Emergency Services",
                 "If this is a life-threatening emergency, call 000.",
                 [
-                  { text: "Call 000", onPress: () => Linking.openURL("tel:000"), style: "destructive" },
+                  {
+                    text: "Call 000",
+                    onPress: () => Linking.openURL("tel:000"),
+                    style: "destructive",
+                  },
                   { text: "Close", style: "cancel" },
                 ],
               )
             }
-            style={({ pressed }) => [styles.emergencyBtn, pressed && styles.emergencyBtnPressed]}
+            style={({ pressed }) => [
+              styles.emergencyBtn,
+              pressed && styles.emergencyBtnPressed,
+            ]}
             accessibilityRole="button"
             accessibilityLabel="Get emergency help"
           >
-            <Ionicons name="call-outline" size={15} color={theme.colors.danger} />
+            <Ionicons
+              name="call-outline"
+              size={15}
+              color={theme.colors.danger}
+            />
             <Text style={styles.emergencyBtnText}>Get Emergency Help</Text>
           </Pressable>
         </View>
@@ -613,7 +707,11 @@ export default function HelpScreen() {
       <SectionLabel title="App Information" />
       <View style={styles.listCard}>
         <View style={styles.versionRow}>
-          <Ionicons name="phone-portrait-outline" size={18} color={theme.colors.textMuted} />
+          <Ionicons
+            name="phone-portrait-outline"
+            size={18}
+            color={theme.colors.textMuted}
+          />
           <Text style={styles.versionLabel}>Happy Landlord</Text>
           <Text style={styles.versionValue}>v{APP_VERSION}</Text>
         </View>
@@ -622,7 +720,9 @@ export default function HelpScreen() {
           icon="shield-checkmark-outline"
           label="Privacy Policy"
           onPress={() =>
-            WebBrowser.openBrowserAsync("https://happylandlord.com.au/privacy").catch(() =>
+            WebBrowser.openBrowserAsync(
+              "https://happylandlord.com.au/privacy",
+            ).catch(() =>
               Alert.alert("Unavailable", "Could not open Privacy Policy."),
             )
           }
@@ -631,7 +731,9 @@ export default function HelpScreen() {
           icon="reader-outline"
           label="Terms of Use"
           onPress={() =>
-            WebBrowser.openBrowserAsync("https://happylandlord.com.au/terms").catch(() =>
+            WebBrowser.openBrowserAsync(
+              "https://happylandlord.com.au/terms",
+            ).catch(() =>
               Alert.alert("Unavailable", "Could not open Terms of Use."),
             )
           }
@@ -645,7 +747,11 @@ export default function HelpScreen() {
               "Diagnostic data will be sent to the Happy Landlord support team. This may include device info and recent app activity.",
               [
                 { text: "Cancel", style: "cancel" },
-                { text: "Send", onPress: () => Alert.alert("Thank you", "Diagnostic report submitted.") },
+                {
+                  text: "Send",
+                  onPress: () =>
+                    Alert.alert("Thank you", "Diagnostic report submitted."),
+                },
               ],
             )
           }
@@ -860,7 +966,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.dangerSoft,
     borderRadius: theme.radius.card,
     borderWidth: 1.5,
-    borderColor: "#F5C6C6",
+    borderColor: theme.colors.dangerSoft,
     padding: theme.spacing.md,
     gap: theme.spacing.sm,
   },
@@ -873,7 +979,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: theme.radius.md,
-    backgroundColor: "#FBEAEA",
+    backgroundColor: theme.colors.dangerSoft,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -884,7 +990,7 @@ const styles = StyleSheet.create({
   },
   emergencyBody: {
     fontSize: 13,
-    color: "#8B3A3A",
+    color: theme.colors.danger,
     lineHeight: 20,
   },
   emergencyBtn: {

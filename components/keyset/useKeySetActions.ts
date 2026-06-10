@@ -11,7 +11,7 @@ import {
   useReserveKeySet,
   useCancelReservation,
 } from "@/lib/hooks";
-import { alertError, isoInDays, isPastDue } from "@/lib/utils";
+import { isoInDays, isPastDue } from "@/lib/utils";
 import type { KeySetWithDetails } from "@/lib/services";
 import type { KeysetAvailability } from "@/lib/utils";
 
@@ -54,7 +54,12 @@ export type KeySetActions = {
   adminReturn: (onClose: () => void) => void;
   reportLost: (onClose: () => void) => void;
   undoLost: () => void;
-  reserve: (startsAt: string, endsAt: string, notes: string | null, onClose: () => void) => void;
+  reserve: (
+    startsAt: string,
+    endsAt: string,
+    notes: string | null,
+    onClose: () => void,
+  ) => void;
   cancelReservation: (reservationId: string, onClose: () => void) => void;
 };
 
@@ -157,10 +162,7 @@ export function useKeySetActions({
       if (!keySet) return;
       checkoutMut.mutate(
         { keySetId: keySet.id, dueBackAt: isoInDays(days) },
-        {
-          onSuccess: onClose,
-          onError: (err) => alertError("Checkout failed", err),
-        },
+        { onSuccess: onClose },
       );
     },
     [checkoutMut, keySet],
@@ -169,13 +171,7 @@ export function useKeySetActions({
   const transfer = useCallback(
     (onClose: () => void) => {
       if (!keySet) return;
-      transferMut.mutate(
-        { keySetId: keySet.id },
-        {
-          onSuccess: onClose,
-          onError: (err) => alertError("Transfer failed", err),
-        },
-      );
+      transferMut.mutate({ keySetId: keySet.id }, { onSuccess: onClose });
     },
     [keySet, transferMut],
   );
@@ -189,10 +185,7 @@ export function useKeySetActions({
       );
       extendMut.mutate(
         { keySetId: keySet.id, dueBackAt: newDueBack },
-        {
-          onSuccess: onClose,
-          onError: (err) => alertError("Extend failed", err),
-        },
+        { onSuccess: onClose },
       );
     },
     [extendMut, keySet],
@@ -201,13 +194,7 @@ export function useKeySetActions({
   const adminReturn = useCallback(
     (onClose: () => void) => {
       if (!keySet) return;
-      returnMut.mutate(
-        { keySetId: keySet.id },
-        {
-          onSuccess: onClose,
-          onError: (err) => alertError("Failed", err),
-        },
-      );
+      returnMut.mutate({ keySetId: keySet.id }, { onSuccess: onClose });
     },
     [keySet, returnMut],
   );
@@ -215,30 +202,27 @@ export function useKeySetActions({
   const reportLost = useCallback(
     (onClose: () => void) => {
       if (!keySet) return;
-      reportLostMut.mutate(keySet.id, {
-        onSuccess: onClose,
-        onError: (err) => alertError("Failed", err),
-      });
+      reportLostMut.mutate(keySet.id, { onSuccess: onClose });
     },
     [keySet, reportLostMut],
   );
 
   const undoLost = useCallback(() => {
     if (!keySet) return;
-    undoLostMut.mutate(keySet.id, {
-      onError: (err) => alertError("Failed", err),
-    });
+    undoLostMut.mutate(keySet.id);
   }, [keySet, undoLostMut]);
 
   const reserve = useCallback(
-    (startsAt: string, endsAt: string, notes: string | null, onClose: () => void) => {
+    (
+      startsAt: string,
+      endsAt: string,
+      notes: string | null,
+      onClose: () => void,
+    ) => {
       if (!keySet) return;
       reserveMut.mutate(
         { keySetId: keySet.id, startsAt, endsAt, notes },
-        {
-          onSuccess: onClose,
-          onError: (err) => alertError("Reservation failed", err),
-        },
+        { onSuccess: onClose },
       );
     },
     [keySet, reserveMut],
@@ -247,10 +231,7 @@ export function useKeySetActions({
   const cancelReservation = useCallback(
     (reservationId: string, onClose: () => void) => {
       if (!keySet) return;
-      cancelReservationMut.mutate(reservationId, {
-        onSuccess: onClose,
-        onError: (err) => alertError("Cancellation failed", err),
-      });
+      cancelReservationMut.mutate(reservationId, { onSuccess: onClose });
     },
     [keySet, cancelReservationMut],
   );
@@ -290,4 +271,3 @@ export function useKeySetActions({
     cancelReservation,
   };
 }
-

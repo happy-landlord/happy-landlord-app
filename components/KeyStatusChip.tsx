@@ -19,5 +19,9 @@ const STATUS_CONFIG: Record<KeySetStatus, StatusConfig> = {
 
 export function KeyStatusChip({ status }: { status: KeySetStatus }) {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.inactive;
-  return <Pill tone={cfg.tone}>{cfg.label}</Pill>;
+  return (
+    <Pill tone={cfg.tone} size="sm">
+      {cfg.label}
+    </Pill>
+  );
 }

@@ -27,37 +27,45 @@ export const PropertyHeader = memo(function PropertyHeader({
     ? `${property.unit_number}/${property.address}`
     : property.address;
 
-  const location = [property.suburb, property.city, property.postcode]
-    .filter(Boolean)
-    .join(", ");
+  const location = property.suburb || property.city || "";
 
   const landlord = property.landlord;
   const showLandlord = Boolean(isAdmin && landlord);
-  const landlordMeta = showLandlord && landlord
-    ? [
-        { label: "Landlord", value: landlord.full_name || "—" },
-        ...(landlord.phone || landlord.email
-          ? [{ label: "Contact", value: landlord.phone ?? landlord.email ?? "—", phone: !!landlord.phone }]
-          : []),
-      ]
-    : [];
+  const landlordMeta =
+    showLandlord && landlord
+      ? [
+          { label: "Landlord", value: landlord.full_name || "—" },
+          ...(landlord.phone || landlord.email
+            ? [
+                {
+                  label: "Contact",
+                  value: landlord.phone ?? landlord.email ?? "—",
+                  phone: !!landlord.phone,
+                },
+              ]
+            : []),
+        ]
+      : [];
 
   const showTenant = Boolean(isAdmin && tenant);
-  const tenantMeta = showTenant && tenant
-    ? [
-        { label: "Tenant", value: tenant.full_name || "—" },
-        ...(tenant.phone ? [{ label: "Contact", value: tenant.phone, phone: true }] : []),
-      ]
-    : [];
+  const tenantMeta =
+    showTenant && tenant
+      ? [
+          { label: "Tenant", value: tenant.full_name || "—" },
+          ...(tenant.phone
+            ? [{ label: "Contact", value: tenant.phone, phone: true }]
+            : []),
+        ]
+      : [];
 
   return (
     <Card flush>
       {/* ── Info row ──────────────────────────────────────────────────────── */}
       <View style={styles.top}>
-        <IconBadge icon={Building2} tone="primary" size="lg" />
+        <IconBadge icon={Building2} tone="accent" size="lg" />
 
         <View style={styles.info}>
-          <Pill tone="primary" size="sm">
+          <Pill tone="accent" size="sm">
             {PROPERTY_TYPE_LABEL[property.property_type] ??
               property.property_type}
           </Pill>
@@ -65,7 +73,11 @@ export const PropertyHeader = memo(function PropertyHeader({
           <Text style={styles.title}>{title}</Text>
 
           <View style={styles.locationRow}>
-            <MapPin size={12} color={theme.colors.textLight} strokeWidth={1.8} />
+            <MapPin
+              size={12}
+              color={theme.colors.textLight}
+              strokeWidth={1.8}
+            />
             <Text style={styles.locationText}>{location}</Text>
           </View>
         </View>
@@ -81,7 +93,7 @@ export const PropertyHeader = memo(function PropertyHeader({
             accessibilityLabel="Edit property"
             hitSlop={8}
           >
-            <Pencil size={16} color={theme.colors.primary} strokeWidth={1.9} />
+            <Pencil size={16} color={theme.colors.accent} strokeWidth={1.9} />
           </Pressable>
         ) : null}
       </View>
@@ -142,7 +154,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.accentSoft,
     alignItems: "center",
     justifyContent: "center",
     alignSelf: "flex-start",
@@ -157,7 +169,7 @@ const styles = StyleSheet.create({
   tenantMetaWrap: {
     paddingHorizontal: theme.spacing.md,
     paddingBottom: theme.spacing.md,
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.accentSoft,
     borderBottomLeftRadius: theme.radius.lg,
     borderBottomRightRadius: theme.radius.lg,
   },

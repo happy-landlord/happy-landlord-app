@@ -7,8 +7,8 @@ import { useKeySet } from "@/lib/hooks";
 import { getKeyName } from "@/lib/utils";
 
 // ── KeySetKeysList ───────────────────────────────────────────────────────────
-// Bordered list of the keys inside a keyset, one row per key. Reads its
-// keyset from context + TanStack — no props.
+// List of the keys inside a keyset, one row per key. Reads its keyset from
+// context + TanStack — no props. Rendered embedded inside KeySetIdentityCard.
 
 export function KeySetKeysList() {
   const { keySetId } = useKeySetScreen();
@@ -18,19 +18,23 @@ export function KeySetKeysList() {
   if (keys.length === 0) return null;
 
   return (
-    <View style={styles.list}>
+    <>
       {keys.map((k) => {
         const Icon = KEY_TYPE_ICON[k.key_type] ?? KeyRound;
         const label = getKeyName(k);
         return (
           <View key={k.id} style={styles.row}>
             <View style={styles.iconCircle}>
-              <Icon size={15} color={theme.colors.primary} strokeWidth={1.8} />
+              <Icon size={15} color={theme.colors.accent} strokeWidth={1.8} />
             </View>
-            <View style={styles.info}>
-              <Text style={styles.label}>{label}</Text>
-              {k.code ? <Text style={styles.code}>{k.code}</Text> : null}
-            </View>
+            <Text style={styles.label} numberOfLines={1}>
+              {label}
+            </Text>
+            {k.code ? (
+              <View style={styles.codeBadge}>
+                <Text style={styles.codeText}>{k.code}</Text>
+              </View>
+            ) : null}
             {k.quantity > 1 && (
               <View style={styles.qtyBadge}>
                 <Text style={styles.qtyBadgeText}>×{k.quantity}</Text>
@@ -39,52 +43,53 @@ export function KeySetKeysList() {
           </View>
         );
       })}
-    </View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  list: {
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.lg,
-    overflow: "hidden",
-  },
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing.sm,
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    paddingVertical: 10,
   },
   iconCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.primarySoft,
+    width: 30,
+    height: 30,
+    borderRadius: theme.radius.sm,
+    backgroundColor: theme.colors.accentSoft,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
   },
-  info: { flex: 1, gap: 2 },
-  label: { fontSize: 14, fontWeight: "700", color: theme.colors.text },
-  code: {
-    fontSize: 12,
+  label: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.colors.text,
+    flexShrink: 1,
+  },
+  codeBadge: {
+    borderRadius: theme.radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    backgroundColor: theme.colors.neutralSoft,
+  },
+  codeText: {
+    fontSize: 11,
+    fontWeight: "600",
     color: theme.colors.textMuted,
-    fontWeight: "500",
   },
   qtyBadge: {
     borderRadius: theme.radius.pill,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.accentSoft,
   },
   qtyBadgeText: {
     fontSize: 13,
     fontWeight: "700",
-    color: theme.colors.primaryDark,
+    color: theme.colors.accent,
   },
 });

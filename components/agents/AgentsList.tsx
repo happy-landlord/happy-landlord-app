@@ -73,7 +73,11 @@ export function AgentsList() {
     return (
       <View style={sharedStyles.centered}>
         <View style={sharedStyles.emptyIcon}>
-          <UserCheck size={32} color={theme.colors.textLight} strokeWidth={1.5} />
+          <UserCheck
+            size={32}
+            color={theme.colors.textLight}
+            strokeWidth={1.5}
+          />
         </View>
         <Text style={sharedStyles.emptyTitle}>No agents yet</Text>
         <Text style={sharedStyles.emptyMessage}>
@@ -233,25 +237,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.border,
     overflow: "hidden",
-    shadowColor: theme.colors.charcoal,
+    shadowColor: theme.colors.accent,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
   },
   cardPressed: { opacity: 0.85 },
-  imagePane: { width: 74, backgroundColor: theme.colors.primarySoft },
+  imagePane: { width: 74, backgroundColor: theme.colors.accentSoft },
   image: { width: "100%", height: "100%" },
   imageFallback: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.accentSoft,
   },
   imageInitial: {
     fontSize: 24,
     fontWeight: "700",
-    color: theme.colors.primary,
+    color: theme.colors.primaryText,
   },
   content: {
     flex: 1,
@@ -284,4 +288,3 @@ const styles = StyleSheet.create({
     color: theme.colors.textLight,
   },
 });
-

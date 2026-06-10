@@ -13,6 +13,7 @@ import { CheckCircle, Clock, Phone, UserX, XCircle } from "lucide-react-native";
 import { theme } from "@/constants";
 import { useRegistrationRequests, useReviewRequest } from "@/lib/hooks";
 import { useRefreshControl } from "@/hooks";
+import { formatDate } from "@/lib/utils";
 import type { RegistrationRequest } from "@/lib/services";
 
 import { sharedStyles } from "./styles";
@@ -130,35 +131,6 @@ export function RequestsList() {
 const keyExtractor = (item: RegistrationRequest) => item.id;
 const Separator = () => <View style={sharedStyles.separator} />;
 
-const STATUS_CONFIG: Record<
-  RegistrationRequest["status"],
-  { color: string; bg: string; label: string }
-> = {
-  pending: {
-    color: theme.colors.warning,
-    bg: theme.colors.warningSoft,
-    label: "Pending",
-  },
-  approved: {
-    color: theme.colors.success,
-    bg: theme.colors.successSoft,
-    label: "Approved",
-  },
-  rejected: {
-    color: theme.colors.danger,
-    bg: theme.colors.dangerSoft,
-    label: "Rejected",
-  },
-};
-
-const DATE_OPTS: Intl.DateTimeFormatOptions = {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-};
-const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-AU", DATE_OPTS);
-
 // ── Card ──────────────────────────────────────────────────────────────────────
 
 type RequestCardProps = {
@@ -175,12 +147,16 @@ const RequestCard = memo(function RequestCard({
   onReject,
 }: RequestCardProps) {
   const isPending = request.status === "pending";
-  const statusConfig = STATUS_CONFIG[request.status];
   const initial = (request.full_name || request.email || "?")[0].toUpperCase();
   const isBusy = processing !== null;
+  const reviewerName = request.reviewer?.full_name ?? "Admin";
+  const reviewedDate = request.reviewed_at
+    ? formatDate(request.reviewed_at)
+    : null;
 
   return (
     <View style={styles.card}>
+      {/* ── Header: avatar + name + date ── */}
       <View style={styles.cardHeader}>
         <View style={styles.avatarCircle}>
           <Text style={styles.avatarLetter}>{initial}</Text>
@@ -201,28 +177,56 @@ const RequestCard = memo(function RequestCard({
           ) : null}
         </View>
 
-        <View
-          style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}
-        >
-          <Text style={[styles.statusLabel, { color: statusConfig.color }]}>
-            {statusConfig.label}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.metaRow}>
-        <View style={styles.rolePill}>
-          <Text style={styles.roleText}>{request.requested_role}</Text>
-        </View>
         <Text style={styles.dateText}>{formatDate(request.created_at)}</Text>
       </View>
 
+      {/* ── Status row ── */}
+      <View style={styles.statusRow}>
+        {isPending ? (
+          <>
+            <View style={styles.pendingDot} />
+            <Text style={styles.statusPending}>Awaiting review</Text>
+          </>
+        ) : request.status === "approved" ? (
+          <>
+            <CheckCircle
+              size={14}
+              color={theme.colors.success}
+              strokeWidth={2.2}
+            />
+            <Text style={styles.statusApproved}>
+              Approved by {reviewerName}
+              {reviewedDate ? ` · ${reviewedDate}` : ""}
+            </Text>
+          </>
+        ) : (
+          <>
+            <UserX size={14} color={theme.colors.danger} strokeWidth={2.2} />
+            <Text style={styles.statusRejected}>
+              Rejected by {reviewerName}
+              {reviewedDate ? ` · ${reviewedDate}` : ""}
+            </Text>
+          </>
+        )}
+      </View>
+
+      {/* ── User message (pending) ── */}
+      {request.user_message ? (
+        <View style={styles.messageBox}>
+          <Text style={styles.messageLabel}>Message</Text>
+          <Text style={styles.messageText}>{request.user_message}</Text>
+        </View>
+      ) : null}
+
+      {/* ── Admin note (reviewed) ── */}
       {request.admin_note ? (
         <View style={styles.noteBox}>
+          <Text style={styles.noteLabel}>Admin note</Text>
           <Text style={styles.noteText}>{request.admin_note}</Text>
         </View>
       ) : null}
 
+      {/* ── Actions (pending only) ── */}
       {isPending && (
         <View style={styles.actions}>
           <Pressable
@@ -235,12 +239,15 @@ const RequestCard = memo(function RequestCard({
             disabled={isBusy}
           >
             {processing === "approve" ? (
-              <ActivityIndicator size="small" color={theme.colors.surface} />
+              <ActivityIndicator
+                size="small"
+                color={theme.colors.textInverse}
+              />
             ) : (
               <>
                 <CheckCircle
-                  size={16}
-                  color={theme.colors.surface}
+                  size={15}
+                  color={theme.colors.textInverse}
                   strokeWidth={2}
                 />
                 <Text style={styles.approveBtnLabel}>Approve</Text>
@@ -262,7 +269,7 @@ const RequestCard = memo(function RequestCard({
             ) : (
               <>
                 <XCircle
-                  size={16}
+                  size={15}
                   color={theme.colors.danger}
                   strokeWidth={2}
                 />
@@ -270,24 +277,6 @@ const RequestCard = memo(function RequestCard({
               </>
             )}
           </Pressable>
-        </View>
-      )}
-
-      {!isPending && request.reviewed_at && (
-        <View style={styles.reviewedRow}>
-          {request.status === "approved" ? (
-            <CheckCircle
-              size={14}
-              color={theme.colors.success}
-              strokeWidth={2}
-            />
-          ) : (
-            <UserX size={14} color={theme.colors.danger} strokeWidth={2} />
-          )}
-          <Text style={styles.reviewedText}>
-            {request.status === "approved" ? "Approved" : "Rejected"} on{" "}
-            {formatDate(request.reviewed_at)}
-          </Text>
         </View>
       )}
     </View>
@@ -315,6 +304,8 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
+
+  // ── Card ─────────────────────────────────────────────────────────────────
   card: {
     backgroundColor: theme.colors.surfaceWarm,
     borderRadius: theme.radius.card,
@@ -322,79 +313,114 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
     padding: theme.spacing.md,
     gap: theme.spacing.sm,
-    shadowColor: theme.colors.charcoal,
+    shadowColor: theme.colors.accent,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
   },
+
+  // Header
   cardHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
   avatarCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: theme.colors.primarySoft,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: theme.colors.accentSoft,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
   },
   avatarLetter: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "700",
-    color: theme.colors.primary,
+    color: theme.colors.accent,
   },
-  cardMeta: { flex: 1, gap: 2 },
+  cardMeta: { flex: 1, gap: 1 },
   cardName: { fontSize: 15, fontWeight: "600", color: theme.colors.text },
   cardEmail: { fontSize: 13, color: theme.colors.textMuted },
   phoneRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    marginTop: 1,
+    marginTop: 2,
   },
   cardPhone: { fontSize: 12, color: theme.colors.textLight },
-  statusBadge: {
-    paddingVertical: 3,
-    paddingHorizontal: theme.spacing.sm,
-    borderRadius: theme.radius.pill,
+  dateText: {
+    fontSize: 11,
+    color: theme.colors.textLight,
     flexShrink: 0,
-    alignSelf: "flex-start",
+    paddingTop: 2,
   },
-  statusLabel: { fontSize: 12, fontWeight: "600" },
-  metaRow: {
+
+  // Status row
+  statusRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing.sm,
-    marginLeft: 44 + theme.spacing.md,
+    gap: 6,
+    paddingTop: 2,
   },
-  rolePill: {
-    paddingVertical: 2,
-    paddingHorizontal: theme.spacing.sm,
-    backgroundColor: theme.colors.infoSoft,
-    borderRadius: theme.radius.pill,
-  },
-  roleText: {
-    fontSize: 11,
+  statusPending: {
+    fontSize: 13,
+    color: theme.colors.warning,
     fontWeight: "600",
-    color: theme.colors.info,
-    textTransform: "capitalize",
   },
-  dateText: { fontSize: 12, color: theme.colors.textLight },
+  statusApproved: {
+    fontSize: 13,
+    color: theme.colors.textMuted,
+    fontWeight: "500",
+    flexShrink: 1,
+  },
+  statusRejected: {
+    fontSize: 13,
+    color: theme.colors.danger,
+    fontWeight: "600",
+    flexShrink: 1,
+  },
+
+  // Message / note boxes
+  messageBox: {
+    backgroundColor: theme.colors.infoSoft,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.sm,
+    gap: 2,
+  },
+  messageLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: theme.colors.info,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  messageText: {
+    fontSize: 13,
+    color: theme.colors.text,
+    lineHeight: 18,
+  },
   noteBox: {
     backgroundColor: theme.colors.neutralSoft,
     borderRadius: theme.radius.md,
     padding: theme.spacing.sm,
-    marginTop: 2,
+    gap: 2,
+  },
+  noteLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: theme.colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   noteText: {
     fontSize: 13,
     color: theme.colors.textMuted,
-    fontStyle: "italic",
+    lineHeight: 18,
   },
+
+  // Actions
   actions: {
     flexDirection: "row",
     gap: theme.spacing.sm,
@@ -413,7 +439,7 @@ const styles = StyleSheet.create({
   btnPressed: { opacity: 0.75 },
   approveBtn: { backgroundColor: theme.colors.success },
   approveBtnLabel: {
-    color: theme.colors.surface,
+    color: theme.colors.textInverse,
     fontWeight: "600",
     fontSize: 14,
   },
@@ -427,12 +453,4 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 14,
   },
-  reviewedRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.xs,
-    marginTop: 2,
-  },
-  reviewedText: { fontSize: 12, color: theme.colors.textLight },
 });
-

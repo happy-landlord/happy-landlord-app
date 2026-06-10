@@ -50,7 +50,7 @@ export function SelectedKeysSummary({
                 <IconBadge
                   icon={Icon}
                   size="sm"
-                  tone="primary"
+                  tone="accent"
                   background={theme.colors.surface}
                 />
                 <Text style={styles.labelCompact} numberOfLines={1}>
@@ -62,7 +62,7 @@ export function SelectedKeysSummary({
           return (
             <View key={k.id} style={styles.row}>
               <View style={styles.iconCircle}>
-                <Icon size={12} color={theme.colors.primaryDark} strokeWidth={1.8} />
+                <Icon size={12} color={theme.colors.accent} strokeWidth={1.8} />
               </View>
               <Text style={styles.label} numberOfLines={1}>
                 {label}
@@ -105,8 +105,8 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: theme.radius.pill,
     overflow: "hidden",
-    backgroundColor: theme.colors.primarySoft,
-    color: theme.colors.primaryDark,
+    backgroundColor: theme.colors.accentSoft,
+    color: theme.colors.accent,
     fontSize: 12,
     fontWeight: "800",
     textAlign: "center",
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.accentSoft,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
@@ -177,4 +177,3 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
   },
 });
-

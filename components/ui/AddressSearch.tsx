@@ -6,7 +6,7 @@ import {
 } from "react-native-google-places-autocomplete";
 import { useDebouncedCallback } from "use-debounce";
 
-import { FEATURES , SYDNEY_BIAS , theme } from "@/constants";
+import { FEATURES, SYDNEY_BIAS, theme } from "@/constants";
 import { normaliseSuburb } from "@/lib/utils";
 
 export type PlaceResult = {
@@ -46,14 +46,23 @@ export type AddressSearchRef = {
 
 const API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY ?? "";
 
-
 // ── Suggestion list scroll patch ──────────────────────────────────────────────
 // flatListProps is supported at runtime but omitted from the published types.
 // Spreading as unknown bypasses the type error while touching nothing else.
-const DISABLE_LIST_SCROLL = { flatListProps: { scrollEnabled: false } } as unknown as object;
+const DISABLE_LIST_SCROLL = {
+  flatListProps: { scrollEnabled: false },
+} as unknown as object;
 
 export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
-  function AddressSearch({ onSelect, placeholder = "Search address…", borderless = false, mode = "partial" }, ref) {
+  function AddressSearch(
+    {
+      onSelect,
+      placeholder = "Search address…",
+      borderless = false,
+      mode = "partial",
+    },
+    ref,
+  ) {
     // ── Fallback plain-text input (used when FEATURES.GOOGLE_PLACES = false) ──
     const [text, setText] = useState("");
 
@@ -61,14 +70,11 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
     // selection on every keystroke when the parent wires `onChangeText`-style
     // listeners. Keeps the behaviour consistent with the debounced Google
     // Places autocomplete below.
-    const debouncedFallbackSelect = useDebouncedCallback(
-      (raw: string) => {
-        const trimmed = raw.trim();
-        if (!trimmed) return;
-        onSelect({ placeId: "", description: trimmed, suburb: trimmed });
-      },
-      400,
-    );
+    const debouncedFallbackSelect = useDebouncedCallback((raw: string) => {
+      const trimmed = raw.trim();
+      if (!trimmed) return;
+      onSelect({ placeId: "", description: trimmed, suburb: trimmed });
+    }, 400);
 
     const placesRef = useRef<GooglePlacesAutocompleteRef>(null);
 
@@ -168,8 +174,8 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
             street: get("route"),
             suburb: normaliseSuburb(
               get("sublocality_level_1") ??
-              get("locality") ??
-              get("postal_town"),
+                get("locality") ??
+                get("postal_town"),
             ),
             council: get("administrative_area_level_2"),
             state: getShort("administrative_area_level_1"),
@@ -247,7 +253,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     zIndex: 9999,
     elevation: 24,
-    shadowColor: "#000",
+    shadowColor: theme.colors.accent,
     shadowOpacity: 0.12,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },

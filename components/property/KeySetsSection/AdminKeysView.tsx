@@ -14,16 +14,10 @@ import { useRouter } from "expo-router";
 import { KEY_TYPE_ICON, theme } from "@/constants";
 import { KeyStatusChip } from "@/components/KeyStatusChip";
 import { EmptyState } from "@/components/ui";
-import { getKeyName, getKeySetTone } from "@/lib/utils";
-import type {
-  KeySetWithDetails,
-  UnassignedKey,
-} from "@/lib/services";
+import { getKeyName, getKeySetTone, isPastDue } from "@/lib/utils";
+import type { KeySetWithDetails, UnassignedKey } from "@/lib/services";
 
-import {
-  KeySetHolderMeta,
-  KeySetListCard,
-} from "./KeySetListCard";
+import { KeySetHolderMeta, KeySetListCard } from "./KeySetListCard";
 
 // Enable LayoutAnimation on Android once (no-op on iOS).
 if (
@@ -38,10 +32,7 @@ export type AdminKeysViewProps = {
   unassignedKeys: UnassignedKey[];
 };
 
-export function AdminKeysView({
-  keySets,
-  unassignedKeys,
-}: AdminKeysViewProps) {
+export function AdminKeysView({ keySets, unassignedKeys }: AdminKeysViewProps) {
   const router = useRouter();
   const [unassignedOpen, setUnassignedOpen] = useState(false);
 
@@ -79,47 +70,48 @@ export function AdminKeysView({
         )}
       </View>
 
-      {unassignedKeys.length > 0 && (() => {
-        const unassignedQty = unassignedKeys.reduce(
-          (sum, k) => sum + (k.quantity ?? 1),
-          0,
-        );
-        return (
-        <View style={styles.section}>
-          <Pressable
-            style={styles.accordionHeader}
-            onPress={toggleUnassigned}
-            accessibilityRole="button"
-            accessibilityLabel="Toggle unassigned keys"
-          >
-            <Text style={styles.sectionTitle}>
-              {unassignedQty} Unassigned{" "}
-              {unassignedQty === 1 ? "Key" : "Keys"}
-            </Text>
-            {unassignedOpen ? (
-              <ChevronDown
-                size={16}
-                color={theme.colors.textLight}
-                strokeWidth={2.5}
-              />
-            ) : (
-              <ChevronRight
-                size={16}
-                color={theme.colors.textLight}
-                strokeWidth={2.5}
-              />
-            )}
-          </Pressable>
-          {unassignedOpen && (
-            <View style={styles.list}>
-              {unassignedKeys.map((k) => (
-                <UnassignedKeyChip key={k.id} keyItem={k} />
-              ))}
+      {unassignedKeys.length > 0 &&
+        (() => {
+          const unassignedQty = unassignedKeys.reduce(
+            (sum, k) => sum + (k.quantity ?? 1),
+            0,
+          );
+          return (
+            <View style={styles.section}>
+              <Pressable
+                style={styles.accordionHeader}
+                onPress={toggleUnassigned}
+                accessibilityRole="button"
+                accessibilityLabel="Toggle unassigned keys"
+              >
+                <Text style={styles.sectionTitle}>
+                  {unassignedQty} Unassigned{" "}
+                  {unassignedQty === 1 ? "Key" : "Keys"}
+                </Text>
+                {unassignedOpen ? (
+                  <ChevronDown
+                    size={16}
+                    color={theme.colors.textLight}
+                    strokeWidth={2.5}
+                  />
+                ) : (
+                  <ChevronRight
+                    size={16}
+                    color={theme.colors.textLight}
+                    strokeWidth={2.5}
+                  />
+                )}
+              </Pressable>
+              {unassignedOpen && (
+                <View style={styles.list}>
+                  {unassignedKeys.map((k) => (
+                    <UnassignedKeyChip key={k.id} keyItem={k} />
+                  ))}
+                </View>
+              )}
             </View>
-          )}
-        </View>
-        );
-      })()}
+          );
+        })()}
     </View>
   );
 }
@@ -133,6 +125,11 @@ function AdminKeySetCard({
   keySet: KeySetWithDetails;
   onPress: () => void;
 }) {
+  const overdue =
+    keySet.status === "overdue" ||
+    (keySet.status === "checked_out" && keySet.due_back_at
+      ? isPastDue(keySet.due_back_at)
+      : false);
   const hasHolderMeta =
     keySet.status === "checked_out" ||
     keySet.status === "overdue" ||
@@ -142,18 +139,18 @@ function AdminKeySetCard({
   return (
     <KeySetListCard
       keySet={keySet}
-      tone={getKeySetTone(keySet)}
+      tone={overdue ? "danger" : getKeySetTone(keySet)}
       showCode
       meta={
         hasHolderMeta && holderName ? (
           <KeySetHolderMeta
             holderName={holderName}
             dueBackAt={keySet.due_back_at}
-            overdue={keySet.status === "overdue"}
+            overdue={overdue}
           />
         ) : null
       }
-      status={<KeyStatusChip status={keySet.status} />}
+      status={<KeyStatusChip status={overdue ? "overdue" : keySet.status} />}
       onPress={onPress}
     />
   );
@@ -237,4 +234,3 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
   },
 });
-

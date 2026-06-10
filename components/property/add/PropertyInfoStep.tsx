@@ -10,7 +10,12 @@ import {
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { ChevronDown, KeyRound, X } from "lucide-react-native";
 
-import { KEY_TYPE_ICON, KEY_TYPE_LABEL, PROPERTY_TYPES, theme } from "@/constants";
+import {
+  KEY_TYPE_ICON,
+  KEY_TYPE_LABEL,
+  PROPERTY_TYPES,
+  theme,
+} from "@/constants";
 import {
   AddressSearch,
   Input,
@@ -185,11 +190,7 @@ export function PropertyInfoStep({
         <View style={styles.keysCardHeader}>
           <Text style={styles.keysCardTitle}>Keys Received</Text>
           <View style={styles.totalBadge}>
-            <KeyRound
-              size={12}
-              color={theme.colors.primary}
-              strokeWidth={2.2}
-            />
+            <KeyRound size={12} color={theme.colors.accent} strokeWidth={2.2} />
             <Text style={styles.totalBadgeText}>
               {totalKeys} {totalKeys === 1 ? "Key" : "Keys"}
             </Text>
@@ -205,7 +206,7 @@ export function PropertyInfoStep({
                 <View key={entry.id} style={styles.keyEntry}>
                   <Icon
                     size={15}
-                    color={theme.colors.primary}
+                    color={theme.colors.accent}
                     strokeWidth={1.8}
                   />
                   <Text style={styles.keyEntryLabel} numberOfLines={1}>
@@ -356,7 +357,7 @@ const styles = StyleSheet.create({
   keysCard: {
     marginTop: theme.spacing.sm,
     borderWidth: 1.5,
-    borderColor: theme.colors.primarySoft,
+    borderColor: theme.colors.accentSoft,
     borderRadius: theme.radius.lg,
     backgroundColor: theme.colors.surface,
     padding: theme.spacing.md,
@@ -371,7 +372,7 @@ const styles = StyleSheet.create({
   keysCardTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: theme.colors.primary,
+    color: theme.colors.accent,
   },
   totalBadge: {
     flexDirection: "row",
@@ -380,12 +381,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.accentSoft,
   },
   totalBadgeText: {
     fontSize: 13,
     fontWeight: "700",
-    color: theme.colors.primary,
+    color: theme.colors.accent,
   },
   keyList: { gap: 6 },
   keyEntry: {
@@ -402,12 +403,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.accentSoft,
   },
   countBadgeText: {
     fontSize: 12,
     fontWeight: "700",
-    color: theme.colors.primary,
+    color: theme.colors.accent,
   },
   codeBadge: {
     paddingHorizontal: 7,
@@ -477,7 +478,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: theme.colors.primary,
   },
-  addKeyBtnText: { fontSize: 14, fontWeight: "700", color: "#fff" },
+  addKeyBtnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: theme.colors.primaryText,
+  },
   codeRow: {
     flexDirection: "row",
     gap: theme.spacing.sm,

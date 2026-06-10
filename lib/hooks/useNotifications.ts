@@ -8,7 +8,6 @@ import { QUERY_KEYS, invalidateNotifications } from "@/lib/query";
 import { supabase } from "@/lib/supabase";
 import { useLockStore } from "@/lib/state";
 import { useCurrentUserId } from "@/lib/hooks/useSession";
-import { alertError } from "@/lib/utils";
 import { logger } from "@/lib/utils/logger";
 import {
   createNotification,
@@ -197,7 +196,9 @@ export function useRegisterPushToken() {
         if (!token || cancelled) return;
         await saveUserPushToken(userId, token);
       } catch (error) {
-        logger.warn("Silent push token refresh failed", { error: String(error) });
+        logger.warn("Silent push token refresh failed", {
+          error: String(error),
+        });
       }
     }
 
@@ -263,7 +264,6 @@ export function useNotificationResponseNavigation() {
     return () => subscription.remove();
   }, [router, isLocked]);
 }
-
 
 /**
  * Single entry-point for the notification lifecycle hooks that should run
@@ -345,9 +345,6 @@ export function useTogglePush() {
         await deactivateAllPushTokens(userId);
       }
     },
-    onError: (err) => {
-      alertError("Couldn't update push notifications", err);
-    },
     onSettled: () => {
       if (!userId) return;
       queryClient.invalidateQueries({
@@ -356,4 +353,3 @@ export function useTogglePush() {
     },
   });
 }
-
