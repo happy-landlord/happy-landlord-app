@@ -481,7 +481,7 @@ const styles = StyleSheet.create({
   addKeyBtnText: {
     fontSize: 14,
     fontWeight: "700",
-    color: theme.colors.primaryText,
+    color: theme.colors.accent,
   },
   codeRow: {
     flexDirection: "row",

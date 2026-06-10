@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from "react-native";
 
 import { PropertyCard } from "@/components/property";
-import { EmptyState , ErrorState , LoadingState } from "@/components/ui";
+import { EmptyState, ErrorState, LoadingState } from "@/components/ui";
 
 
 import { type PlaceResult } from "@/components/ui";
@@ -14,7 +14,7 @@ import { useInfiniteProperties } from "@/lib/hooks";
 import { useRole, useRefreshControl } from "@/hooks";
 import { placeSearchLabel } from "@/lib/utils";
 import type { DbProperty, PropertyStatus } from "@/types";
-import { theme , useBottomListPadding } from "@/constants";
+import { theme, useBottomListPadding } from "@/constants";
 
 
 const EMPTY_MESSAGE_BY_TAB: Record<AdminPropertyTab, string> = {

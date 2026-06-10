@@ -1,20 +1,20 @@
 import { useEffect } from "react";
 import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { QueryClientProvider } from "@tanstack/react-query";
+import * as Sentry from "@sentry/react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { LogBox, Pressable, StyleSheet, Text, View } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import { KeyboardProvider } from "react-native-keyboard-controller";
 import * as SystemUI from "expo-system-ui";
+import { LogBox, Pressable, StyleSheet, Text, View } from "react-native";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import Toast from "react-native-toast-message";
 import "react-native-reanimated";
 
 import { queryClient } from "@/lib/query";
 import { useDevOverridesStore } from "@/lib/state";
 import { theme } from "@/constants";
-import * as Sentry from "@sentry/react-native";
 
 Sentry.init({
   dsn: "https://4a66fc94d624e04205dc8739ec3aa399@o4511500226527232.ingest.us.sentry.io/4511500234391553",
@@ -90,7 +90,7 @@ const errorStyles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: theme.colors.primary,
   },
-  buttonText: { color: theme.colors.primaryText, fontWeight: "600" },
+  buttonText: { color: theme.colors.accent, fontWeight: "600" },
 });
 
 // GooglePlacesAutocomplete renders a FlatList inside the add-property ScrollView.

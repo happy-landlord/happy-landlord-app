@@ -15,7 +15,7 @@ import { Search, UserCheck } from "lucide-react-native";
 import { theme } from "@/constants";
 import { useAgents, useProfileImageUrl } from "@/lib/hooks";
 import { useRefreshControl } from "@/hooks";
-import type { AgentProfile } from "@/lib/services/profile.service";
+import type { AgentProfile } from "@/lib/services";
 import { PhoneLink } from "@/components/ui";
 
 import { AgentDetailsSheet } from "./AgentDetailsSheet";

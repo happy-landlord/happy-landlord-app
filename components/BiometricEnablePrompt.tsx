@@ -76,7 +76,7 @@ export function BiometricEnablePrompt({
             >
               <Fingerprint
                 size={17}
-                color={theme.colors.primaryText}
+                color={theme.colors.accent}
                 strokeWidth={2}
               />
               <Text style={styles.enableBtnText}>Enable {biometricLabel}</Text>
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   enableBtnText: {
     fontSize: 16,
     fontWeight: "700",
-    color: theme.colors.primaryText,
+    color: theme.colors.accent,
   },
   laterBtn: {
     alignItems: "center",

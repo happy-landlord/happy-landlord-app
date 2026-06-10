@@ -111,7 +111,7 @@ export function ProfileDetailsCard() {
           <Button
             title={updateMutation.isPending ? "Saving…" : "Save changes"}
             variant="primary"
-            icon={<Check size={16} color={theme.colors.primaryText} strokeWidth={2} />}
+            icon={<Check size={16} color={theme.colors.accent} strokeWidth={2} />}
             loading={updateMutation.isPending}
             onPress={saveEdit}
             disabled={updateMutation.isPending}

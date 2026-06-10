@@ -1,10 +1,10 @@
 import { useCallback, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { ArrowRightCircle } from "lucide-react-native";
 
 import { theme } from "@/constants";
 import { KeySetCard, TransferConfirmModal } from "@/components/keyset";
-import { EmptyState } from "@/components/ui";
+import { Button, EmptyState } from "@/components/ui";
 import { useTransferKeySet } from "@/lib/hooks";
 import type { KeySetWithDetails } from "@/lib/services";
 
@@ -69,22 +69,21 @@ function AgentKeySetCard({ keySet }: { keySet: KeySetWithDetails }) {
         keySet={keySet}
         variant="agent"
         footer={
-          <Pressable
-            style={({ pressed }) => [
-              styles.transferButton,
-              transferMut.isPending && styles.transferButtonDisabled,
-              pressed && !transferMut.isPending && styles.transferButtonPressed,
-            ]}
-            onPress={() => setShowTransferModal(true)}
+          <Button
+            title={transferMut.isPending ? "Transferring…" : "Transfer to Me"}
+            variant="primary"
+            loading={transferMut.isPending}
             disabled={transferMut.isPending}
-            accessibilityRole="button"
+            icon={
+              <ArrowRightCircle
+                size={16}
+                color={theme.colors.accent}
+                strokeWidth={2}
+              />
+            }
+            onPress={() => setShowTransferModal(true)}
             accessibilityLabel={`Transfer ${keySet.name} to me`}
-          >
-            <ArrowRightCircle size={16} color={theme.colors.primaryText} strokeWidth={2} />
-            <Text style={styles.transferButtonText}>
-              {transferMut.isPending ? "Transferring…" : "Transfer to Me"}
-            </Text>
-          </Pressable>
+          />
         }
       />
 
@@ -116,22 +115,4 @@ const styles = StyleSheet.create({
     paddingLeft: 2,
   },
   list: { gap: 8 },
-
-  // ── Transfer action ──
-  transferButton: {
-    minHeight: 46,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 7,
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.primary,
-  },
-  transferButtonPressed: { opacity: 0.75 },
-  transferButtonDisabled: { opacity: 0.55 },
-  transferButtonText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: theme.colors.primaryText,
-  },
 });

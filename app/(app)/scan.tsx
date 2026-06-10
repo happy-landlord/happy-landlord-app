@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   btnLabel: {
     fontSize: 16,
     fontWeight: "700",
-    color: theme.colors.primaryText,
+    color: theme.colors.accent,
   },
 
   maskTop: { flex: 1, backgroundColor: MASK_COLOR },
@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
   retryLabel: {
     fontSize: 15,
     fontWeight: "700",
-    color: theme.colors.primaryText,
+    color: theme.colors.accent,
   },
 
   closeBtn: {

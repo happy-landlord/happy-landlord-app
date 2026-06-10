@@ -32,7 +32,7 @@ const TONE: Record<
 > = {
   primary: {
     soft: { bg: theme.colors.primarySoft, fg: theme.colors.primaryDark },
-    solid: { bg: theme.colors.primary, fg: theme.colors.primaryText },
+    solid: { bg: theme.colors.primary, fg: theme.colors.accent },
   },
   accent: {
     soft: { bg: theme.colors.accentSoft, fg: theme.colors.accent },

@@ -104,7 +104,7 @@ export default function AddPropertyScreen() {
           {isSaving ? (
             <>
               <ActivityIndicator
-                color={theme.colors.primaryText}
+                color={theme.colors.accent}
                 size="small"
               />
               {submitLabel ? (
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
   footerBtnLabel: {
     fontSize: 16,
     fontWeight: "700",
-    color: theme.colors.primaryText,
+    color: theme.colors.accent,
     letterSpacing: 0.2,
   },
   footerBtnSavingLabel: {

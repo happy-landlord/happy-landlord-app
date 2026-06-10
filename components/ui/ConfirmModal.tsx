@@ -47,7 +47,7 @@ const TONE_BG: Record<ConfirmModalTone, string> = {
 };
 
 const TONE_TEXT: Record<ConfirmModalTone, string> = {
-  primary: theme.colors.primaryText,
+  primary: theme.colors.accent,
   success: theme.colors.textInverse,
   danger: theme.colors.textInverse,
 };

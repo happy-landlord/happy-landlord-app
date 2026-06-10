@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Pressable,
   StyleSheet,
@@ -10,6 +9,7 @@ import {
 } from "react-native";
 import { FlaskConical } from "lucide-react-native";
 
+import { Button } from "@/components/ui";
 import { theme } from "@/constants";
 import { useAdminSendTestNotification, useCurrentUserId } from "@/lib/hooks";
 import type { NotificationType } from "@/lib/services";
@@ -136,25 +136,15 @@ export function AdminPushTestPanel() {
             })}
           </View>
 
-          <Pressable
-            onPress={handleSend}
+          <Button
+            title="Send test push →"
+            variant="warning"
+            loading={sendTest.isPending}
             disabled={sendTest.isPending}
-            style={({ pressed }) => [
-              styles.sendBtn,
-              (pressed || sendTest.isPending) && { opacity: 0.7 },
-            ]}
-            accessibilityRole="button"
+            onPress={handleSend}
             accessibilityLabel="Send test push notification"
-          >
-            {sendTest.isPending ? (
-              <ActivityIndicator
-                size="small"
-                color={theme.colors.textInverse}
-              />
-            ) : (
-              <Text style={styles.sendBtnText}>Send test push →</Text>
-            )}
-          </Pressable>
+            style={styles.sendBtn}
+          />
 
           <Text style={styles.note}>
             ⚠️ Sends to your own device only. Push payload omits full property
@@ -247,17 +237,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   sendBtn: {
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.warning,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: theme.spacing.sm + 2,
     marginTop: theme.spacing.xs,
-  },
-  sendBtnText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: theme.colors.textInverse,
   },
   note: {
     fontSize: 11,

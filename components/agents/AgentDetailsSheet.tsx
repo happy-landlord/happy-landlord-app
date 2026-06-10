@@ -18,8 +18,7 @@ import {
   useProfileImageUrl,
 } from "@/lib/hooks";
 import { getTotalKeyQuantity } from "@/lib/utils";
-import type { CheckedOutKeySet } from "@/lib/services";
-import type { AgentProfile } from "@/lib/services/profile.service";
+import type { CheckedOutKeySet, AgentProfile } from "@/lib/services";
 
 type Props = {
   agent: AgentProfile | null;

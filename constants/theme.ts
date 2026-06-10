@@ -2,7 +2,7 @@ export const theme = {
   colors: {
     // ── Brand ────────────────────────────────────────────────────────────────
     /** Golden yellow – main brand / CTA colour */
-    primary: "#FDC107",
+    primary: "#E5C229", //FDC107
     /** Darker shade of primary (hover / pressed ~25%) */
     primaryDark: "#C99706",
     /** Mid tint of primary */

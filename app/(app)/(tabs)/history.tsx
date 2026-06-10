@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
   filterBadgeText: {
     fontSize: 10,
     fontWeight: "700",
-    color: theme.colors.primaryText,
+    color: theme.colors.accent,
     lineHeight: 12,
   },
 

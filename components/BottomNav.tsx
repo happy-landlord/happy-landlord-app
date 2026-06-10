@@ -1,5 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
 import type React from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePathname, useRouter } from "expo-router";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
@@ -128,7 +128,7 @@ export function BottomNav({ state, navigation }: BottomTabBarProps) {
             >
               <ScanLine
                 size={30}
-                color={theme.colors.primaryText}
+                color={theme.colors.accent}
                 strokeWidth={2.2}
               />
             </Pressable>

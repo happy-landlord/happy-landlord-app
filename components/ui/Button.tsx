@@ -20,6 +20,7 @@ type ButtonVariant =
   | "outline"
   | "ghost"
   | "danger"
+  | "warning"
   | "success"
   | "successOutline"
   | "dangerOutline"
@@ -119,8 +120,8 @@ const variantStyles: Record<
 > = {
   primary: {
     container: { backgroundColor: theme.colors.primary },
-    label: { color: theme.colors.primaryText },
-    spinner: theme.colors.primaryText,
+    label: { color: theme.colors.accent },
+    spinner: theme.colors.accent,
   },
   primaryOutline: {
     container: {
@@ -157,6 +158,11 @@ const variantStyles: Record<
   },
   danger: {
     container: { backgroundColor: theme.colors.danger },
+    label: { color: theme.colors.textInverse },
+    spinner: theme.colors.textInverse,
+  },
+  warning: {
+    container: { backgroundColor: theme.colors.warning },
     label: { color: theme.colors.textInverse },
     spinner: theme.colors.textInverse,
   },

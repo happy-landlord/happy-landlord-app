@@ -5,4 +5,3 @@
  *   import type { DbProperty, KeySetStatus, ActivityTransaction } from "@/types";
  */
 export * from "./database";
-

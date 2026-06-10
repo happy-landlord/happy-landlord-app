@@ -1,13 +1,7 @@
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { AlertTriangle } from "lucide-react-native";
 
-import { BottomSheet } from "@/components/ui";
+import { BottomSheet, Button } from "@/components/ui";
 import { theme } from "@/constants";
 import { useHandoverToLandlord } from "@/lib/hooks";
 import { useRouter } from "expo-router";
@@ -50,30 +44,20 @@ export function HandoverLandlordSheet({ visible, onClose, propertyId }: Props) {
       </Text>
 
       <View style={styles.footer}>
-        <Pressable
-          style={({ pressed }) => [
-            styles.cancelBtn,
-            pressed && { opacity: 0.7 },
-          ]}
+        <Button
+          title="Cancel"
+          variant="outline"
           onPress={onClose}
-        >
-          <Text style={styles.cancelBtnText}>Cancel</Text>
-        </Pressable>
-        <Pressable
-          style={({ pressed }) => [
-            styles.confirmBtn,
-            pressed && { opacity: 0.82 },
-            handoverMut.isPending && { opacity: 0.5 },
-          ]}
-          onPress={handleConfirm}
+          style={styles.cancelBtn}
+        />
+        <Button
+          title="Confirm Handover"
+          variant="warning"
+          loading={handoverMut.isPending}
           disabled={handoverMut.isPending}
-        >
-          {handoverMut.isPending ? (
-            <ActivityIndicator size="small" color={theme.colors.textInverse} />
-          ) : (
-            <Text style={styles.confirmBtnText}>Confirm Handover</Text>
-          )}
-        </Pressable>
+          onPress={handleConfirm}
+          style={styles.confirmBtn}
+        />
       </View>
     </BottomSheet>
   );
@@ -112,32 +96,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: theme.spacing.sm,
   },
-  cancelBtn: {
-    flex: 1,
-    height: 46,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.neutralSoft,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  cancelBtnText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: theme.colors.text,
-  },
-  confirmBtn: {
-    flex: 2,
-    height: 46,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.warning,
-  },
-  confirmBtnText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: theme.colors.textInverse,
-  },
+  cancelBtn: { flex: 1 },
+  confirmBtn: { flex: 2 },
 });

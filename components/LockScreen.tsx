@@ -299,13 +299,13 @@ export function LockScreen({ userName, userEmail }: LockScreenProps) {
               {isVerifying ? (
                 <ActivityIndicator
                   size="small"
-                  color={theme.colors.primaryText}
+                  color={theme.colors.accent}
                 />
               ) : (
                 <>
                   <ShieldCheck
                     size={17}
-                    color={theme.colors.primaryText}
+                    color={theme.colors.accent}
                     strokeWidth={2}
                   />
                   <Text style={styles.unlockBtnText}>Unlock</Text>
@@ -461,6 +461,6 @@ const styles = StyleSheet.create({
   unlockBtnText: {
     fontSize: 16,
     fontWeight: "700",
-    color: theme.colors.primaryText,
+    color: theme.colors.accent,
   },
 });

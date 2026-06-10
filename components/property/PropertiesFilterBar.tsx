@@ -82,7 +82,7 @@ export function PropertiesFilterBar({
           >
             <Plus
               size={20}
-              color={theme.colors.primaryText}
+              color={theme.colors.accent}
               strokeWidth={2.4}
             />
           </Pressable>

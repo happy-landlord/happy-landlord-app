@@ -5,4 +5,3 @@
  *   import { supabase } from "@/lib/supabase";
  */
 export * from "./client";
-

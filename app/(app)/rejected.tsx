@@ -4,11 +4,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MessageSquare, XCircle } from "lucide-react-native";
 
 import { theme } from "@/constants";
-import { Button , Input , Logo } from "@/components/ui";
+import { Button, Input, Logo } from "@/components/ui";
 import {
   useMyLatestRequest,
   useResubmitRequest,
- useSignOut } from "@/lib/hooks";
+  useSignOut,
+} from "@/lib/hooks";
 
 export default function RejectedScreen() {
   const insets = useSafeAreaInsets();

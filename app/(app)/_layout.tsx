@@ -6,8 +6,8 @@ import * as Sentry from "@sentry/react-native";
 import { AppHeader } from "@/components/AppHeader";
 import { BiometricEnablePrompt } from "@/components/BiometricEnablePrompt";
 import { LockScreen } from "@/components/LockScreen";
-import { useSession , useProfile , useNotificationsLifecycle , useBiometricEnrolmentPrompt } from "@/lib/hooks";
-import { FEATURES , theme } from "@/constants";
+import { useSession, useProfile, useNotificationsLifecycle, useBiometricEnrolmentPrompt } from "@/lib/hooks";
+import { FEATURES, theme } from "@/constants";
 import { useLockStore } from "@/lib/state";
 import { isBiometricEnabled } from "@/lib/services";
 

@@ -318,7 +318,7 @@ function PropertyKeysSection({
           disabled={addBusy}
         >
           {addBusy ? (
-            <ActivityIndicator size="small" color={theme.colors.primaryText} />
+            <ActivityIndicator size="small" color={theme.colors.accent} />
           ) : (
             <Text style={styles.addKeyBtnText}>Add</Text>
           )}
@@ -823,7 +823,7 @@ const styles = StyleSheet.create({
   addKeyBtnText: {
     fontSize: 14,
     fontWeight: "700",
-    color: theme.colors.primaryText,
+    color: theme.colors.accent,
   },
   codeInput: {
     height: 40,

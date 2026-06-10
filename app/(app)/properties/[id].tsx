@@ -1,9 +1,7 @@
 import {
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
@@ -11,7 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Building2, Pencil, Users } from "lucide-react-native";
 import { useState } from "react";
 
-import { PillButton, ErrorState, LoadingState } from "@/components/ui";
+import { Button, PillButton, ErrorState, LoadingState } from "@/components/ui";
 import {
   CollectFromTenantSheet,
   HandoverLandlordSheet,
@@ -21,8 +19,8 @@ import {
   PropertyHeader,
 } from "@/components/property";
 import { theme } from "@/constants";
-  import { useProperty } from "@/lib/hooks";
-  import { useRole, useRefreshControl } from "@/hooks";
+import { useProperty } from "@/lib/hooks";
+import { useRole, useRefreshControl } from "@/hooks";
 
 export default function PropertyDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -84,56 +82,35 @@ export default function PropertyDetailScreen() {
 
         {isAdmin && property.status === "active" && (
           <View style={styles.handoverRow}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.handoverBtn,
-                styles.handoverTenantBtn,
-                pressed && { opacity: 0.78 },
-              ]}
+            <Button
+              title="Handover to Tenant"
+              variant="primary"
+              size="sm"
+              icon={<Users size={15} color={theme.colors.accent} strokeWidth={2} />}
               onPress={() => setTenantSheetOpen(true)}
-            >
-              <Users
-                size={15}
-                color={theme.colors.primaryText}
-                strokeWidth={2}
-              />
-              <Text style={styles.handoverBtnText}>Handover to Tenant</Text>
-            </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [
-                styles.handoverBtn,
-                styles.handoverLandlordBtn,
-                pressed && { opacity: 0.78 },
-              ]}
+              style={styles.handoverBtn}
+            />
+            <Button
+              title="Handover to Landlord"
+              variant="outline"
+              size="sm"
+              icon={<Building2 size={15} color={theme.colors.text} strokeWidth={2} />}
               onPress={() => setLandlordSheetOpen(true)}
-            >
-              <Building2 size={15} color={theme.colors.text} strokeWidth={2} />
-              <Text style={styles.handoverLandlordBtnText}>
-                Handover to Landlord
-              </Text>
-            </Pressable>
+              style={styles.handoverBtn}
+            />
           </View>
         )}
 
         {isAdmin && property.status === "leased" && (
           <View style={styles.handoverRow}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.handoverBtn,
-                styles.handoverTenantBtn,
-                styles.handoverBtnCentered,
-                pressed && { opacity: 0.78 },
-              ]}
+            <Button
+              title="Collect from Tenant"
+              variant="primary"
+              size="sm"
+              icon={<Users size={15} color={theme.colors.accent} strokeWidth={2} />}
               onPress={() => setCollectSheetOpen(true)}
-            >
-              <Users
-                size={15}
-                color={theme.colors.primaryText}
-                strokeWidth={2}
-              />
-              <Text style={styles.handoverBtnText}>Collect from Tenant</Text>
-            </Pressable>
+              style={styles.handoverBtnCentered}
+            />
           </View>
         )}
 
@@ -183,37 +160,9 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
     justifyContent: "center",
   },
-  handoverBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 11,
-    paddingHorizontal: theme.spacing.sm,
-    borderRadius: theme.radius.md,
-  },
-  handoverTenantBtn: {
-    backgroundColor: theme.colors.primary,
-  },
+  handoverBtn: { flex: 1 },
   handoverBtnCentered: {
-    flex: 0,
     alignSelf: "center",
     paddingHorizontal: theme.spacing.lg,
-  },
-  handoverLandlordBtn: {
-    backgroundColor: theme.colors.neutralSoft,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  handoverBtnText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: theme.colors.primaryText,
-  },
-  handoverLandlordBtnText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: theme.colors.text,
   },
 });

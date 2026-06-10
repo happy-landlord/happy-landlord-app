@@ -37,7 +37,7 @@ const AGENT_QUICK_ACTIONS: QuickAction[] = [
     label: "Scan",
     sublabel: "Scan a keyset",
     Icon: ScanLine,
-    iconColor: theme.colors.primaryText,
+    iconColor: theme.colors.accent,
     iconBg: theme.colors.primary,
     onPress: (router, pathname) =>
       router.push({ pathname: "/(app)/scan", params: { returnTo: pathname } } as never),
@@ -73,7 +73,7 @@ const ADMIN_QUICK_ACTIONS: QuickAction[] = [
     label: "Scan",
     sublabel: "Scan a keyset",
     Icon: ScanLine,
-    iconColor: theme.colors.primaryText,
+    iconColor: theme.colors.accent,
     iconBg: theme.colors.primary,
     onPress: (router, pathname) =>
       router.push({ pathname: "/(app)/scan", params: { returnTo: pathname } } as never),

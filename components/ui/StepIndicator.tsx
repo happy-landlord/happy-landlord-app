@@ -33,7 +33,7 @@ export function StepIndicator({ steps, current }: StepIndicatorProps) {
               {done ? (
                 <Check
                   size={12}
-                  color={theme.colors.primaryText}
+                  color={theme.colors.accent}
                   strokeWidth={3}
                 />
               ) : (
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textLight,
   },
   circleTextActive: {
-    color: theme.colors.primaryText,
+    color: theme.colors.accent,
   },
   label: {
     marginTop: theme.spacing.xs,

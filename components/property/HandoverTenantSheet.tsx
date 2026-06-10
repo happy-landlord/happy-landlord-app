@@ -127,7 +127,7 @@ export function HandoverTenantSheet({ visible, onClose, propertyId }: Props) {
                   {isSelected && (
                     <Check
                       size={13}
-                      color={theme.colors.primaryText}
+                      color={theme.colors.accent}
                       strokeWidth={3}
                     />
                   )}
@@ -181,7 +181,7 @@ export function HandoverTenantSheet({ visible, onClose, propertyId }: Props) {
           }
         >
           {handoverMut.isPending ? (
-            <ActivityIndicator size="small" color={theme.colors.primaryText} />
+            <ActivityIndicator size="small" color={theme.colors.accent} />
           ) : (
             <Text style={styles.confirmBtnText}>
               Complete ({selected.size})
@@ -327,6 +327,6 @@ const styles = StyleSheet.create({
   confirmBtnText: {
     fontSize: 14,
     fontWeight: "700",
-    color: theme.colors.primaryText,
+    color: theme.colors.accent,
   },
 });

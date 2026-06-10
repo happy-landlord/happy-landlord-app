@@ -217,7 +217,7 @@ export function HistoryFilterSheet({
             size={18}
             color={
               filters.myActivityOnly
-                ? theme.colors.primaryText
+                ? theme.colors.accent
                 : theme.colors.primary
             }
             strokeWidth={2}

@@ -70,9 +70,9 @@ export function ProfileAvatar() {
 
       <View style={styles.badge}>
         {busy ? (
-          <ActivityIndicator size="small" color={theme.colors.primaryText} />
+          <ActivityIndicator size="small" color={theme.colors.accent} />
         ) : (
-          <Camera size={14} color={theme.colors.primaryText} strokeWidth={2} />
+          <Camera size={14} color={theme.colors.accent} strokeWidth={2} />
         )}
       </View>
     </Pressable>
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 30,
     fontWeight: "800",
-    color: theme.colors.primaryText,
+    color: theme.colors.accent,
   },
   badge: {
     position: "absolute",
