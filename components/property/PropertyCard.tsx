@@ -1,18 +1,18 @@
-import { StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronRight, MapPin } from "lucide-react-native";
+import { Building2 } from "lucide-react-native";
 
 import type { DbProperty } from "@/types";
 import { useRole } from "@/hooks";
 import { useCurrentUserId } from "@/lib/hooks";
-import { theme, PROPERTY_TYPE_LABEL } from "@/constants";
+import { PROPERTY_TYPE_LABEL } from "@/constants";
 import { QUERY_KEYS } from "@/lib/query";
 import {
   fetchKeySetsForProperty,
   type KeySetWithDetails,
 } from "@/lib/services";
-import { Pill, PressableCard } from "@/components/ui";
+import { EntityCard, Pill } from "@/components/ui";
+import { formatStreetLine } from "@/lib/utils";
 
 type PropertyCardProps = {
   property: DbProperty;
@@ -44,11 +44,8 @@ export function PropertyCard({ property }: PropertyCardProps) {
   const { isAdmin } = useRole();
   const currentUserId = useCurrentUserId();
 
-  const location = property.suburb || property.city || "";
-
-  const title = property.unit_number
-    ? `${property.unit_number}/${property.address}`
-    : property.address;
+  const suburb = property.suburb?.trim() || property.city?.trim() || "";
+  const streetLine = formatStreetLine(property);
 
   const handlePress = async () => {
     const propertyHref = `/(app)/properties/${property.id}` as const;
@@ -77,62 +74,20 @@ export function PropertyCard({ property }: PropertyCardProps) {
   };
 
   return (
-    <PressableCard onPress={handlePress} flush style={styles.row}>
-      <View style={styles.body}>
+    <EntityCard
+      icon={Building2}
+      iconTone="neutral"
+      eyebrow={suburb}
+      title={streetLine}
+      pills={
         <Pill tone="accent" size="sm">
           {PROPERTY_TYPE_LABEL[property.property_type] ??
             property.property_type}
         </Pill>
-
-        <Text style={styles.address} numberOfLines={1}>
-          {title}
-        </Text>
-
-        <View style={styles.metaRow}>
-          <MapPin size={11} color={theme.colors.textLight} strokeWidth={1.8} />
-          <Text style={styles.location} numberOfLines={1}>
-            {location}
-          </Text>
-        </View>
-      </View>
-
-      <ChevronRight
-        size={18}
-        color={theme.colors.textLight}
-        strokeWidth={1.8}
-        style={styles.chevron}
-      />
-    </PressableCard>
+      }
+      onPress={handlePress}
+      accessibilityLabel={streetLine}
+    />
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  body: {
-    flex: 1,
-    gap: 4,
-    padding: theme.spacing.md,
-    minWidth: 0,
-  },
-  chevron: {
-    marginRight: theme.spacing.sm,
-  },
-  address: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: theme.colors.text,
-  },
-  metaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-  },
-  location: {
-    fontSize: 12,
-    color: theme.colors.textMuted,
-    flex: 1,
-  },
-});

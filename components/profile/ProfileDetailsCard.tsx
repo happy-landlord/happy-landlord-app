@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { StyleSheet, Text, TextInput, View } from "react-native";
 import { Check, Pencil, Phone, User, X } from "lucide-react-native";
 
 import { theme } from "@/constants";
 import { useProfile, useUpdateProfile } from "@/lib/hooks";
 import { formatAuPhone } from "@/lib/utils";
 import type { ProfileEdits } from "@/lib/services";
+import { Button } from "@/components/ui";
 
 // ── ProfileDetailsCard ───────────────────────────────────────────────────────
 // View / edit name + phone for the current user.
@@ -99,36 +100,31 @@ export function ProfileDetailsCard() {
 
       {editing ? (
         <View style={styles.btnRow}>
-          <ActionButton
+          <Button
+            title="Cancel"
             variant="outline"
             icon={<X size={16} color={theme.colors.text} strokeWidth={2} />}
-            label="Cancel"
             onPress={cancelEdit}
             disabled={updateMutation.isPending}
+            style={styles.btnFlex}
           />
-          <ActionButton
+          <Button
+            title={updateMutation.isPending ? "Saving…" : "Save changes"}
             variant="primary"
-            icon={
-              <Check
-                size={16}
-                color={theme.colors.textInverse}
-                strokeWidth={2}
-              />
-            }
-            label={updateMutation.isPending ? "Saving…" : "Save changes"}
+            icon={<Check size={16} color={theme.colors.primaryText} strokeWidth={2} />}
+            loading={updateMutation.isPending}
             onPress={saveEdit}
             disabled={updateMutation.isPending}
+            style={styles.btnFlex}
           />
         </View>
       ) : (
-        <ActionButton
+        <Button
+          title="Edit profile"
           variant="outline"
-          full
-          icon={
-            <Pencil size={16} color={theme.colors.text} strokeWidth={1.9} />
-          }
-          label="Edit profile"
+          icon={<Pencil size={16} color={theme.colors.text} strokeWidth={1.9} />}
           onPress={startEdit}
+          style={styles.btnFull}
         />
       )}
     </View>
@@ -152,51 +148,6 @@ function DetailRow({ icon, label, children }: DetailRowProps) {
         {children}
       </View>
     </View>
-  );
-}
-
-type ActionButtonProps = {
-  variant: "primary" | "outline";
-  icon: React.ReactNode;
-  label: string;
-  onPress: () => void;
-  disabled?: boolean;
-  full?: boolean;
-};
-
-function ActionButton({
-  variant,
-  icon,
-  label,
-  onPress,
-  disabled,
-  full,
-}: ActionButtonProps) {
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      style={({ pressed }) => [
-        styles.btn,
-        variant === "primary" ? styles.btnPrimary : styles.btnOutline,
-        full && styles.btnFull,
-        pressed && styles.btnPressed,
-        disabled && styles.btnDisabled,
-      ]}
-    >
-      {icon}
-      <Text
-        style={
-          variant === "primary"
-            ? styles.btnPrimaryLabel
-            : styles.btnOutlineLabel
-        }
-      >
-        {label}
-      </Text>
-    </Pressable>
   );
 }
 
@@ -265,37 +216,7 @@ const styles = StyleSheet.create({
   btnRow: {
     flexDirection: "row",
     gap: theme.spacing.sm,
-    marginTop: theme.spacing.sm,
   },
-  btn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: theme.spacing.sm,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.radius.pill,
-    minHeight: 48,
-    marginTop: theme.spacing.sm,
-  },
-  btnPressed: { opacity: 0.75 },
-  btnFull: { flex: 0, width: "100%" },
-  btnPrimary: { backgroundColor: theme.colors.primary, marginTop: 0 },
-  btnDisabled: { opacity: 0.6 },
-  btnPrimaryLabel: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: theme.colors.textInverse,
-  },
-  btnOutline: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
-    marginTop: 0,
-  },
-  btnOutlineLabel: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: theme.colors.text,
-  },
+  btnFlex: { flex: 1 },
+  btnFull: { alignSelf: "stretch" },
 });

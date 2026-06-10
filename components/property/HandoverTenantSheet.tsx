@@ -8,12 +8,12 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { Check, KeyRound } from "lucide-react-native";
+import { Check } from "lucide-react-native";
 
 import { BottomSheet, OutlinedField } from "@/components/ui";
-import { KEY_TYPE_ICON, theme } from "@/constants";
+import { theme } from "@/constants";
 import { useHandoverToTenant, useKeySets } from "@/lib/hooks";
-import type { KeyType } from "@/types";
+import { getTotalKeyQuantity } from "@/lib/utils";
 
 type Props = {
   visible: boolean;
@@ -49,7 +49,7 @@ export function HandoverTenantSheet({ visible, onClose, propertyId }: Props) {
 
   function handleComplete() {
     const ids = [...selected];
-    if (ids.length === 0 || !tenantName.trim()) return;
+    if (ids.length === 0 || !tenantName.trim() || !tenantPhone.trim()) return;
     handoverMut.mutate(
       { keySetIds: ids, tenantName, tenantPhone },
       {
@@ -68,7 +68,7 @@ export function HandoverTenantSheet({ visible, onClose, propertyId }: Props) {
       <Text style={styles.title}>Handover to Tenant</Text>
 
       <View style={styles.tenantFields}>
-        <OutlinedField label="Tenant Name" required focused={nameFocused}>
+        <OutlinedField label="Tenant Name" required focused={nameFocused} labelBackground={theme.colors.surface}>
           <TextInput
             style={styles.fieldInput}
             value={tenantName}
@@ -80,7 +80,7 @@ export function HandoverTenantSheet({ visible, onClose, propertyId }: Props) {
             returnKeyType="next"
           />
         </OutlinedField>
-        <OutlinedField label="Phone Number" focused={phoneFocused}>
+        <OutlinedField label="Phone Number" required focused={phoneFocused} labelBackground={theme.colors.surface}>
           <TextInput
             style={styles.fieldInput}
             value={tenantPhone}
@@ -111,7 +111,7 @@ export function HandoverTenantSheet({ visible, onClose, propertyId }: Props) {
         >
           {eligibleSets.map((ks) => {
             const isSelected = selected.has(ks.id);
-            const keyCount = ks.keys?.length ?? 0;
+            const keyCount = getTotalKeyQuantity(ks);
             return (
               <Pressable
                 key={ks.id}
@@ -132,33 +132,21 @@ export function HandoverTenantSheet({ visible, onClose, propertyId }: Props) {
                     />
                   )}
                 </View>
-                <View style={styles.rowIconCircle}>
-                  <KeyRound
-                    size={14}
-                    color={theme.colors.primary}
-                    strokeWidth={1.8}
-                  />
-                </View>
                 <View style={styles.rowInfo}>
+                  <View style={styles.rowEyebrowRow}>
+                    <Text style={styles.rowEyebrow} numberOfLines={1}>
+                      {ks.code}
+                    </Text>
+                    <View style={[styles.keyCountBadge, isSelected && styles.keyCountBadgeSelected]}>
+                      <Text style={[styles.keyCountText, isSelected && styles.keyCountTextSelected]}>
+                        {keyCount} {keyCount === 1 ? "key" : "keys"}
+                      </Text>
+                    </View>
+                  </View>
                   <Text style={styles.rowName} numberOfLines={1}>
                     {ks.name}
                   </Text>
-                  <Text style={styles.rowMeta}>
-                    {keyCount} {keyCount === 1 ? "key" : "keys"} · {ks.code}
-                  </Text>
                 </View>
-                {ks.keys?.slice(0, 3).map((k) => {
-                  const Icon = KEY_TYPE_ICON[k.key_type as KeyType] ?? KeyRound;
-                  return (
-                    <View key={k.id} style={styles.keyIcon}>
-                      <Icon
-                        size={12}
-                        color={theme.colors.textMuted}
-                        strokeWidth={1.8}
-                      />
-                    </View>
-                  );
-                })}
               </Pressable>
             );
           })}
@@ -180,15 +168,16 @@ export function HandoverTenantSheet({ visible, onClose, propertyId }: Props) {
         <Pressable
           style={({ pressed }) => [
             styles.confirmBtn,
-            (selected.size === 0 || !tenantName.trim()) &&
+            (selected.size === 0 || !tenantName.trim() || !tenantPhone.trim()) &&
               styles.confirmBtnDisabled,
             pressed &&
               selected.size > 0 &&
-              tenantName.trim() && { opacity: 0.82 },
+              tenantName.trim() &&
+              tenantPhone.trim() && { opacity: 0.82 },
           ]}
           onPress={handleComplete}
           disabled={
-            selected.size === 0 || !tenantName.trim() || handoverMut.isPending
+            selected.size === 0 || !tenantName.trim() || !tenantPhone.trim() || handoverMut.isPending
           }
         >
           {handoverMut.isPending ? (
@@ -244,8 +233,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing.sm,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
     backgroundColor: theme.colors.background,
     borderRadius: theme.radius.md,
     borderWidth: 1.5,
@@ -269,26 +258,44 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     borderColor: theme.colors.primary,
   },
-  rowIconCircle: {
-    width: 30,
-    height: 30,
-    borderRadius: theme.radius.sm,
-    backgroundColor: theme.colors.primarySoft,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
   rowInfo: { flex: 1, gap: 2, minWidth: 0 },
-  rowName: { fontSize: 13, fontWeight: "600", color: theme.colors.text },
-  rowMeta: { fontSize: 11, color: theme.colors.textMuted },
-  keyIcon: {
-    width: 22,
-    height: 22,
-    borderRadius: theme.radius.sm,
-    backgroundColor: theme.colors.neutralSoft,
+  rowEyebrowRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    justifyContent: "center",
   },
+  rowEyebrow: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: theme.colors.textMuted,
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
+  },
+  rowKeyCount: {
+    fontSize: 11,
+    color: theme.colors.textMuted,
+  },
+  keyCountBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.neutralSoft,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  keyCountBadgeSelected: {
+    backgroundColor: theme.colors.primarySoft,
+    borderColor: theme.colors.primary,
+  },
+  keyCountText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: theme.colors.textMuted,
+  },
+  keyCountTextSelected: {
+    color: theme.colors.warning,
+  },
+  rowName: { fontSize: 14, fontWeight: "700", color: theme.colors.text },
   footer: {
     flexDirection: "row",
     gap: theme.spacing.sm,

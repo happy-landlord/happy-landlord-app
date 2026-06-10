@@ -1,166 +1,145 @@
-import { memo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Building2, MapPin, Pencil, Users } from "lucide-react-native";
+import { memo } from "react";
+import { StyleSheet, Text, View } from "react-native";
+import { Building2 } from "lucide-react-native";
 
 import { useRole } from "@/hooks";
 import { theme, PROPERTY_TYPE_LABEL } from "@/constants";
-import type { PropertyWithLandlord, TenantHolder } from "@/lib/services";
-import { PropertyEditSheet } from "./PropertyEditSheet";
+import type { TenantHolder } from "@/lib/services";
+import { useProperty, usePropertyTenant } from "@/lib/hooks";
 import { Card, IconBadge, MetaRow, Pill } from "@/components/ui";
+import { formatStreetLine } from "@/lib/utils";
 
 export type PropertyHeaderProps = {
-  property: PropertyWithLandlord;
-  tenant?: TenantHolder;
-  /** When true, the admin edit button is hidden (e.g. on the keyset detail screen). */
-  hideEdit?: boolean;
+  /** Property to display — self-fetched internally via TanStack. */
+  propertyId: string;
+  /**
+   * Explicit tenant override. When provided, skips the `usePropertyTenant`
+   * query and uses this instead — used by the keyset detail screen where the
+   * tenant is already known from the keyset's `current_holder`.
+   */
+  tenantOverride?: TenantHolder;
 };
 
-export const PropertyHeader = memo(function PropertyHeader({
-  property,
-  tenant,
-  hideEdit = false,
-}: PropertyHeaderProps) {
-  const { isAdmin } = useRole();
-  const [editOpen, setEditOpen] = useState(false);
+export const PropertyHeader = memo<PropertyHeaderProps>(
+  function PropertyHeader({ propertyId, tenantOverride }) {
+    const { isAdmin } = useRole();
+    const { data: property } = useProperty(propertyId);
+    // Only fetch tenant when: admin, property is leased, no override already provided.
+    const { data: fetchedTenant } = usePropertyTenant(
+      propertyId,
+      isAdmin && property?.status === "leased" && tenantOverride === undefined,
+    );
 
-  const title = property.unit_number
-    ? `${property.unit_number}/${property.address}`
-    : property.address;
+    // tenantOverride wins when provided (keyset screen); otherwise use the query.
+    const tenant: TenantHolder =
+      tenantOverride !== undefined ? tenantOverride : (fetchedTenant ?? null);
 
-  const location = property.suburb || property.city || "";
+    if (!property) return null;
 
-  const landlord = property.landlord;
-  const showLandlord = Boolean(isAdmin && landlord);
-  const landlordMeta =
-    showLandlord && landlord
-      ? [
-          { label: "Landlord", value: landlord.full_name || "—" },
-          ...(landlord.phone || landlord.email
-            ? [
-                {
-                  label: "Contact",
-                  value: landlord.phone ?? landlord.email ?? "—",
-                  phone: !!landlord.phone,
-                },
-              ]
-            : []),
-        ]
-      : [];
+    const suburb = property.suburb?.trim() || property.city?.trim() || "";
+    const streetLine = formatStreetLine(property);
 
-  const showTenant = Boolean(isAdmin && tenant);
-  const tenantMeta =
-    showTenant && tenant
-      ? [
-          { label: "Tenant", value: tenant.full_name || "—" },
-          ...(tenant.phone
-            ? [{ label: "Contact", value: tenant.phone, phone: true }]
-            : []),
-        ]
-      : [];
+    const landlord = property.landlord;
+    const showLandlord = Boolean(isAdmin && landlord);
+    const landlordMeta =
+      showLandlord && landlord
+        ? [
+            { label: "Landlord", value: landlord.full_name || "—" },
+            ...(landlord.phone || landlord.email
+              ? [
+                  {
+                    label: "Contact",
+                    value: landlord.phone ?? landlord.email ?? "—",
+                    phone: !!landlord.phone,
+                  },
+                ]
+              : []),
+          ]
+        : [];
 
-  return (
-    <Card flush>
-      {/* ── Info row ──────────────────────────────────────────────────────── */}
-      <View style={styles.top}>
-        <IconBadge icon={Building2} tone="accent" size="lg" />
+    const showTenant = Boolean(isAdmin && tenant);
+    const tenantMeta =
+      showTenant && tenant
+        ? [
+            { label: "Current Tenant", value: tenant.full_name || "—" },
+            ...(tenant.phone
+              ? [{ label: "Contact", value: tenant.phone, phone: true }]
+              : []),
+          ]
+        : [];
 
-        <View style={styles.info}>
-          <Pill tone="accent" size="sm">
-            {PROPERTY_TYPE_LABEL[property.property_type] ??
-              property.property_type}
-          </Pill>
+    return (
+      <Card flush>
+        {/* ── Info row ──────────────────────────────────────────────────────── */}
+        <View style={styles.top}>
+          <IconBadge icon={Building2} tone="neutral" size="md" />
 
-          <Text style={styles.title}>{title}</Text>
-
-          <View style={styles.locationRow}>
-            <MapPin
-              size={12}
-              color={theme.colors.textLight}
-              strokeWidth={1.8}
-            />
-            <Text style={styles.locationText}>{location}</Text>
+          <View style={styles.info}>
+            {/* Row 1: suburb prefix + property-type badge */}
+            <View style={styles.topRow}>
+              <Text style={styles.suburb} numberOfLines={1}>
+                {suburb}
+              </Text>
+              <Pill tone="accent" size="sm">
+                {PROPERTY_TYPE_LABEL[property.property_type] ??
+                  property.property_type}
+              </Pill>
+            </View>
+            {/* Row 2: unit / street address */}
+            <Text style={styles.street} numberOfLines={2}>
+              {streetLine}
+            </Text>
           </View>
         </View>
 
-        {isAdmin && !hideEdit ? (
-          <Pressable
-            onPress={() => setEditOpen(true)}
-            style={({ pressed }) => [
-              styles.editBtn,
-              pressed && styles.editBtnPressed,
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Edit property"
-            hitSlop={8}
-          >
-            <Pencil size={16} color={theme.colors.accent} strokeWidth={1.9} />
-          </Pressable>
+        {/* ── Landlord meta ─────────────────────────────────────────────────── */}
+        {landlordMeta.length > 0 ? (
+          <View style={styles.metaWrap}>
+            <MetaRow items={landlordMeta} />
+          </View>
         ) : null}
-      </View>
 
-      {/* ── Landlord meta ─────────────────────────────────────────────────── */}
-      {landlordMeta.length > 0 ? (
-        <View style={styles.metaWrap}>
-          <MetaRow items={landlordMeta} />
-        </View>
-      ) : null}
-
-      {/* ── Tenant meta ───────────────────────────────────────────────────── */}
-      {tenantMeta.length > 0 ? (
-        <View style={styles.tenantMetaWrap}>
-          <View style={styles.tenantDivider} />
-          <View style={styles.tenantHeader}>
-            <Users size={11} color={theme.colors.primary} strokeWidth={2} />
-            <Text style={styles.tenantLabel}>Current Tenant</Text>
+        {/* ── Tenant meta ───────────────────────────────────────────────────── */}
+        {tenantMeta.length > 0 ? (
+          <View style={styles.tenantMetaWrap}>
+            <View style={styles.tenantDivider} />
+            <MetaRow items={tenantMeta} divider={false} />
           </View>
-          <MetaRow items={tenantMeta} divider={false} />
-        </View>
-      ) : null}
+        ) : null}
 
-      {/* ── Edit sheet ────────────────────────────────────────────────────── */}
-      {isAdmin && !hideEdit && (
-        <PropertyEditSheet
-          property={property}
-          visible={editOpen}
-          onClose={() => setEditOpen(false)}
-        />
-      )}
-    </Card>
-  );
-});
+        {/* ── Edit sheet is managed by the parent screen ──────────────────── */}
+      </Card>
+    );
+  },
+);
 
 const styles = StyleSheet.create({
   top: {
     flexDirection: "row",
+    alignItems: "center",
     gap: theme.spacing.md,
     padding: theme.spacing.md,
   },
-  info: { flex: 1, gap: 4 },
-  title: {
+  info: { flex: 1, gap: 2, minWidth: 0 },
+  topRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing.sm,
+  },
+  suburb: {
+    flex: 1,
+    fontSize: 11,
+    fontWeight: "600",
+    color: theme.colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  street: {
     fontSize: 17,
     fontWeight: "700",
     color: theme.colors.text,
-  },
-  locationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-  },
-  locationText: {
-    fontSize: 13,
-    color: theme.colors.textMuted,
-  },
-  editBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.accentSoft,
-    alignItems: "center",
-    justifyContent: "center",
-    alignSelf: "flex-start",
-  },
-  editBtnPressed: {
-    opacity: 0.6,
+    letterSpacing: -0.2,
   },
   metaWrap: {
     paddingHorizontal: theme.spacing.md,

@@ -8,20 +8,21 @@ import {
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Building2, Users } from "lucide-react-native";
+import { Building2, Pencil, Users } from "lucide-react-native";
 import { useState } from "react";
 
+import { PillButton, ErrorState, LoadingState } from "@/components/ui";
 import {
   CollectFromTenantSheet,
   HandoverLandlordSheet,
   HandoverTenantSheet,
   KeySetsSection,
+  PropertyEditSheet,
   PropertyHeader,
 } from "@/components/property";
-import { ErrorState, LoadingState } from "@/components/ui";
 import { theme } from "@/constants";
-import { useProperty, usePropertyTenant } from "@/lib/hooks";
-import { useRole, useRefreshControl } from "@/hooks";
+  import { useProperty } from "@/lib/hooks";
+  import { useRole, useRefreshControl } from "@/hooks";
 
 export default function PropertyDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -29,11 +30,11 @@ export default function PropertyDetailScreen() {
   const { isAdmin } = useRole();
 
   const { data: property, isPending, isError, refetch } = useProperty(id);
-  const { data: tenant } = usePropertyTenant(id, property?.status === "leased");
   const { refreshing, onRefresh } = useRefreshControl(refetch);
   const [tenantSheetOpen, setTenantSheetOpen] = useState(false);
   const [collectSheetOpen, setCollectSheetOpen] = useState(false);
   const [landlordSheetOpen, setLandlordSheetOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   if (isPending) return <LoadingState message="Loading property…" />;
 
@@ -65,7 +66,21 @@ export default function PropertyDetailScreen() {
           />
         }
       >
-        <PropertyHeader property={property} tenant={tenant} />
+        {isAdmin && (
+          <View style={styles.headerGroup}>
+            <View style={styles.editRow}>
+              <PillButton
+                label="Edit"
+                variant="accent"
+                icon={<Pencil size={14} color={theme.colors.accent} strokeWidth={2} />}
+                onPress={() => setEditOpen(true)}
+                accessibilityLabel="Edit property"
+              />
+            </View>
+            <PropertyHeader propertyId={id} />
+          </View>
+        )}
+        {!isAdmin && <PropertyHeader propertyId={id} />}
 
         {isAdmin && property.status === "active" && (
           <View style={styles.handoverRow}>
@@ -142,6 +157,11 @@ export default function PropertyDetailScreen() {
             onClose={() => setLandlordSheetOpen(false)}
             propertyId={id}
           />
+          <PropertyEditSheet
+            property={property}
+            visible={editOpen}
+            onClose={() => setEditOpen(false)}
+          />
         </>
       )}
     </>
@@ -151,6 +171,13 @@ export default function PropertyDetailScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.background },
   content: { padding: theme.spacing.screen, gap: theme.spacing.md },
+  editRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+  },
+  headerGroup: {
+    gap: theme.spacing.xs,
+  },
   handoverRow: {
     flexDirection: "row",
     gap: theme.spacing.sm,

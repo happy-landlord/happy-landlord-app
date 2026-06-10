@@ -1,9 +1,10 @@
 import { StyleSheet, Text, View } from "react-native";
-import { CheckCheck, KeyRound } from "lucide-react-native";
+import { KeyRound } from "lucide-react-native";
 
-import { ConfirmSheet } from "@/components/ui";
+import { ConfirmSheet, IconBadge } from "@/components/ui";
 import { theme } from "@/constants";
 import { useCollectFromTenant, useKeySets } from "@/lib/hooks";
+import { getTotalKeyQuantity } from "@/lib/utils";
 
 type Props = {
   visible: boolean;
@@ -44,29 +45,25 @@ export function CollectFromTenantSheet({
       ) : (
         <View style={styles.list}>
           {tenantKeySets.map((ks) => {
-            const keyCount = ks.keys?.length ?? 0;
+            const keyCount = getTotalKeyQuantity(ks);
             return (
               <View key={ks.id} style={styles.row}>
-                <View style={styles.rowIcon}>
-                  <KeyRound
-                    size={14}
-                    color={theme.colors.primary}
-                    strokeWidth={1.8}
-                  />
-                </View>
+                <IconBadge icon={KeyRound} tone="neutral" size="md" />
                 <View style={styles.rowInfo}>
+                  <View style={styles.rowEyebrowRow}>
+                    <Text style={styles.rowEyebrow} numberOfLines={1}>
+                      {ks.code}
+                    </Text>
+                    <View style={styles.keyCountBadge}>
+                      <Text style={styles.keyCountText}>
+                        {keyCount} {keyCount === 1 ? "key" : "keys"}
+                      </Text>
+                    </View>
+                  </View>
                   <Text style={styles.rowName} numberOfLines={1}>
                     {ks.name}
                   </Text>
-                  <Text style={styles.rowMeta}>
-                    {keyCount} {keyCount === 1 ? "key" : "keys"} · {ks.code}
-                  </Text>
                 </View>
-                <CheckCheck
-                  size={16}
-                  color={theme.colors.success}
-                  strokeWidth={2}
-                />
               </View>
             );
           })}
@@ -89,23 +86,38 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing.sm,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 12,
     backgroundColor: theme.colors.background,
     borderRadius: theme.radius.md,
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
-  rowIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: theme.radius.sm,
-    backgroundColor: theme.colors.primarySoft,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
   rowInfo: { flex: 1, gap: 2, minWidth: 0 },
-  rowName: { fontSize: 13, fontWeight: "600", color: theme.colors.text },
-  rowMeta: { fontSize: 11, color: theme.colors.textMuted },
+  rowEyebrowRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  rowEyebrow: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: theme.colors.textMuted,
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
+  },
+  keyCountBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.neutralSoft,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  keyCountText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: theme.colors.textMuted,
+  },
+  rowName: { fontSize: 14, fontWeight: "700", color: theme.colors.text },
 });

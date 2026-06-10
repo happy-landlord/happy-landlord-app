@@ -2,9 +2,9 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ChevronRight } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
-import { ActivityRow } from "@/components/activity";
+import { ActivityRow } from "@/components/history";
 import { theme } from "@/constants";
-import { useInfiniteActivity } from "@/lib/hooks";
+import { useInfiniteHistory } from "@/lib/hooks";
 
 // ── KeySetLastActivity ───────────────────────────────────────────────────────
 // Admin-only "Last Activity" preview shown on the keyset detail screen when
@@ -26,14 +26,14 @@ export function KeySetLastActivity({
   enabled = true,
 }: KeySetLastActivityProps) {
   const router = useRouter();
-  const { data } = useInfiniteActivity({ keySetId, enabled });
+  const { data } = useInfiniteHistory({ keySetId, enabled });
   const items = data?.pages[0]?.slice(0, PREVIEW_COUNT) ?? [];
 
   if (!enabled) return null;
 
   const handleViewAll = () =>
     router.push({
-      pathname: "/(app)/(tabs)/activity",
+      pathname: "/(app)/(tabs)/history",
       params: { keySetId, keySetName },
     } as never);
 

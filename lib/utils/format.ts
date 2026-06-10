@@ -191,6 +191,31 @@ export function formatShortAddress(
   return [unitLabel, street, suburb].filter(Boolean).join(", ") || "Property";
 }
 
+/**
+ * Returns just the unit + street line without suburb, for use in card layouts
+ * where suburb is displayed separately as a prefix label.
+ * Pattern: [Unit X ][street address]
+ */
+export function formatStreetLine(
+  property:
+    | {
+        unit_number?: string | null;
+        address?: string | null;
+      }
+    | null
+    | undefined,
+): string {
+  if (!property) return "Unknown address";
+  const unit = property.unit_number?.trim();
+  const street = property.address?.trim();
+  const unitLabel = unit
+    ? unit.toLowerCase().startsWith("unit")
+      ? unit
+      : `Unit ${unit}`
+    : null;
+  return [unitLabel, street].filter(Boolean).join(" ") || "Unknown address";
+}
+
 // ─── Date-label helpers ──────────────────────────────────────────────────────
 
 /**

@@ -49,7 +49,8 @@ export const sharedStyles = StyleSheet.create({
   },
   list: {
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
+    paddingTop: theme.spacing.xs,
+    paddingBottom: theme.spacing.md,
   },
   separator: { height: theme.spacing.sm },
 });

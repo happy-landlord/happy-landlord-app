@@ -5,38 +5,24 @@ import { Pill } from "@/components/ui";
 import { theme } from "@/constants";
 import { toIsoDate } from "@/lib/utils";
 
-import type { ActivityFilters } from "./ActivityFilterSheet";
+import type { HistoryFilters } from "./HistoryFilterSheet";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Props = {
-  filters: ActivityFilters;
+  filters: HistoryFilters;
   /** Optional keyset context chip — rendered first when present. */
   keySetId?: string;
   keySetName?: string;
   /** Remove the keyset context chip. */
   onClearKeyset: () => void;
   /** Apply a partial filter change (used by chip ✕ buttons). */
-  onPatch: (patch: Partial<ActivityFilters>) => void;
+  onPatch: (patch: Partial<HistoryFilters>) => void;
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-/**
- * Horizontal, wrap-aware row of active-filter pills shown above the activity
- * list. Each chip's ✕ removes only its own filter, leaving the others intact.
- *
- * The parent (`activity.tsx`) is responsible for deciding *whether* to render
- * the row at all — typically gated on `keySetId || activeFilterCount > 0`.
- * This component just renders whatever's currently active.
- *
- * Chip taxonomy:
- *   • Keyset context — primary, with key icon, removes URL params
- *   • My activity   — primary
- *   • Date from     — neutral
- *   • Date to       — neutral
- */
-export function ActivityFilterChips({
+export function HistoryFilterChips({
   filters,
   keySetId,
   keySetName,
@@ -45,8 +31,6 @@ export function ActivityFilterChips({
 }: Props) {
   const { myActivityOnly, dateFrom, dateTo } = filters;
 
-  // Nothing to show — render nothing (parent can also gate, but this keeps
-  // the component safe to drop in unconditionally).
   if (!keySetId && !myActivityOnly && !dateFrom && !dateTo) return null;
 
   return (
@@ -119,3 +103,4 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
   },
 });
+

@@ -154,7 +154,8 @@ const styles = StyleSheet.create({
   tabStrip: {
     flexDirection: "row",
     paddingHorizontal: theme.spacing.screen,
-    paddingVertical: theme.spacing.sm,
+    paddingTop: theme.spacing.sm,
+    paddingBottom: theme.spacing.xs,
     gap: theme.spacing.sm,
     backgroundColor: theme.colors.background,
   },
@@ -162,7 +163,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: 10,
     borderRadius: theme.radius.lg,
     backgroundColor: theme.colors.surface,
     borderWidth: 1,

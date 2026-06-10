@@ -10,6 +10,8 @@ type OutlinedFieldProps = {
   required?: boolean;
   focused?: boolean;
   style?: ViewStyle;
+  /** Override the floating label background (default: page background). Pass theme.colors.surface on white sheet surfaces. */
+  labelBackground?: string;
   children: React.ReactNode;
 };
 
@@ -22,11 +24,19 @@ export function OutlinedField({
   required,
   focused,
   style,
+  labelBackground,
   children,
 }: OutlinedFieldProps) {
   return (
     <View style={[styles.wrap, focused && styles.wrapFocused, style]}>
-      <Text style={[styles.label, focused && styles.labelFocused]} numberOfLines={1}>
+      <Text
+        style={[
+          styles.label,
+          focused && styles.labelFocused,
+          labelBackground ? { backgroundColor: labelBackground } : undefined,
+        ]}
+        numberOfLines={1}
+      >
         {label}
         {required ? <Text style={styles.asterisk}> *</Text> : null}
       </Text>
@@ -139,4 +149,3 @@ const styles = StyleSheet.create({
     marginRight: theme.spacing.sm,
   },
 });
-

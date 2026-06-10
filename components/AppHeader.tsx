@@ -7,7 +7,7 @@ import { useNavigationState } from "@react-navigation/native";
 
 import { Logo } from "@/components/ui";
 import { MenuSheet } from "@/components/MenuSheet";
-import { NotificationBell } from "@/components/NotificationBell";
+import { NotificationBell } from "@/components/notification";
 import { theme } from "@/constants";
 
 export function AppHeader() {

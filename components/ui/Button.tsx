@@ -8,6 +8,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
+import type { ReactNode } from "react";
 
 import { theme } from "@/constants";
 
@@ -15,6 +16,7 @@ type ButtonVariant =
   | "primary"
   | "primaryOutline"
   | "accent"
+  | "accentSoft"
   | "outline"
   | "ghost"
   | "danger"
@@ -23,10 +25,15 @@ type ButtonVariant =
   | "dangerOutline"
   | "warningOutline";
 
+type ButtonSize = "sm" | "md";
+
 type ButtonProps = Omit<PressableProps, "style"> & {
   title: string;
   variant?: ButtonVariant;
+  size?: ButtonSize;
   loading?: boolean;
+  /** Optional icon rendered to the left of the title. */
+  icon?: ReactNode;
   /** Optional override for the outer container style. */
   style?: StyleProp<ViewStyle>;
 };
@@ -34,8 +41,10 @@ type ButtonProps = Omit<PressableProps, "style"> & {
 export function Button({
   title,
   variant = "primary",
+  size = "md",
   loading = false,
   disabled,
+  icon,
   style,
   ...props
 }: ButtonProps) {
@@ -46,6 +55,7 @@ export function Button({
       disabled={isDisabled}
       style={({ pressed }) => [
         styles.base,
+        size === "sm" ? styles.baseSm : styles.baseMd,
         variantStyles[variant].container,
         isDisabled && styles.disabled,
         pressed && !isDisabled && styles.pressed,
@@ -57,7 +67,14 @@ export function Button({
         <ActivityIndicator color={variantStyles[variant].spinner} />
       ) : (
         <View style={styles.row}>
-          <Text style={[styles.label, variantStyles[variant].label]}>
+          {icon}
+          <Text
+            style={[
+              styles.label,
+              size === "sm" ? styles.labelSm : styles.labelMd,
+              variantStyles[variant].label,
+            ]}
+          >
             {title}
           </Text>
         </View>
@@ -68,22 +85,30 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 48,
     paddingHorizontal: 20,
-    paddingVertical: 12,
     borderRadius: theme.radius.pill,
     alignItems: "center",
     justifyContent: "center",
   },
+  baseMd: {
+    minHeight: 48,
+    paddingVertical: 12,
+  },
+  baseSm: {
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: theme.radius.md,
+  },
   row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
   },
   label: {
-    fontSize: 16,
     fontWeight: "600",
   },
+  labelMd: { fontSize: 16 },
+  labelSm: { fontSize: 13 },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.85 },
 });
@@ -110,6 +135,11 @@ const variantStyles: Record<
     container: { backgroundColor: theme.colors.accent },
     label: { color: theme.colors.textInverse },
     spinner: theme.colors.textInverse,
+  },
+  accentSoft: {
+    container: { backgroundColor: theme.colors.accentSoft },
+    label: { color: theme.colors.accent },
+    spinner: theme.colors.accent,
   },
   outline: {
     container: {

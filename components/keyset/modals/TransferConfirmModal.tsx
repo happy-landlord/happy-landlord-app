@@ -6,7 +6,7 @@ import * as Haptics from "expo-haptics";
 import { ConfirmSheet } from "@/components/ui";
 import { SelectedKeysSummary } from "./SelectedKeysSummary";
 import { SummaryRow, summaryStyles } from "./KeySetSummaryRow";
-import { formatDateTime } from "@/lib/utils";
+import { formatDateTime, isPastDue } from "@/lib/utils";
 import type { KeyInSet } from "@/lib/services";
 
 export type TransferConfirmModalProps = {
@@ -34,6 +34,7 @@ export const TransferConfirmModal = memo(function TransferConfirmModal({
   onCancel,
   onConfirm,
 }: TransferConfirmModalProps) {
+  const isOverdue = !!dueBackAt && isPastDue(dueBackAt);
   return (
     <ConfirmSheet
       visible={visible}
@@ -65,8 +66,9 @@ export const TransferConfirmModal = memo(function TransferConfirmModal({
         <View style={summaryStyles.divider} />
         <SummaryRow
           icon={Calendar}
-          label="Return by"
+          label={isOverdue ? "Was Due By" : "Return by"}
           value={dueBackAt ? formatDateTime(dueBackAt) : "Return time not set"}
+          valueTone={isOverdue ? "danger" : undefined}
         />
       </View>
     </ConfirmSheet>

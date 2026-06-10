@@ -1,13 +1,15 @@
 import { useMemo } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { QUERY_KEYS } from "@/lib/query";
+import { QUERY_KEYS, STALE_TIME, PAGE_SIZE } from "@/lib/query";
 import {
   fetchKeySetById,
   fetchKeySetsForProperty,
   fetchUnassignedKeysForProperty,
   fetchCheckedOutKeySets,
+  fetchCheckedOutKeySetsPaged,
   fetchKeySetsNeedingAttention,
+  fetchKeySetsNeedingAttentionPaged,
   checkoutKeySet,
   returnKeySet,
   transferKeySet,
@@ -307,3 +309,41 @@ export function useKeySetsNeedingAttention() {
     staleTime: 1000 * 30,
   });
 }
+
+// ── Infinite pagination hooks for Activity tab ────────────────────────────────
+
+export function useInfiniteCheckedOut() {
+  const { userId, isAdmin, scope, ready } = useQueryScope();
+  return useInfiniteQuery({
+    queryKey: QUERY_KEYS.keys.checkedOutInfinite(scope),
+    queryFn: ({ pageParam }) =>
+      fetchCheckedOutKeySetsPaged({
+        page: (pageParam as number) ?? 0,
+        pageSize: PAGE_SIZE,
+        holderProfileId: isAdmin ? undefined : userId,
+      }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage: unknown[], allPages: unknown[][]) =>
+      lastPage.length === PAGE_SIZE ? allPages.length : undefined,
+    enabled: ready,
+    staleTime: STALE_TIME.short,
+  });
+}
+
+export function useInfiniteNeedsAttention() {
+  const { ready, scope } = useQueryScope();
+  return useInfiniteQuery({
+    queryKey: QUERY_KEYS.keys.attentionInfinite(scope),
+    queryFn: ({ pageParam }) =>
+      fetchKeySetsNeedingAttentionPaged({
+        page: (pageParam as number) ?? 0,
+        pageSize: PAGE_SIZE,
+      }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage: unknown[], allPages: unknown[][]) =>
+      lastPage.length === PAGE_SIZE ? allPages.length : undefined,
+    enabled: ready,
+    staleTime: STALE_TIME.short,
+  });
+}
+

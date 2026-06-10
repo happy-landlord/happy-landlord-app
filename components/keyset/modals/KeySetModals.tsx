@@ -1,16 +1,18 @@
-import { useKeySetScreen } from "./KeySetScreenContext";
+import { useCurrentUserId, useKeySet, useProperty } from "@/lib/hooks";
+import { useRole } from "@/hooks";
+import { DURATION_DAYS } from "@/constants";
+import { getAllowedCheckoutDays } from "@/lib/utils";
+
+import { useKeySetScreen } from "@/components/keyset/detail/KeySetScreenContext";
+import { useKeySetActions } from "@/components/keyset/detail/useKeySetActions";
+import { useKeysetAvailability } from "@/components/keyset/useKeysetAvailability";
+
 import { KeySetDurationModal } from "./KeySetDurationModal";
 import { KeySetEditSheet } from "./KeySetEditSheet";
 import { ReportLostSheet } from "./ReportLostSheet";
 import { ReserveKeySetModal } from "./ReserveKeySetModal";
 import { ReturnConfirmModal } from "./ReturnConfirmModal";
-import { TransferConfirmModal } from "./TransferConfirmModal";
-import { useCurrentUserId, useKeySet, useProperty } from "@/lib/hooks";
-import { useRole } from "@/hooks";
-import { useKeySetActions } from "./useKeySetActions";
-import { useKeysetAvailability } from "./useKeysetAvailability";
-import { DURATION_DAYS } from "@/constants";
-import { getAllowedCheckoutDays } from "@/lib/utils";
+import { TransferConfirmModal } from "@/components/keyset/modals/TransferConfirmModal";
 
 // ── KeySetModals ─────────────────────────────────────────────────────────────
 // Single home for every keyset-action modal mounted on the detail screen.

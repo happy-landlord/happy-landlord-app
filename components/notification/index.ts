@@ -6,5 +6,6 @@
  * files in this folder and are imported via relative paths.
  */
 export { AdminPushTestPanel } from "./AdminPushTestPanel";
+export { NotificationBell } from "./NotificationBell";
 export { NotificationCard } from "./NotificationCard";
 

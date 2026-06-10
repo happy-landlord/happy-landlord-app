@@ -22,17 +22,18 @@ export function SummaryRow({
   icon: LucideIcon;
   label: string;
   value: string;
-  valueTone?: "primary";
+  valueTone?: "primary" | "danger";
 }) {
   return (
     <View style={summaryStyles.row}>
-      <IconBadge icon={icon} tone="accent" size="sm" />
+      <IconBadge icon={icon} tone={valueTone === "danger" ? "danger" : "accent"} size="sm" />
       <View style={summaryStyles.textBlock}>
-        <Text style={summaryStyles.label}>{label}</Text>
+        <Text style={[summaryStyles.label, valueTone === "danger" && summaryStyles.labelDanger]}>{label}</Text>
         <Text
           style={[
             summaryStyles.value,
             valueTone === "primary" && summaryStyles.valuePrimary,
+            valueTone === "danger" && summaryStyles.valueDanger,
           ]}
           numberOfLines={1}
         >
@@ -79,6 +80,13 @@ export const summaryStyles = StyleSheet.create({
   valuePrimary: {
     color: theme.colors.accent,
     fontWeight: "800",
+  },
+  valueDanger: {
+    color: theme.colors.danger,
+    fontWeight: "800",
+  },
+  labelDanger: {
+    color: theme.colors.danger,
   },
   divider: {
     height: 1,

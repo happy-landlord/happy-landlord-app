@@ -5,6 +5,7 @@ import {
   HelpCircle,
   LogOut,
   ClipboardList,
+  UserCircle,
 } from "lucide-react-native";
 
 import { BottomSheet } from "@/components/ui";
@@ -44,6 +45,12 @@ export function MenuSheet({ visible, onClose }: MenuSheetProps) {
             label="Agents"
             onPress={() => navigate("/(app)/agents")}
             badge={pendingRequests?.length ?? 0}
+          />
+          <View style={styles.divider} />
+          <MenuItem
+            Icon={UserCircle}
+            label="Profile"
+            onPress={() => navigate("/(app)/(tabs)/profile")}
           />
           <View style={styles.divider} />
         </RoleGate>

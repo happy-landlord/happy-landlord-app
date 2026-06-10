@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from "react-native";
 
-import { PropertyCard } from "@/components/PropertyCard";
+import { PropertyCard } from "@/components/property";
 import { EmptyState , ErrorState , LoadingState } from "@/components/ui";
 
 
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingHorizontal: theme.spacing.screen,
-    paddingTop: theme.spacing.screen,
+    paddingTop: theme.spacing.sm,
     gap: theme.spacing.xs,
   },
   stateArea: {

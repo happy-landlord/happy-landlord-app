@@ -17,6 +17,7 @@ import {
   useDeactivateAgent,
   useProfileImageUrl,
 } from "@/lib/hooks";
+import { getTotalKeyQuantity } from "@/lib/utils";
 import type { CheckedOutKeySet } from "@/lib/services";
 import type { AgentProfile } from "@/lib/services/profile.service";
 
@@ -182,7 +183,7 @@ export function AgentDetailsSheet({ agent, onClose }: Props) {
 // ── KeySet row (compact CollectFromTenantSheet-style) ────────────────────────
 
 function KeySetRow({ keySet }: { keySet: CheckedOutKeySet }) {
-  const keyCount = keySet.keys?.length ?? 0;
+  const keyCount = getTotalKeyQuantity(keySet);
   const address =
     keySet.property?.address ??
     keySet.property?.formatted_address ??

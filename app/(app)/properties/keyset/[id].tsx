@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
   KeySetActionsPanel,
-  KeySetIdentityCard,
+  KeySetDetailsCard,
   KeySetLastActivity,
   KeySetModals,
   KeySetScreenProvider,
@@ -12,7 +12,8 @@ import {
 import { PropertyHeader } from "@/components/property";
 import { ErrorState, LoadingState } from "@/components/ui";
 import { useRole } from "@/hooks";
-import { useCurrentUserId, useKeySet, useProperty } from "@/lib/hooks";
+import { useCurrentUserId, useKeySet } from "@/lib/hooks";
+import type { TenantHolder } from "@/lib/services";
 import { theme } from "@/constants";
 
 // -- Keyset detail screen ----------------------------------------------------
@@ -26,7 +27,6 @@ export default function KeySetDetailScreen() {
   const currentUserId = useCurrentUserId();
   const { isAdmin } = useRole();
   const { data: keySet, isPending, isError, refetch } = useKeySet(id);
-  const { data: property } = useProperty(keySet?.property_id ?? "");
 
   if (isPending) return <LoadingState message="Loading keyset..." />;
   if (isError || !keySet) {
@@ -57,6 +57,18 @@ export default function KeySetDetailScreen() {
 
   const showLastActivity = isAdmin && keySet.status === "available";
 
+  // When the keyset is on handover_tenant, surface the tenant in PropertyHeader
+  // so admins immediately see who has the keys without scrolling to the card.
+  const tenant: TenantHolder =
+    keySet.status === "handover_tenant" &&
+    keySet.current_holder?.holder_type === "tenant"
+      ? {
+          id: keySet.current_holder.profile_id ?? "",
+          full_name: keySet.current_holder.full_name ?? null,
+          phone: keySet.current_holder.phone ?? null,
+        }
+      : null;
+
   return (
     <KeySetScreenProvider keySetId={id}>
       <Stack.Screen options={{ title: keySet.name }} />
@@ -68,8 +80,13 @@ export default function KeySetDetailScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {property && <PropertyHeader property={property} hideEdit />}
-        <KeySetIdentityCard />
+        {keySet.property_id && (
+          <PropertyHeader
+            propertyId={keySet.property_id}
+            tenantOverride={tenant}
+          />
+        )}
+        <KeySetDetailsCard />
         {showLastActivity && (
           <KeySetLastActivity keySetId={keySet.id} keySetName={keySet.name} />
         )}

@@ -112,7 +112,36 @@ function buildSegments(d: AdminDashboardSummary): Segment[] {
   ];
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ── Property stats banner ─────────────────────────────────────────────────────
+
+export function PropertyStatsBanner() {
+  const { data, isLoading, isError } = useAdminDashboardSummary();
+
+  if (isLoading || isError || !data) return null;
+
+  return (
+    <View style={styles.statsRow}>
+      <View style={styles.statCard}>
+        <Text style={styles.statValue}>{data.total_properties}</Text>
+        <Text style={styles.statLabel}>Properties</Text>
+      </View>
+      <View style={[styles.statCard, styles.statCardAccent]}>
+        <Text style={[styles.statValue, { color: theme.colors.info }]}>
+          {data.leased_properties}
+        </Text>
+        <Text style={styles.statLabel}>Leased</Text>
+      </View>
+      <View style={[styles.statCard, styles.statCardNeutral]}>
+        <Text style={[styles.statValue, { color: theme.colors.neutral }]}>
+          {data.inactive_properties}
+        </Text>
+        <Text style={styles.statLabel}>Inactive</Text>
+      </View>
+    </View>
+  );
+}
+
+// ── Keyset donut summary ──────────────────────────────────────────────────────
 
 export function KeyDashboardSummary() {
   const { data, isLoading, isError } = useAdminDashboardSummary();
@@ -138,7 +167,6 @@ export function KeyDashboardSummary() {
 
   return (
     <View style={styles.card}>
-      {/* Donut + legend row */}
       <View style={styles.chartRow}>
         <View style={styles.chartWrap}>
           <DonutChart segments={segments} total={total} />
@@ -157,24 +185,6 @@ export function KeyDashboardSummary() {
           ))}
         </View>
       </View>
-
-      {/* Divider */}
-      <View style={styles.divider} />
-
-      {/* Extra stats row */}
-      <View style={styles.statsRow}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{data.total_properties}</Text>
-          <Text style={styles.statLabel}>Properties</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: theme.colors.info }]}>
-            {data.properties_with_tenant}
-          </Text>
-          <Text style={styles.statLabel}>With tenant</Text>
-        </View>
-      </View>
     </View>
   );
 }
@@ -183,6 +193,11 @@ export function KeyDashboardSummary() {
 
 const styles = StyleSheet.create({
   card: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.md,
     gap: theme.spacing.sm,
   },
   placeholder: {
@@ -226,33 +241,37 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: theme.colors.textMuted,
   },
-  divider: {
-    height: 1,
-    backgroundColor: theme.colors.border,
-  },
+  // ── Property stats banner ───────────────────────────────────────────────────
   statsRow: {
     flexDirection: "row",
-    alignItems: "center",
+    gap: theme.spacing.sm,
   },
-  statItem: {
+  statCard: {
     flex: 1,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     alignItems: "center",
-    paddingVertical: 4,
-    gap: 2,
+    paddingVertical: theme.spacing.md,
+    gap: 4,
   },
-  statDivider: {
-    width: 1,
-    height: 32,
-    backgroundColor: theme.colors.border,
+  statCardAccent: {
+    borderColor: theme.colors.infoSoft,
+    backgroundColor: theme.colors.infoSoft,
+  },
+  statCardNeutral: {
+    borderColor: theme.colors.neutralSoft,
+    backgroundColor: theme.colors.neutralSoft,
   },
   statValue: {
-    fontSize: 20,
+    fontSize: 32,
     fontWeight: "800",
     color: theme.colors.text,
   },
   statLabel: {
-    fontSize: 11,
-    fontWeight: "500",
+    fontSize: 13,
+    fontWeight: "600",
     color: theme.colors.textMuted,
   },
 });

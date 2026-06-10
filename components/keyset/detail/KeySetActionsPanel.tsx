@@ -12,7 +12,7 @@ import {
 } from "@/lib/hooks";
 import { useRole } from "@/hooks";
 import { useKeySetActions } from "./useKeySetActions";
-import { useKeysetAvailability } from "./useKeysetAvailability";
+import { useKeysetAvailability } from "@/components/keyset/useKeysetAvailability";
 import { formatDueAt, formatShortDate } from "@/lib/utils";
 import type { Reservation } from "@/lib/services/reservations.service";
 

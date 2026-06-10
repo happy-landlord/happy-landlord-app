@@ -173,7 +173,9 @@ const AgentCard = memo(function AgentCard({
           />
         ) : (
           <View style={styles.imageFallback}>
-            <Text style={styles.imageInitial}>{initial}</Text>
+            <View style={styles.initialCircle}>
+              <Text style={styles.imageInitial}>{initial}</Text>
+            </View>
           </View>
         )}
       </View>
@@ -244,18 +246,27 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardPressed: { opacity: 0.85 },
-  imagePane: { width: 74, backgroundColor: theme.colors.accentSoft },
+  imagePane: { width: 74 },
   image: { width: "100%", height: "100%" },
   imageFallback: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: theme.colors.surfaceWarm,
+    padding: theme.spacing.sm,
+  },
+  initialCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: theme.colors.accentSoft,
+    alignItems: "center",
+    justifyContent: "center",
   },
   imageInitial: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "700",
-    color: theme.colors.primaryText,
+    color: theme.colors.accent,
   },
   content: {
     flex: 1,

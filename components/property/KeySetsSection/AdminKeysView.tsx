@@ -12,21 +12,10 @@ import { ChevronDown, ChevronRight, KeyRound } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
 import { KEY_TYPE_ICON, theme } from "@/constants";
-import {
-  KeyStatusChip,
-  type KeyStatusChipStatus,
-} from "@/components/KeyStatusChip";
 import { EmptyState } from "@/components/ui";
-import { useKeysetAvailability } from "@/components/keyset/useKeysetAvailability";
-import {
-  getKeyName,
-  getKeySetTone,
-  isPastDue,
-  isReservedState,
-} from "@/lib/utils";
+import { KeySetCard } from "@/components/keyset";
+import { getKeyName } from "@/lib/utils";
 import type { KeySetWithDetails, UnassignedKey } from "@/lib/services";
-
-import { KeySetHolderMeta, KeySetListCard } from "./KeySetListCard";
 
 // Enable LayoutAnimation on Android once (no-op on iOS).
 if (
@@ -67,9 +56,10 @@ export function AdminKeysView({ keySets, unassignedKeys }: AdminKeysViewProps) {
         ) : (
           <View style={styles.list}>
             {keySets.map((ks) => (
-              <AdminKeySetCard
+              <KeySetCard
                 key={ks.id}
                 keySet={ks}
+                variant="admin"
                 onPress={() =>
                   router.push(`/(app)/properties/keyset/${ks.id}` as never)
                 }
@@ -125,58 +115,6 @@ export function AdminKeysView({ keySets, unassignedKeys }: AdminKeysViewProps) {
   );
 }
 
-// ── AdminKeySetCard ──────────────────────────────────────────────────────────
-
-function AdminKeySetCard({
-  keySet,
-  onPress,
-}: {
-  keySet: KeySetWithDetails;
-  onPress: () => void;
-}) {
-  const availability = useKeysetAvailability(keySet.id);
-  const overdue =
-    keySet.status === "overdue" ||
-    (keySet.status === "checked_out" && keySet.due_back_at
-      ? isPastDue(keySet.due_back_at)
-      : false);
-  const isReserved =
-    keySet.status === "available" && isReservedState(availability?.state);
-  const hasHolderMeta =
-    keySet.status === "checked_out" ||
-    keySet.status === "overdue" ||
-    keySet.status === "handover_landlord";
-  const holderName = keySet.current_holder?.full_name;
-
-  return (
-    <KeySetListCard
-      keySet={keySet}
-      tone={overdue ? "danger" : isReserved ? "warning" : getKeySetTone(keySet)}
-      showCode
-      meta={
-        hasHolderMeta && holderName ? (
-          <KeySetHolderMeta
-            holderName={holderName}
-            dueBackAt={keySet.due_back_at}
-            overdue={overdue}
-          />
-        ) : null
-      }
-      status={
-        <KeyStatusChip
-          status={
-            overdue
-              ? "overdue"
-              : isReserved
-                ? "reserved"
-                : (keySet.status as KeyStatusChipStatus)
-          }
-        />
-      }
-      onPress={onPress}
-    />
-  );
-}
 
 // ── UnassignedKeyChip ────────────────────────────────────────────────────────
 
@@ -220,6 +158,9 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   list: { gap: 8 },
+
+
+  // ── Unassigned keys ──
   unassignedChip: {
     flexDirection: "row",
     alignItems: "center",

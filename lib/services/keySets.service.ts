@@ -58,7 +58,7 @@ export type CheckedOutKeySet = {
     city: string;
     postcode: string | null;
   } | null;
-  keys: { label: string }[];
+  keys: { label: string; quantity: number | null }[];
 };
 
 /** A keyset that needs admin attention (overdue or missing/damaged). */
@@ -66,11 +66,15 @@ export type KeySetNeedingAttention = {
   id: string;
   property_id: string;
   name: string;
-  status: "overdue" | "missing_damaged";
+  status: "overdue" | "missing_damaged" | "checked_out";
+  due_back_at: string | null;
+  updated_at: string | null;
+  keys: { label: string; quantity: number | null }[] | null;
   current_holder: {
     full_name: string | null;
     profile_id: string | null;
     holder_type: "agent" | "tenant" | "landlord";
+    phone: string | null;
   } | null;
   property: {
     unit_number: string | null;
@@ -166,7 +170,7 @@ export async function fetchCheckedOutKeySets({
       id, property_id, name, code, status, due_back_at, current_holder_id,
       current_holder:current_holder_id!inner(full_name, holder_type, profile_id, phone),
       property:property_id(unit_number, address, formatted_address, suburb, city, postcode),
-      keys(label)
+      keys(label, quantity)
     `,
     )
     .in("status", ["checked_out", "overdue"])
@@ -183,27 +187,108 @@ export async function fetchCheckedOutKeySets({
 }
 
 /**
- * Fetch all keysets needing admin attention: overdue or missing/damaged.
- * Ordered so missing/damaged appear first, then overdue.
+ * Fetch all keysets needing admin attention: overdue, missing/damaged,
+ * or checked_out past their due date.
  */
 export async function fetchKeySetsNeedingAttention(): Promise<
   KeySetNeedingAttention[]
 > {
+  const now = new Date().toISOString();
   const { data, error } = await supabase
     .from("key_sets")
     .select(
       `
-      id, property_id, name, status,
-      current_holder:current_holder_id(full_name, holder_type, profile_id),
+      id, property_id, name, status, due_back_at, updated_at,
+      keys(label, quantity),
+      current_holder:current_holder_id(full_name, holder_type, profile_id, phone),
       property:property_id(unit_number, address, suburb, city, postcode)
     `,
     )
-    .in("status", ["overdue", "missing_damaged"])
-    .order("status", { ascending: true }); // missing_damaged < overdue alphabetically
+    .or(
+      `status.eq.overdue,status.eq.missing_damaged,and(status.eq.checked_out,due_back_at.lt.${now})`,
+    )
+    .order("status", { ascending: true })
+    .order("due_back_at", { ascending: true, nullsFirst: false });
 
   if (error) throw error;
   return (data ?? []) as unknown as KeySetNeedingAttention[];
 }
+
+/**
+ * Paginated version of fetchCheckedOutKeySets for the Activity tab infinite list.
+ * Only returns keysets that are checked out and NOT yet past their due date.
+ * Overdue keysets (past due_back_at) are shown in the Needs Attention tab instead.
+ */
+export async function fetchCheckedOutKeySetsPaged({
+  page = 0,
+  pageSize = 20,
+  holderProfileId,
+}: {
+  page?: number;
+  pageSize?: number;
+  holderProfileId?: string;
+} = {}): Promise<CheckedOutKeySet[]> {
+  const now = new Date().toISOString();
+  let query = supabase
+    .from("key_sets")
+    .select(
+      `
+      id, property_id, name, code, status, due_back_at, current_holder_id,
+      current_holder:current_holder_id!inner(full_name, holder_type, profile_id, phone),
+      property:property_id(unit_number, address, formatted_address, suburb, city, postcode),
+      keys(label, quantity)
+    `,
+    )
+    .in("status", ["checked_out", "overdue"])
+    // Exclude past-due items — those belong in Needs Attention
+    .or(`due_back_at.is.null,due_back_at.gte.${now}`)
+    .order("due_back_at", { ascending: true, nullsFirst: false })
+    .range(page * pageSize, (page + 1) * pageSize - 1);
+
+  if (holderProfileId) {
+    query = query.eq("current_holder.profile_id", holderProfileId);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as unknown as CheckedOutKeySet[];
+}
+
+/**
+ * Paginated version of fetchKeySetsNeedingAttention for the Activity tab infinite list.
+ * Includes: status=overdue, status=missing_damaged, AND checked_out keysets
+ * whose due_back_at has already passed (past-due regardless of DB status).
+ */
+export async function fetchKeySetsNeedingAttentionPaged({
+  page = 0,
+  pageSize = 20,
+}: {
+  page?: number;
+  pageSize?: number;
+} = {}): Promise<KeySetNeedingAttention[]> {
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("key_sets")
+    .select(
+      `
+      id, property_id, name, status, due_back_at, updated_at,
+      keys(label),
+      current_holder:current_holder_id(full_name, holder_type, profile_id, phone),
+      property:property_id(unit_number, address, suburb, city, postcode)
+    `,
+    )
+    // overdue/missing_damaged by DB status, OR checked_out but past due date
+    .or(
+      `status.eq.overdue,status.eq.missing_damaged,and(status.eq.checked_out,due_back_at.lt.${now})`,
+    )
+    .order("status", { ascending: true })
+    .order("due_back_at", { ascending: true, nullsFirst: false })
+    .range(page * pageSize, (page + 1) * pageSize - 1);
+
+  if (error) throw error;
+  return (data ?? []) as unknown as KeySetNeedingAttention[];
+}
+
 
 // ── Mutation param types ──────────────────────────────────────────────────────
 

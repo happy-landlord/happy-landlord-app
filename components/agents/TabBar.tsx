@@ -1,12 +1,4 @@
-import { useRef } from "react";
-import {
-  Animated,
-  Pressable,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { theme } from "@/constants";
 
@@ -26,7 +18,7 @@ type Props<K extends string> = {
 };
 
 /**
- * Generic, data-driven tab bar with an animated underline indicator.
+ * Generic, data-driven tab bar with pill-button style.
  * Caller owns selection state; badge data is passed via `tabs`.
  */
 export function TabBar<K extends string>({
@@ -34,25 +26,9 @@ export function TabBar<K extends string>({
   activeKey,
   onChange,
 }: Props<K>) {
-  const { width: screenWidth } = useWindowDimensions();
-  const indicatorAnim = useRef(new Animated.Value(0)).current;
-
-  const tabBarWidth = Math.max(0, screenWidth - theme.spacing.screen * 2);
-  const tabWidth = tabs.length > 0 ? tabBarWidth / tabs.length : 0;
-
-  const handlePress = (key: K, index: number) => {
-    Animated.spring(indicatorAnim, {
-      toValue: index,
-      useNativeDriver: false,
-      tension: 80,
-      friction: 10,
-    }).start();
-    onChange(key);
-  };
-
   return (
-    <View style={styles.tabBar}>
-      {tabs.map((tab, index) => {
+    <View style={styles.strip}>
+      {tabs.map((tab) => {
         const isActive = tab.key === activeKey;
         const showBadge = tab.alwaysShowBadge || (tab.badgeCount ?? 0) > 0;
         const danger = tab.badgeVariant === "danger";
@@ -60,25 +36,29 @@ export function TabBar<K extends string>({
         return (
           <Pressable
             key={tab.key}
-            style={styles.tabItem}
-            onPress={() => handlePress(tab.key, index)}
+            style={[styles.btn, isActive && styles.btnActive]}
+            onPress={() => onChange(tab.key)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: isActive }}
           >
-            <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
+            <Text style={[styles.label, isActive && styles.labelActive]}>
               {tab.label}
             </Text>
             {showBadge && (
               <View
                 style={[
-                  styles.tabBadge,
-                  danger ? styles.tabBadgeDanger : styles.tabBadgePrimary,
+                  styles.badge,
+                  danger
+                    ? styles.badgeDanger
+                    : isActive
+                      ? styles.badgeActive
+                      : styles.badgeDefault,
                 ]}
               >
                 <Text
                   style={[
-                    styles.tabBadgeText,
-                    danger
-                      ? styles.tabBadgeTextDanger
-                      : styles.tabBadgeTextPrimary,
+                    styles.badgeText,
+                    danger ? styles.badgeTextDanger : styles.badgeTextDefault,
                   ]}
                 >
                   {formatBadge(tab.badgeCount ?? 0)}
@@ -88,23 +68,6 @@ export function TabBar<K extends string>({
           </Pressable>
         );
       })}
-
-      <Animated.View
-        style={[
-          styles.tabIndicator,
-          {
-            width: tabWidth,
-            transform: [
-              {
-                translateX: indicatorAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, tabWidth],
-                }),
-              },
-            ],
-          },
-        ]}
-      />
     </View>
   );
 }
@@ -114,31 +77,39 @@ function formatBadge(count: number) {
 }
 
 const styles = StyleSheet.create({
-  tabBar: {
+  strip: {
     flexDirection: "row",
-    marginHorizontal: theme.spacing.screen,
+    paddingHorizontal: theme.spacing.screen,
     paddingTop: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    paddingBottom: theme.spacing.xs,
+    gap: theme.spacing.sm,
     backgroundColor: theme.colors.background,
-    position: "relative",
   },
-  tabItem: {
+  btn: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingBottom: theme.spacing.sm,
+    paddingVertical: 10,
     gap: 6,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
-  tabLabel: {
+  btnActive: {
+    backgroundColor: theme.colors.accentSoft,
+    borderColor: theme.colors.accent,
+  },
+  label: {
     fontSize: 14,
     fontWeight: "600",
-    color: theme.colors.textLight,
-    letterSpacing: 0.3,
+    color: theme.colors.textMuted,
   },
-  tabLabelActive: { color: theme.colors.primary },
-  tabBadge: {
+  labelActive: {
+    color: theme.colors.accent,
+  },
+  badge: {
     minWidth: 18,
     height: 18,
     borderRadius: 9,
@@ -146,16 +117,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 4,
   },
-  tabBadgePrimary: { backgroundColor: theme.colors.accentSoft },
-  tabBadgeDanger: { backgroundColor: theme.colors.danger },
-  tabBadgeText: { fontSize: 10, fontWeight: "700" },
-  tabBadgeTextPrimary: { color: theme.colors.primaryText },
-  tabBadgeTextDanger: { color: theme.colors.surface },
-  tabIndicator: {
-    position: "absolute",
-    bottom: 0,
-    height: 2,
-    backgroundColor: theme.colors.primary,
-    borderRadius: 1,
-  },
+  badgeDefault: { backgroundColor: theme.colors.neutralSoft },
+  badgeActive: { backgroundColor: theme.colors.border },
+  badgeDanger: { backgroundColor: theme.colors.danger },
+  badgeText: { fontSize: 10, fontWeight: "700" },
+  badgeTextDefault: { color: theme.colors.textMuted },
+  badgeTextDanger: { color: theme.colors.surface },
 });

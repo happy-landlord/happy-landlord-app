@@ -6,6 +6,7 @@ import {
   useKeySetReservations,
 } from "@/lib/hooks";
 import { getKeysetAvailability, type KeysetAvailability } from "@/lib/utils";
+import type { KeySetWithDetails } from "@/lib/services";
 
 /**
  * Resolve the reservation-aware availability descriptor for a keyset.
@@ -20,6 +21,19 @@ export function useKeysetAvailability(
 ): KeysetAvailability | undefined {
   const id = keySetId ?? "";
   const { data: keySet } = useKeySet(id);
+  return useKeysetAvailabilityFor(keySet);
+}
+
+/**
+ * Variant for callers that already have the keyset in hand (e.g. list
+ * cards rendered inside a `useKeySets(propertyId)` result). Skips the
+ * redundant per-card `useKeySet(id)` fetch — only the reservations
+ * query fires. Eliminates the N+1 query pattern in keyset list views.
+ */
+export function useKeysetAvailabilityFor(
+  keySet: KeySetWithDetails | null | undefined,
+): KeysetAvailability | undefined {
+  const id = keySet?.id ?? "";
   const { data: reservations, isPending: reservationsPending } =
     useKeySetReservations(id);
   const currentUserId = useCurrentUserId();

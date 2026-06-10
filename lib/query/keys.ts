@@ -15,6 +15,10 @@ export const QUERY_KEYS = {
     byProperty: (propertyId: string) =>
       ["keys", "property", propertyId] as const,
     checkedOut: (scope: string) => ["keys", "checkedOut", scope] as const,
+    checkedOutInfinite: (scope: string) =>
+      ["keys", "checkedOut", "infinite", scope] as const,
+    attentionInfinite: (scope: string) =>
+      ["keys", "attention", "infinite", scope] as const,
   },
   keySets: {
     all: ["keySets"] as const,

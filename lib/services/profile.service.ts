@@ -4,7 +4,7 @@ import { logger } from "@/lib/utils/logger";
 import type { DbKeyHolder, DbProfile, DbProfileUpdate } from "@/types";
 
 /** Profile fields the user can edit themselves. */
-export type ProfileEdits = Pick<DbProfileUpdate, "full_name" | "phone">;
+export type ProfileEdits = Pick<DbProfileUpdate, "full_name" | "phone" | "profile_image">;
 export type AgentProfile = DbProfile & {
   key_holder_full_name: string | null;
   key_holder_phone: string | null;
@@ -84,14 +84,30 @@ export async function updateProfile(
   userId: string,
   edits: ProfileEdits
 ): Promise<DbProfile> {
-  const { data, error } = await supabase
+  // Explicitly allow only the three editable fields — never forward
+  // id, email, role, status, or created_at from the caller.
+  const payload: ProfileEdits = {
+    full_name: edits.full_name,
+    phone: edits.phone,
+    profile_image: edits.profile_image,
+  };
+
+  const { error } = await supabase
     .from("profiles")
-    .update(edits as never)
-    .eq("id", userId)
-    .select()
-    .single();
+    .update(payload as never)
+    .eq("id", userId);
 
   if (error) throw error;
+
+  // Re-fetch the row separately to avoid RLS-related `.single()` coercion errors.
+  const { data, error: fetchError } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (fetchError) throw fetchError;
+  if (!data) throw new Error("Profile not found after update.");
   return data as DbProfile;
 }
 

@@ -17,7 +17,7 @@ import type { ActivityTransaction } from "@/types";
  * `enabled` lets callers suppress the query entirely (e.g. when the
  * dashboard section isn't shown for the current role).
  */
-export function useMyActivity({ enabled = true }: { enabled?: boolean } = {}) {
+export function useMyHistory({ enabled = true }: { enabled?: boolean } = {}) {
   const { userId, isAdmin, ready } = useQueryScope();
   return useQuery({
     queryKey: isAdmin
@@ -31,7 +31,7 @@ export function useMyActivity({ enabled = true }: { enabled?: boolean } = {}) {
   });
 }
 
-type UseInfiniteActivityOptions = {
+type UseInfiniteHistoryOptions = {
   search?: string;
   propertyId?: string;
   keySetId?: string;
@@ -45,7 +45,7 @@ type UseInfiniteActivityOptions = {
   enabled?: boolean;
 };
 
-export function useInfiniteActivity({
+export function useInfiniteHistory({
   search = "",
   propertyId,
   keySetId,
@@ -53,7 +53,7 @@ export function useInfiniteActivity({
   dateFrom,
   dateTo,
   enabled: enabledOverride = true,
-}: UseInfiniteActivityOptions = {}) {
+}: UseInfiniteHistoryOptions = {}) {
   const { userId, isAdmin, scope, ready } = useQueryScope();
 
   return useInfiniteQuery<ActivityTransaction[], Error>({

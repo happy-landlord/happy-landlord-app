@@ -19,6 +19,7 @@ import { Share2 } from "lucide-react-native";
 
 import { theme } from "@/constants";
 import { keySetQrUrl } from "@/lib/utils";
+import { PillButton } from "./PillButton";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -28,7 +29,7 @@ export type ShareQrButtonProps = Omit<PressableProps, "onPress"> & {
   /** Used as the share dialog title */
   title?: string;
   /** @default "icon" */
-  variant?: "pill" | "icon";
+  variant?: "pill" | "icon" | "overlay";
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -102,9 +103,25 @@ export function ShareQrButton({
       </View>
 
       {variant === "pill" ? (
+        <PillButton
+          label={label}
+          variant="primary"
+          icon={
+            busy ? null : (
+              <Share2 size={14} color={theme.colors.primary} strokeWidth={2} />
+            )
+          }
+          loading={busy}
+          disabled={busy}
+          onPress={handleShare}
+          accessibilityLabel={label}
+          style={style as object}
+          {...pressableProps}
+        />
+      ) : variant === "overlay" ? (
         <Pressable
           style={({ pressed }) => [
-            styles.pillBtn,
+            styles.overlayBtn,
             pressed && styles.pressed,
             busy && styles.disabled,
             style as object,
@@ -116,11 +133,11 @@ export function ShareQrButton({
           {...pressableProps}
         >
           {busy ? (
-            <ActivityIndicator size="small" color={theme.colors.primary} />
+            <ActivityIndicator size="small" color="#fff" />
           ) : (
             <>
-              <Share2 size={14} color={theme.colors.primary} strokeWidth={2} />
-              <Text style={styles.pillText}>{label}</Text>
+              <Share2 size={13} color="#fff" strokeWidth={2} />
+              <Text style={styles.overlayBtnText}>Share</Text>
             </>
           )}
         </Pressable>
@@ -161,24 +178,6 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.45 },
   pressed: { opacity: 0.65 },
 
-  pillBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: 6,
-    borderRadius: theme.radius.pill,
-    borderWidth: 1,
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primarySoft,
-    minWidth: 72,
-    justifyContent: "center",
-  },
-  pillText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: theme.colors.primary,
-  },
 
   iconBtn: {
     width: 36,
@@ -189,5 +188,20 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primarySoft,
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  overlayBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: theme.radius.pill,
+    backgroundColor: "rgba(0,0,0,0.52)",
+  },
+  overlayBtnText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#fff",
   },
 });

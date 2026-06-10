@@ -8,7 +8,7 @@ import { getKeyName } from "@/lib/utils";
 
 // ── KeySetKeysList ───────────────────────────────────────────────────────────
 // List of the keys inside a keyset, one row per key. Reads its keyset from
-// context + TanStack — no props. Rendered embedded inside KeySetIdentityCard.
+// context + TanStack — no props. Rendered embedded inside KeySetDetailsCard.
 
 export function KeySetKeysList() {
   const { keySetId } = useKeySetScreen();

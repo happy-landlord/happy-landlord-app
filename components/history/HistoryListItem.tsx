@@ -11,23 +11,23 @@ import {
 } from "@/lib/utils";
 import type { ActivityTransaction } from "@/types";
 
-// ── ActivityListItem ──────────────────────────────────────────────────────────
-// Shared activity row used across the dashboard, the activity screen, and the
-// keyset detail screen. Replaces three near-identical implementations that
-// drifted apart visually after redesigns.
+// ── HistoryListItem ───────────────────────────────────────────────────────────
+// Shared transaction renderers.
 //
 // Two layout modes:
-//   • `card` — large bordered card with title, time (top-right), address,
-//             keyset name and notes. Used on the activity screen.
-//   • `row`  — tight inline row with an icon, label and `Clock3 + time` meta.
-//             Used in dashboards / previews. Optional `divider` to draw a
-//             1px separator below the row when stacked in a host card.
+//   • `HistoryCard` — large bordered card with title, time (top-right),
+//             address, keyset name and notes. Used by the History tab where
+//             a transaction log is the primary content.
+//   • `ActivityRow` — tight inline row with an icon, label and
+//             `Clock3 + time` meta. Used by the agent "My Activity" tab and
+//             by the keyset "Last Activity" section. Optional `divider` to
+//             draw a 1px separator below the row when stacked in a host card.
 
 type CommonProps = {
   item: ActivityTransaction;
 };
 
-export type ActivityCardProps = CommonProps & {
+export type HistoryCardProps = CommonProps & {
   /** Include the keyset short code alongside the name (admin view). */
   showKeySetCode?: boolean;
 };
@@ -40,10 +40,8 @@ export type ActivityRowProps = CommonProps & {
 };
 
 // ── Card variant ─────────────────────────────────────────────────────────────
-// Standalone bordered card — used as the row body in the activity screen's
-// SectionList.
 
-export function ActivityCard({ item, showKeySetCode = false }: ActivityCardProps) {
+export function HistoryCard({ item, showKeySetCode = false }: HistoryCardProps) {
   const currentUserId = useCurrentUserId();
   const movement = MOVEMENT_CONFIG[item.transaction_type];
   const label = getMovementLabel(item, currentUserId);
@@ -89,8 +87,6 @@ export function ActivityCard({ item, showKeySetCode = false }: ActivityCardProps
 }
 
 // ── Row variant ──────────────────────────────────────────────────────────────
-// Tight inline row, no own surface. Designed to be stacked inside a parent
-// card with optional 1px dividers between items.
 
 export function ActivityRow({
   item,

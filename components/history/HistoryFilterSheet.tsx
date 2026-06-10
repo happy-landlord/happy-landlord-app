@@ -22,18 +22,16 @@ import { Button } from "@/components/ui/Button";
 import { theme, OVERLAY_PANEL_SLIDE_OUT } from "@/constants";
 import { formatShortDate } from "@/lib/utils";
 
-// ── Constants ─────────────────────────────────────────────────────────────────
-
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export type ActivityFilters = {
+export type HistoryFilters = {
   myActivityOnly: boolean;
   dateFrom: Date | null;
   dateTo: Date | null;
 };
 
-/** Initial / cleared state for {@link ActivityFilters}. */
-export const EMPTY_ACTIVITY_FILTERS: ActivityFilters = {
+/** Initial / cleared state for {@link HistoryFilters}. */
+export const EMPTY_HISTORY_FILTERS: HistoryFilters = {
   myActivityOnly: false,
   dateFrom: null,
   dateTo: null,
@@ -42,14 +40,14 @@ export const EMPTY_ACTIVITY_FILTERS: ActivityFilters = {
 type Props = {
   visible: boolean;
   onClose: () => void;
-  filters: ActivityFilters;
-  onChange: (patch: Partial<ActivityFilters>) => void;
+  filters: HistoryFilters;
+  onChange: (patch: Partial<HistoryFilters>) => void;
   onReset: () => void;
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function ActivityFilterSheet({
+export function HistoryFilterSheet({
   visible,
   onClose,
   filters,
@@ -58,7 +56,6 @@ export function ActivityFilterSheet({
 }: Props) {
   const insets = useSafeAreaInsets();
   const [activePicker, setActivePicker] = useState<"from" | "to" | null>(null);
-  // Local picker value — committed on Done, discarded on Cancel
   const [pickerValue, setPickerValue] = useState<Date>(new Date());
 
   const slideY = useRef(new Animated.Value(OVERLAY_PANEL_SLIDE_OUT)).current;
@@ -95,8 +92,6 @@ export function ActivityFilterSheet({
     else if (activePicker === "to") onChange({ dateTo: pickerValue });
     closePicker();
   };
-
-  // ── Picker overlay (inside same Modal via overlayChildren) ─────────────────
 
   const pickerPanel = (
     <>
@@ -368,7 +363,6 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
   },
 
-  // ── My activity toggle ───────────────────────────────────────────────────
   myActivityCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -418,7 +412,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // ── Date range ───────────────────────────────────────────────────────────
   sectionLabel: {
     fontSize: 12,
     fontWeight: "600",
@@ -465,12 +458,10 @@ const styles = StyleSheet.create({
   },
   dateFieldValueActive: { color: theme.colors.primary, fontWeight: "600" },
 
-  // ── Apply button ─────────────────────────────────────────────────────────
   applyBtn: {
     marginTop: theme.spacing.sm,
   },
 
-  // ── Bottom picker panel ───────────────────────────────────────────────────
   bottomPanel: {
     position: "absolute",
     bottom: 0,
@@ -506,3 +497,4 @@ const styles = StyleSheet.create({
   panelActions: { flexDirection: "row", gap: theme.spacing.sm },
   panelBtn: { flex: 1 },
 });
+

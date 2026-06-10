@@ -15,7 +15,8 @@ export type AdminDashboardSummary = {
   checked_out_keysets: number;
   overdue_keysets: number;
   lost_keysets: number;
-  properties_with_tenant: number;
+  leased_properties: number;
+  inactive_properties: number;
 };
 
 /** A key that is currently checked out, with holder and property info. */

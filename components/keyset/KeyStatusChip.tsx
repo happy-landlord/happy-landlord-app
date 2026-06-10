@@ -23,6 +23,26 @@ const STATUS_CONFIG: Record<KeyStatusChipStatus, StatusConfig> = {
   inactive: { label: "Inactive", tone: "neutral" },
 };
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Resolves the canonical chip status for a keyset, given the raw DB status
+ * plus the two derived flags every card needs to compute (`overdue` from
+ * `due_back_at`, and `reserved` from the live availability state).
+ *
+ * Use this from every keyset card so chip labels/colors stay in lock-step
+ * with `STATUS_CONFIG` below.
+ */
+export function resolveKeyStatusChipStatus(opts: {
+  status: KeySetStatus;
+  overdue?: boolean;
+  reserved?: boolean;
+}): KeyStatusChipStatus {
+  if (opts.overdue) return "overdue";
+  if (opts.reserved && opts.status === "available") return "reserved";
+  return opts.status;
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function KeyStatusChip({ status }: { status: KeyStatusChipStatus }) {
