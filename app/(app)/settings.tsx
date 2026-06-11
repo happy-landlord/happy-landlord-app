@@ -251,78 +251,83 @@ export default function SettingsScreen() {
       <SectionHeader title="Notifications" />
 
       <SectionCard>
-        <SettingRow
-          Icon={pushEnabled ? BellRing : BellOff}
-          iconBg={
-            pushEnabled ? theme.colors.accentSoft : theme.colors.neutralSoft
-          }
-          iconColor={pushEnabled ? theme.colors.accent : theme.colors.neutral}
-          title="Push notifications"
-          subtitle="Alerts for keyset checkouts, due dates, overdue keysets and recalls"
-          disabled={pushLoading || togglePush.isPending}
-          right={
-            pushLoading ? (
-              <ActivityIndicator
-                size="small"
-                color={theme.colors.primary}
-                style={styles.rowSpinner}
-              />
-            ) : (
-              <Switch
-                value={pushEnabled}
-                onValueChange={handlePushToggle}
-                disabled={togglePush.isPending}
-                trackColor={{
-                  false: theme.colors.neutralSoft,
-                  true: theme.colors.primary,
-                }}
-                thumbColor={theme.colors.surface}
-                ios_backgroundColor={theme.colors.neutralSoft}
-              />
-            )
-          }
-        />
-
-        {permissionDenied ? (
-          <Pressable
-            onPress={() => Linking.openSettings()}
-            style={({ pressed }) => [
-              styles.permissionBanner,
-              pressed && { opacity: 0.75 },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Open system settings to allow notifications"
-          >
-            <AlertCircle
-              size={14}
-              color={theme.colors.warning}
-              strokeWidth={2.2}
+        {/* Push toggle — hidden when FEATURES.PUSH_NOTIFICATIONS is false */}
+        {FEATURES.PUSH_NOTIFICATIONS && (
+          <>
+            <SettingRow
+              Icon={pushEnabled ? BellRing : BellOff}
+              iconBg={
+                pushEnabled ? theme.colors.accentSoft : theme.colors.neutralSoft
+              }
+              iconColor={pushEnabled ? theme.colors.accent : theme.colors.neutral}
+              title="Push notifications"
+              subtitle="Alerts for keyset due dates, overdue keysets, recalls and reservations"
+              disabled={pushLoading || togglePush.isPending}
+              right={
+                pushLoading ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={theme.colors.primary}
+                    style={styles.rowSpinner}
+                  />
+                ) : (
+                  <Switch
+                    value={pushEnabled}
+                    onValueChange={handlePushToggle}
+                    disabled={togglePush.isPending}
+                    trackColor={{
+                      false: theme.colors.neutralSoft,
+                      true: theme.colors.primary,
+                    }}
+                    thumbColor={theme.colors.surface}
+                    ios_backgroundColor={theme.colors.neutralSoft}
+                  />
+                )
+              }
             />
-            <Text style={styles.permissionText}>
-              Notifications are blocked in system settings.
-            </Text>
-            <View style={styles.permissionLink}>
-              <Text style={styles.permissionLinkText}>Open Settings</Text>
-              <ExternalLink
-                size={12}
-                color={theme.colors.primary}
-                strokeWidth={2.5}
-              />
-            </View>
-          </Pressable>
-        ) : null}
 
-        <RowDivider />
+            {permissionDenied ? (
+              <Pressable
+                onPress={() => Linking.openSettings()}
+                style={({ pressed }) => [
+                  styles.permissionBanner,
+                  pressed && { opacity: 0.75 },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Open system settings to allow notifications"
+              >
+                <AlertCircle
+                  size={14}
+                  color={theme.colors.warning}
+                  strokeWidth={2.2}
+                />
+                <Text style={styles.permissionText}>
+                  Notifications are blocked in system settings.
+                </Text>
+                <View style={styles.permissionLink}>
+                  <Text style={styles.permissionLinkText}>Open Settings</Text>
+                  <ExternalLink
+                    size={12}
+                    color={theme.colors.primary}
+                    strokeWidth={2.5}
+                  />
+                </View>
+              </Pressable>
+            ) : null}
 
-        <SettingRow
-          Icon={Smartphone}
-          iconBg={theme.colors.infoSoft}
-          iconColor={theme.colors.info}
-          title="This device"
-          subtitle={deviceLabel}
-        />
+            <RowDivider />
 
-        <RowDivider />
+            <SettingRow
+              Icon={Smartphone}
+              iconBg={theme.colors.infoSoft}
+              iconColor={theme.colors.info}
+              title="This device"
+              subtitle={deviceLabel}
+            />
+
+            <RowDivider />
+          </>
+        )}
 
         <SettingRow
           Icon={CheckCheck}

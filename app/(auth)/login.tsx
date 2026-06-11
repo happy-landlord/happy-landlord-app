@@ -99,7 +99,7 @@ export default function LoginScreen() {
             <Logo size={86} />
           </View>
           <Text style={styles.eyebrow}>HAPPY LANDLORD</Text>
-          <Text style={styles.title}>Welcome back</Text>
+          <Text style={styles.title}>Key Manager</Text>
           <Text style={styles.subtitle}>
             Sign in to manage properties, keysets, and handovers from one secure
             place.
@@ -107,119 +107,115 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.card}>
-          <View style={styles.formHeader}>
-            <Text style={styles.formTitle}>Sign in</Text>
-            <Text style={styles.formSubtitle}>
-              Use your Happy Landlord account to continue.
-            </Text>
-          </View>
+          <View style={styles.fields}>
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { value, onChange, onBlur } }) => (
+                <Input
+                  label="Email"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="email"
+                  textContentType="username"
+                  keyboardType="email-address"
+                  placeholder="you@example.com"
+                  value={value}
+                  onChangeText={onChange}
+                  onChange={(e) => onChange(e.nativeEvent.text)}
+                  onEndEditing={(e) => onChange(e.nativeEvent.text)}
+                  onBlur={onBlur}
+                  error={errors.email?.message}
+                />
+              )}
+            />
 
-          <Controller
-            control={control}
-            name="email"
-            render={({ field: { value, onChange, onBlur } }) => (
-              <Input
-                label="Email"
-                autoCapitalize="none"
-                autoCorrect={false}
-                autoComplete="email"
-                textContentType="username"
-                keyboardType="email-address"
-                placeholder="you@example.com"
-                value={value}
-                onChangeText={onChange}
-                // iOS Password Autofill sometimes skips onChangeText but still
-                // populates nativeEvent.text — mirror it into RHF so the form
-                // value is never out of sync with what the field shows.
-                onChange={(e) => onChange(e.nativeEvent.text)}
-                onEndEditing={(e) => onChange(e.nativeEvent.text)}
-                onBlur={onBlur}
-                error={errors.email?.message}
-              />
-            )}
-          />
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { value, onChange, onBlur } }) => (
+                <Input
+                  label="Password"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="password"
+                  textContentType="password"
+                  placeholder="Enter your password"
+                  secureTextEntry={!showPassword}
+                  value={value}
+                  onChangeText={onChange}
+                  onChange={(e) => onChange(e.nativeEvent.text)}
+                  onEndEditing={(e) => onChange(e.nativeEvent.text)}
+                  onBlur={onBlur}
+                  error={errors.password?.message}
+                  rightIcon={
+                    <Pressable
+                      onPress={() => setShowPassword((v) => !v)}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                    >
+                      {showPassword ? (
+                        <EyeOff
+                          size={18}
+                          color={theme.colors.textLight}
+                          strokeWidth={2}
+                        />
+                      ) : (
+                        <Eye
+                          size={18}
+                          color={theme.colors.textLight}
+                          strokeWidth={2}
+                        />
+                      )}
+                    </Pressable>
+                  }
+                />
+              )}
+            />
 
-          <Controller
-            control={control}
-            name="password"
-            render={({ field: { value, onChange, onBlur } }) => (
-              <Input
-                label="Password"
-                autoCapitalize="none"
-                autoCorrect={false}
-                autoComplete="password"
-                textContentType="password"
-                placeholder="Enter your password"
-                secureTextEntry={!showPassword}
-                value={value}
-                onChangeText={onChange}
-                onChange={(e) => onChange(e.nativeEvent.text)}
-                onEndEditing={(e) => onChange(e.nativeEvent.text)}
-                onBlur={onBlur}
-                error={errors.password?.message}
-                rightIcon={
-                  <Pressable
-                    onPress={() => setShowPassword((v) => !v)}
-                    hitSlop={8}
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      showPassword ? "Hide password" : "Show password"
-                    }
-                  >
-                    {showPassword ? (
-                      <EyeOff
-                        size={18}
-                        color={theme.colors.textLight}
-                        strokeWidth={2}
-                      />
-                    ) : (
-                      <Eye
-                        size={18}
-                        color={theme.colors.textLight}
-                        strokeWidth={2}
-                      />
-                    )}
-                  </Pressable>
-                }
-              />
-            )}
-          />
-
-          {isEmailNotConfirmed ? (
-            <View style={styles.verifyBanner}>
-              <MailCheck size={20} color={theme.colors.info} strokeWidth={2} />
-              <View style={styles.verifyTextWrap}>
-                <Text style={styles.verifyTitle}>Email not verified</Text>
-                <Text style={styles.verifyBody}>
-                  Check your inbox and click the verification link before
-                  signing in.
-                </Text>
-                {resendSent ? (
-                  <Text style={styles.resendSent}>
-                    Verification email sent ✓
+            {isEmailNotConfirmed ? (
+              <View style={styles.verifyBanner}>
+                <MailCheck
+                  size={20}
+                  color={theme.colors.info}
+                  strokeWidth={2}
+                />
+                <View style={styles.verifyTextWrap}>
+                  <Text style={styles.verifyTitle}>Email not verified</Text>
+                  <Text style={styles.verifyBody}>
+                    Check your inbox and click the verification link before
+                    signing in.
                   </Text>
-                ) : (
-                  <Pressable
-                    onPress={() => resendMutation.mutate()}
-                    disabled={resendMutation.isPending}
-                    style={({ pressed }) => (pressed ? { opacity: 0.6 } : null)}
-                  >
-                    <Text style={styles.resendLink}>
-                      {resendMutation.isPending
-                        ? "Sending…"
-                        : "Resend verification email"}
+                  {resendSent ? (
+                    <Text style={styles.resendSent}>
+                      Verification email sent ✓
                     </Text>
-                  </Pressable>
-                )}
+                  ) : (
+                    <Pressable
+                      onPress={() => resendMutation.mutate()}
+                      disabled={resendMutation.isPending}
+                      style={({ pressed }) =>
+                        pressed ? { opacity: 0.6 } : null
+                      }
+                    >
+                      <Text style={styles.resendLink}>
+                        {resendMutation.isPending
+                          ? "Sending…"
+                          : "Resend verification email"}
+                      </Text>
+                    </Pressable>
+                  )}
+                </View>
               </View>
-            </View>
-          ) : loginMutation.error ? (
-            <Text style={styles.errorText}>
-              {loginMutation.error
-                ? loginMutation.error.message
-                : "Sign in failed."}
-            </Text>
-          ) : null}
+            ) : loginMutation.error ? (
+              <Text style={styles.errorText}>
+                {loginMutation.error.message ?? "Sign in failed."}
+              </Text>
+            ) : null}
+          </View>
 
           <Button
             title="Sign in securely"
@@ -322,6 +318,9 @@ const styles = StyleSheet.create({
     shadowRadius: 28,
     elevation: 6,
   },
+  fields: {
+    gap: 6,
+  },
   formHeader: { gap: theme.spacing.xs, marginBottom: theme.spacing.xs },
   formTitle: { color: theme.colors.text, fontSize: 20, fontWeight: "700" },
   formSubtitle: { color: theme.colors.textMuted, fontSize: 13 },
@@ -335,7 +334,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: theme.spacing.sm,
-    paddingTop: theme.spacing.xs,
   },
   securityDot: {
     width: 8,
@@ -353,7 +351,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: theme.spacing.xs,
-    paddingTop: theme.spacing.xs,
   },
   signUpPrompt: { color: theme.colors.textMuted, fontSize: 13 },
   signUpLink: { fontSize: 13, color: theme.colors.primary, fontWeight: "700" },

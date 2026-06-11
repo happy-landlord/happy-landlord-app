@@ -14,6 +14,7 @@ import { theme } from "@/constants";
 import { useRegistrationRequests, useReviewRequest } from "@/lib/hooks";
 import { useRefreshControl } from "@/hooks";
 import { formatDate } from "@/lib/utils";
+import { EmptyState, ErrorState, LoadingState } from "@/components/ui";
 import type { RegistrationRequest } from "@/lib/services";
 
 import { sharedStyles } from "./styles";
@@ -55,35 +56,26 @@ export function RequestsList() {
       : null;
 
   if (isLoading) {
-    return (
-      <View style={sharedStyles.centered}>
-        <ActivityIndicator color={theme.colors.primary} size="large" />
-      </View>
-    );
+    return <LoadingState message="Loading requests…" />;
   }
 
   if (error) {
     return (
-      <View style={sharedStyles.centered}>
-        <Text style={sharedStyles.errorText}>Failed to load requests.</Text>
-        <Pressable onPress={() => refetch()} style={sharedStyles.retryBtn}>
-          <Text style={sharedStyles.retryLabel}>Retry</Text>
-        </Pressable>
-      </View>
+      <ErrorState
+        title="Couldn't load requests"
+        message="Check your connection and try again."
+        onRetry={refetch}
+      />
     );
   }
 
   if (sorted.length === 0) {
     return (
-      <View style={sharedStyles.centered}>
-        <View style={sharedStyles.emptyIcon}>
-          <Clock size={32} color={theme.colors.textLight} strokeWidth={1.5} />
-        </View>
-        <Text style={sharedStyles.emptyTitle}>No requests yet</Text>
-        <Text style={sharedStyles.emptyMessage}>
-          Agent registration requests will appear here for your review.
-        </Text>
-      </View>
+      <EmptyState
+        Icon={Clock}
+        title="No requests yet"
+        message="Agent registration requests will appear here for your review."
+      />
     );
   }
 

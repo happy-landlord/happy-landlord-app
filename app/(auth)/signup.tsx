@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -26,9 +26,9 @@ const signUpSchema = z
     phone: z
       .string()
       .trim()
-      .optional()
+      .min(1, "Phone number is required")
       .refine(
-        (v) => !v || /^[+\d][\d\s\-()]{5,}$/.test(v),
+        (v) => /^[+\d][\d\s\-()]{5,}$/.test(v),
         "Enter a valid phone number",
       ),
     password: z.string().min(8, "At least 8 characters required"),
@@ -51,7 +51,7 @@ export default function SignUpScreen() {
     control,
     handleSubmit,
     getValues,
-    formState: { errors, isValid },
+    formState: { errors },
   } = useForm<SignUpForm>({
     mode: "onTouched",
     resolver: zodResolver(signUpSchema),
@@ -73,7 +73,7 @@ export default function SignUpScreen() {
         options: {
           data: {
             full_name: f.fullName.trim(),
-            phone: f.phone?.trim() ?? "",
+            phone: f.phone.trim(),
           },
         },
       });
@@ -150,150 +150,148 @@ export default function SignUpScreen() {
 
         <View style={styles.card}>
           <View style={styles.formHeader}>
-            <Text style={styles.formTitle}>Agent registration</Text>
-            <Text style={styles.formSubtitle}>
-              Your account will be reviewed by an admin before access is
-              granted.
-            </Text>
+            <Text style={styles.formTitle}>Agent Registration</Text>
           </View>
 
-          <Controller
-            control={control}
-            name="fullName"
-            render={({ field: { value, onChange, onBlur } }) => (
-              <Input
-                label="Full name"
-                autoCapitalize="words"
-                autoComplete="name"
-                placeholder="Jane Smith"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                error={errors.fullName?.message}
-              />
-            )}
-          />
+          <View style={styles.fields}>
+            <Controller
+              control={control}
+              name="fullName"
+              render={({ field: { value, onChange, onBlur } }) => (
+                <Input
+                  label="Full name"
+                  autoCapitalize="words"
+                  autoComplete="name"
+                  placeholder="Jane Smith"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  error={errors.fullName?.message}
+                />
+              )}
+            />
 
-          <Controller
-            control={control}
-            name="email"
-            render={({ field: { value, onChange, onBlur } }) => (
-              <Input
-                label="Email"
-                autoCapitalize="none"
-                autoComplete="email"
-                keyboardType="email-address"
-                placeholder="you@example.com"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                error={errors.email?.message}
-              />
-            )}
-          />
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { value, onChange, onBlur } }) => (
+                <Input
+                  label="Email"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  keyboardType="email-address"
+                  placeholder="you@example.com"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  error={errors.email?.message}
+                />
+              )}
+            />
 
-          <Controller
-            control={control}
-            name="phone"
-            render={({ field: { value, onChange, onBlur } }) => (
-              <Input
-                label="Phone (optional)"
-                autoComplete="tel"
-                keyboardType="phone-pad"
-                placeholder="+61 4xx xxx xxx"
-                value={value ?? ""}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                error={errors.phone?.message}
-              />
-            )}
-          />
+            <Controller
+              control={control}
+              name="phone"
+              render={({ field: { value, onChange, onBlur } }) => (
+                <Input
+                  label="Phone"
+                  autoComplete="tel"
+                  keyboardType="phone-pad"
+                  placeholder="04xx xxx xxx"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  error={errors.phone?.message}
+                />
+              )}
+            />
 
-          <Controller
-            control={control}
-            name="password"
-            render={({ field: { value, onChange, onBlur } }) => (
-              <Input
-                label="Password"
-                autoCapitalize="none"
-                autoComplete="new-password"
-                placeholder="Min. 8 characters"
-                secureTextEntry={!showPassword}
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                error={errors.password?.message}
-                rightIcon={
-                  <Pressable
-                    onPress={() => setShowPassword((v) => !v)}
-                    hitSlop={8}
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      showPassword ? "Hide password" : "Show password"
-                    }
-                  >
-                    {showPassword ? (
-                      <EyeOff
-                        size={18}
-                        color={theme.colors.textLight}
-                        strokeWidth={2}
-                      />
-                    ) : (
-                      <Eye
-                        size={18}
-                        color={theme.colors.textLight}
-                        strokeWidth={2}
-                      />
-                    )}
-                  </Pressable>
-                }
-              />
-            )}
-          />
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { value, onChange, onBlur } }) => (
+                <Input
+                  label="Password"
+                  autoCapitalize="none"
+                  autoComplete="new-password"
+                  placeholder="Min. 8 characters"
+                  secureTextEntry={!showPassword}
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  error={errors.password?.message}
+                  rightIcon={
+                    <Pressable
+                      onPress={() => setShowPassword((v) => !v)}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                    >
+                      {showPassword ? (
+                        <EyeOff
+                          size={18}
+                          color={theme.colors.textLight}
+                          strokeWidth={2}
+                        />
+                      ) : (
+                        <Eye
+                          size={18}
+                          color={theme.colors.textLight}
+                          strokeWidth={2}
+                        />
+                      )}
+                    </Pressable>
+                  }
+                />
+              )}
+            />
 
-          <Controller
-            control={control}
-            name="confirmPassword"
-            render={({ field: { value, onChange, onBlur } }) => (
-              <Input
-                label="Confirm password"
-                autoCapitalize="none"
-                autoComplete="new-password"
-                placeholder="Re-enter your password"
-                secureTextEntry={!showConfirm}
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                error={errors.confirmPassword?.message}
-                rightIcon={
-                  <Pressable
-                    onPress={() => setShowConfirm((v) => !v)}
-                    hitSlop={8}
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      showConfirm
-                        ? "Hide confirm password"
-                        : "Show confirm password"
-                    }
-                  >
-                    {showConfirm ? (
-                      <EyeOff
-                        size={18}
-                        color={theme.colors.textLight}
-                        strokeWidth={2}
-                      />
-                    ) : (
-                      <Eye
-                        size={18}
-                        color={theme.colors.textLight}
-                        strokeWidth={2}
-                      />
-                    )}
-                  </Pressable>
-                }
-              />
-            )}
-          />
+            <Controller
+              control={control}
+              name="confirmPassword"
+              render={({ field: { value, onChange, onBlur } }) => (
+                <Input
+                  label="Confirm password"
+                  autoCapitalize="none"
+                  autoComplete="new-password"
+                  placeholder="Re-enter your password"
+                  secureTextEntry={!showConfirm}
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  error={errors.confirmPassword?.message}
+                  rightIcon={
+                    <Pressable
+                      onPress={() => setShowConfirm((v) => !v)}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        showConfirm
+                          ? "Hide confirm password"
+                          : "Show confirm password"
+                      }
+                    >
+                      {showConfirm ? (
+                        <EyeOff
+                          size={18}
+                          color={theme.colors.textLight}
+                          strokeWidth={2}
+                        />
+                      ) : (
+                        <Eye
+                          size={18}
+                          color={theme.colors.textLight}
+                          strokeWidth={2}
+                        />
+                      )}
+                    </Pressable>
+                  }
+                />
+              )}
+            />
+          </View>
 
           {signUpMutation.error && (
             <View style={styles.errorBanner}>
@@ -316,10 +314,24 @@ export default function SignUpScreen() {
           <Button
             title="Register"
             variant="primary"
-            disabled={!isValid || signUpMutation.isPending}
+            disabled={signUpMutation.isPending}
             loading={signUpMutation.isPending}
             onPress={onSubmit}
           />
+
+          <View style={styles.approvalNote}>
+            <Text style={styles.approvalText}>
+              By signing up you agree to our{" "}
+              <Text
+                style={styles.approvalLink}
+                onPress={() =>
+                  Linking.openURL("https://happylandlord.com.au/contact")
+                }
+              >
+                Terms of Service
+              </Text>
+            </Text>
+          </View>
 
           <View style={styles.loginRow}>
             <Text style={styles.loginPrompt}>Already have an account?</Text>
@@ -400,6 +412,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+    justifyContent: "center",
     padding: theme.spacing.screen,
     paddingBottom: theme.spacing.xl,
   },
@@ -433,8 +446,20 @@ const styles = StyleSheet.create({
     shadowRadius: 28,
     elevation: 6,
   },
-  formHeader: { gap: theme.spacing.xs, marginBottom: theme.spacing.xs },
-  formTitle: { color: theme.colors.text, fontSize: 20, fontWeight: "700" },
+  fields: {
+    gap: 6,
+  },
+  formHeader: {
+    gap: theme.spacing.xs,
+    marginBottom: theme.spacing.xs,
+    alignItems: "center",
+  },
+  formTitle: {
+    color: theme.colors.text,
+    fontSize: 20,
+    fontWeight: "700",
+    textAlign: "center",
+  },
   formSubtitle: {
     color: theme.colors.textMuted,
     fontSize: 13,
@@ -472,6 +497,28 @@ const styles = StyleSheet.create({
   },
   loginPrompt: { color: theme.colors.textMuted, fontSize: 13 },
   loginLink: { fontSize: 13, color: theme.colors.primary, fontWeight: "700" },
+  approvalNote: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: theme.spacing.sm,
+  },
+  approvalDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: theme.colors.warning,
+  },
+  approvalText: {
+    color: theme.colors.textMuted,
+    fontSize: 12,
+    textAlign: "center",
+  },
+  approvalLink: {
+    color: theme.colors.primary,
+    fontWeight: "600",
+    textDecorationLine: "underline",
+  },
   // ── Success state ──
   successScreen: { flex: 1, backgroundColor: theme.colors.background },
   successContent: {

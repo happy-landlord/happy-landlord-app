@@ -12,13 +12,17 @@ import type { DbNotification } from "@/types";
 
 /** Discriminator for the `notifications.type` column. */
 export type NotificationType =
-  | "KEY_CHECKOUT_CREATED"
   | "KEY_DUE_SOON"
   | "KEY_OVERDUE"
-  | "KEY_RETURNED"
   | "KEY_LOST_REPORTED"
   | "USER_REGISTRATION_REQUESTED"
-  | "KEY_RECALL_REQUESTED";
+  | "KEY_RECALL_REQUESTED"
+  // ── Agent notifications ───────────────────────────────────────────────────
+  /** Sent to the agent 24 hours before their reservation window starts. */
+  | "UPCOMING_RESERVATION"
+  // ── Admin notifications ───────────────────────────────────────────────────
+  /** Sent to admins as a tenancy-related reminder (e.g. lease expiry). */
+  | "TENANCY_REMINDER";
 
 /**
  * Payload attached to a push notification's `data` field. Accepts both
@@ -47,13 +51,15 @@ export type NotificationNavigationData = {
 };
 
 export const NOTIFICATION_TYPES = {
-  KEY_CHECKOUT_CREATED: "KEY_CHECKOUT_CREATED",
   KEY_DUE_SOON: "KEY_DUE_SOON",
   KEY_OVERDUE: "KEY_OVERDUE",
-  KEY_RETURNED: "KEY_RETURNED",
   KEY_LOST_REPORTED: "KEY_LOST_REPORTED",
   USER_REGISTRATION_REQUESTED: "USER_REGISTRATION_REQUESTED",
   KEY_RECALL_REQUESTED: "KEY_RECALL_REQUESTED",
+  // ── Agent ─────────────────────────────────────────────────────────────────
+  UPCOMING_RESERVATION: "UPCOMING_RESERVATION",
+  // ── Admin ─────────────────────────────────────────────────────────────────
+  TENANCY_REMINDER: "TENANCY_REMINDER",
 } as const satisfies Record<NotificationType, NotificationType>;
 
 Notifications.setNotificationHandler({
@@ -315,6 +321,9 @@ function resolveTargetPath(n: NormalizedNotification): string | null {
   if (n.type === NOTIFICATION_TYPES.USER_REGISTRATION_REQUESTED) {
     return "/(app)/requests";
   }
+
+  // Upcoming reservation — deep-link to the keyset so the agent can review it.
+  // Falls through to generic keyset/property routing below.
 
   // Keyset detail lives under properties/keyset/[id] — NOT /(app)/keys/...
   if (n.keySetId) return `/(app)/properties/keyset/${n.keySetId}`;

@@ -61,7 +61,9 @@ export function ProfileAvatar() {
             source={{ uri: avatarUrl }}
             style={styles.image}
             contentFit="cover"
+            cachePolicy="memory-disk"
             transition={200}
+            recyclingKey={avatarUrl}
           />
         ) : (
           <Text style={styles.text}>{initials}</Text>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 import {
@@ -13,14 +13,11 @@ import {
  *
  * - `propertyId` / `keySetId` / `keySetName` — keyset/property context when
  *   the screen is entered from a keyset detail page.
- * - `myActivityOnly` — set to `"1"` (e.g. from the home dashboard "View all"
- *   link) to pre-enable the "My activity only" filter on mount.
  */
 export type HistoryScreenParams = {
   propertyId?: string;
   keySetId?: string;
   keySetName?: string;
-  myActivityOnly?: string;
 };
 
 export type UseHistoryFiltersResult = {
@@ -51,17 +48,10 @@ export function useHistoryFilters(): UseHistoryFiltersResult {
     propertyId,
     keySetId,
     keySetName,
-    myActivityOnly: myActivityParam,
   } = useLocalSearchParams<HistoryScreenParams>();
 
   const [filters, setFilters] = useState<HistoryFilters>(EMPTY_HISTORY_FILTERS);
 
-  useEffect(() => {
-    if (myActivityParam === "1") {
-      setFilters((prev) => ({ ...prev, myActivityOnly: true }));
-      router.setParams({ myActivityOnly: undefined });
-    }
-  }, [myActivityParam, router]);
 
   const patch = useCallback((p: Partial<HistoryFilters>) => {
     setFilters((prev) => ({ ...prev, ...p }));
@@ -78,7 +68,6 @@ export function useHistoryFilters(): UseHistoryFiltersResult {
   const activeCount = useMemo(
     () =>
       [
-        filters.myActivityOnly,
         filters.dateFrom !== null,
         filters.dateTo !== null,
       ].filter(Boolean).length,

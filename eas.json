@@ -46,8 +46,8 @@
     "production": {
       "ios": {
         "appleId": "tech@happylandlord.com.au",
-        "ascAppId": "YOUR_APP_STORE_CONNECT_APP_ID",
-        "appleTeamId": "YOUR_APPLE_TEAM_ID"
+        "ascAppId": "6779025764",
+        "appleTeamId": "4S69N9TL92"
       },
       "android": {
         "serviceAccountKeyPath": "./google-play-service-account.json",

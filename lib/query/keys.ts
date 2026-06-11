@@ -36,9 +36,9 @@ export const QUERY_KEYS = {
       search: string,
       propertyId?: string,
       keySetId?: string,
-      myActivityOnly?: boolean,
       dateFrom?: string,
       dateTo?: string,
+      myActivityOnly?: boolean,
     ) =>
       [
         "activity",
@@ -47,9 +47,9 @@ export const QUERY_KEYS = {
         search,
         propertyId ?? "",
         keySetId ?? "",
-        myActivityOnly ? "1" : "0",
         dateFrom ?? "",
         dateTo ?? "",
+        myActivityOnly ? "mine" : "all",
       ] as const,
   },
   agents: {

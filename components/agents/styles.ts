@@ -5,35 +5,10 @@ import { theme } from "@/constants";
 /**
  * Shared layout/state styles used by both Agents and Requests lists.
  * Each list keeps its own card-specific styles colocated with the component.
+ * Loading / error / empty (page-level) states are delegated to the shared
+ * LoadingState / ErrorState / EmptyState UI components.
  */
 export const sharedStyles = StyleSheet.create({
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: theme.spacing.screen,
-  },
-  errorText: {
-    color: theme.colors.danger,
-    fontSize: 16,
-    marginBottom: theme.spacing.md,
-  },
-  retryBtn: {
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.lg,
-    backgroundColor: theme.colors.accentSoft,
-    borderRadius: theme.radius.pill,
-  },
-  retryLabel: { color: theme.colors.accent, fontWeight: "600" },
-  emptyIcon: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: theme.colors.neutralSoft,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: theme.spacing.md,
-  },
   emptyTitle: {
     fontSize: 18,
     fontWeight: "700",

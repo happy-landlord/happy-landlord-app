@@ -96,15 +96,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginBottom: theme.spacing.xl,
   },
-  iconWrap: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: theme.colors.warningSoft,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: theme.spacing.lg,
-  },
   title: {
     fontSize: 24,
     fontWeight: "800",

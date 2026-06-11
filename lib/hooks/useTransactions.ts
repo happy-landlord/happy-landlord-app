@@ -35,12 +35,12 @@ type UseInfiniteHistoryOptions = {
   search?: string;
   propertyId?: string;
   keySetId?: string;
-  /** Admin-only: restrict to transactions where the current user is involved */
-  myActivityOnly?: boolean;
   /** ISO date string "YYYY-MM-DD" — lower bound */
   dateFrom?: string;
   /** ISO date string "YYYY-MM-DD" — upper bound */
   dateTo?: string;
+  /** When true, only return transactions involving the current user. */
+  myActivityOnly?: boolean;
   /** Override the enabled flag. Defaults to true (fires whenever ready). */
   enabled?: boolean;
 };
@@ -49,9 +49,9 @@ export function useInfiniteHistory({
   search = "",
   propertyId,
   keySetId,
-  myActivityOnly = false,
   dateFrom,
   dateTo,
+  myActivityOnly = false,
   enabled: enabledOverride = true,
 }: UseInfiniteHistoryOptions = {}) {
   const { userId, isAdmin, scope, ready } = useQueryScope();
@@ -62,19 +62,19 @@ export function useInfiniteHistory({
       search,
       propertyId,
       keySetId,
-      myActivityOnly,
       dateFrom,
       dateTo,
+      myActivityOnly,
     ),
     queryFn: ({ pageParam }) =>
       fetchActivity({
         userId: userId!,
         isAdmin,
+        myActivityOnly,
         page: (pageParam as number) ?? 0,
         search,
         propertyId,
         keySetId,
-        myActivityOnly,
         dateFrom,
         dateTo,
       }),

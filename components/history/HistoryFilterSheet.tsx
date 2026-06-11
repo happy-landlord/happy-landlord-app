@@ -3,7 +3,6 @@ import {
   Animated,
   Pressable,
   StyleSheet,
-  Switch,
   Text,
   View,
 } from "react-native";
@@ -12,7 +11,6 @@ import {
   CalendarDays,
   ChevronLeft,
   RotateCcw,
-  UserRound,
   X,
 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -25,14 +23,12 @@ import { formatShortDate } from "@/lib/utils";
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export type HistoryFilters = {
-  myActivityOnly: boolean;
   dateFrom: Date | null;
   dateTo: Date | null;
 };
 
 /** Initial / cleared state for {@link HistoryFilters}. */
 export const EMPTY_HISTORY_FILTERS: HistoryFilters = {
-  myActivityOnly: false,
   dateFrom: null,
   dateTo: null,
 };
@@ -61,7 +57,6 @@ export function HistoryFilterSheet({
   const slideY = useRef(new Animated.Value(OVERLAY_PANEL_SLIDE_OUT)).current;
 
   const hasFilters =
-    filters.myActivityOnly ||
     filters.dateFrom !== null ||
     filters.dateTo !== null;
 
@@ -195,56 +190,6 @@ export function HistoryFilterSheet({
         )}
       </View>
 
-      {/* ── My activity only ─────────────────────────────────────────────── */}
-      <Pressable
-        onPress={() => onChange({ myActivityOnly: !filters.myActivityOnly })}
-        style={({ pressed }) => [
-          styles.myActivityCard,
-          filters.myActivityOnly && styles.myActivityCardActive,
-          pressed && styles.myActivityCardPressed,
-        ]}
-        accessibilityRole="switch"
-        accessibilityState={{ checked: filters.myActivityOnly }}
-        accessibilityLabel="My activity only"
-      >
-        <View
-          style={[
-            styles.myActivityIcon,
-            filters.myActivityOnly && styles.myActivityIconActive,
-          ]}
-        >
-          <UserRound
-            size={18}
-            color={
-              filters.myActivityOnly
-                ? theme.colors.accent
-                : theme.colors.primary
-            }
-            strokeWidth={2}
-          />
-        </View>
-        <View style={styles.myActivityTextWrap}>
-          <Text style={styles.myActivityTitle}>My activity only</Text>
-          <Text style={styles.myActivityDescription}>
-            Show transactions involving you
-          </Text>
-        </View>
-        <Switch
-          value={filters.myActivityOnly}
-          onValueChange={(v) => onChange({ myActivityOnly: v })}
-          trackColor={{
-            false: theme.colors.neutralSoft,
-            true: theme.colors.primary,
-          }}
-          thumbColor={
-            filters.myActivityOnly
-              ? theme.colors.surface
-              : theme.colors.textLight
-          }
-          ios_backgroundColor={theme.colors.neutralSoft}
-        />
-      </Pressable>
-
       {/* ── Date range ──────────────────────────────────────────────────── */}
       <Text style={styles.sectionLabel}>Date range</Text>
 
@@ -361,55 +306,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
     color: theme.colors.textMuted,
-  },
-
-  myActivityCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: 14,
-    marginBottom: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.lg,
-    backgroundColor: theme.colors.surfaceWarm,
-    shadowColor: theme.colors.accent,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  myActivityCardActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primarySoft,
-  },
-  myActivityCardPressed: { opacity: 0.82 },
-  myActivityIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.primarySoft,
-  },
-  myActivityIconActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
-  },
-  myActivityTextWrap: { flex: 1 },
-  myActivityTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: theme.colors.text,
-  },
-  myActivityDescription: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: theme.colors.textMuted,
-    marginTop: 2,
   },
 
   sectionLabel: {

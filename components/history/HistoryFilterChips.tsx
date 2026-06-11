@@ -29,9 +29,9 @@ export function HistoryFilterChips({
   onClearKeyset,
   onPatch,
 }: Props) {
-  const { myActivityOnly, dateFrom, dateTo } = filters;
+  const { dateFrom, dateTo } = filters;
 
-  if (!keySetId && !myActivityOnly && !dateFrom && !dateTo) return null;
+  if (!keySetId && !dateFrom && !dateTo) return null;
 
   return (
     <View style={styles.row}>
@@ -49,18 +49,6 @@ export function HistoryFilterChips({
             }
           >
             {`${keySetName ?? "Keyset"}   ✕`}
-          </Pill>
-        </Pressable>
-      )}
-
-      {myActivityOnly && (
-        <Pressable
-          onPress={() => onPatch({ myActivityOnly: false })}
-          accessibilityRole="button"
-          accessibilityLabel="Remove my activity filter"
-        >
-          <Pill tone="accent" variant="soft">
-            {"My activity   ✕"}
           </Pill>
         </Pressable>
       )}

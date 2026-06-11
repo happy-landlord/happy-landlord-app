@@ -390,7 +390,7 @@ function AgentActivityView() {
   const renderItem = useCallback(
     ({ item }: { item: ActivityTransaction }) => (
       <Card style={styles.historyCard}>
-        <ActivityRow item={item} />
+        <ActivityRow item={item} plain />
       </Card>
     ),
     [],
@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   listEmpty: { flexGrow: 1, justifyContent: "center" },
-  itemSep: { height: theme.spacing.sm },
+  itemSep: { height: theme.spacing.xs },
   footerLoader: { paddingVertical: theme.spacing.lg, alignItems: "center" },
   // Agent
   agentHeader: {

@@ -4,6 +4,7 @@ import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
 
 import type { DbNotification } from "@/types";
+import { FEATURES } from "@/constants";
 import { QUERY_KEYS, invalidateNotifications } from "@/lib/query";
 import { supabase } from "@/lib/supabase";
 import { useLockStore } from "@/lib/state";
@@ -187,6 +188,7 @@ export function useMarkAllNotificationsRead() {
 export function useRegisterPushToken() {
   const userId = useCurrentUserId();
   useEffect(() => {
+    if (!FEATURES.PUSH_NOTIFICATIONS) return;
     let cancelled = false;
 
     async function register() {
@@ -244,6 +246,7 @@ export function useNotificationResponseNavigation() {
   const isLocked = useLockStore((state) => state.isLocked);
 
   useEffect(() => {
+    if (!FEATURES.PUSH_NOTIFICATIONS) return;
     const subscription = Notifications.addNotificationResponseReceivedListener(
       (response) => {
         // Never navigate into the app while the biometric lock screen is showing

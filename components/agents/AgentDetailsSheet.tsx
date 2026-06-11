@@ -80,7 +80,9 @@ export function AgentDetailsSheet({ agent, onClose }: Props) {
               source={{ uri: imageUrl }}
               style={styles.avatarImage}
               contentFit="cover"
+              cachePolicy="memory-disk"
               transition={120}
+              recyclingKey={imageUrl}
             />
           ) : (
             <Text style={styles.avatarInitial}>{initial}</Text>

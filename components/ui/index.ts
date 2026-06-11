@@ -1,5 +1,6 @@
 export * from "./AddressSearch";
 export * from "./BottomSheet";
+export * from "./BrandedSplash";
 export * from "./Button";
 export * from "./Card";
 export * from "./CodeStickerCard";

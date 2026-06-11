@@ -60,9 +60,7 @@ export function AdminKeysView({ keySets, unassignedKeys }: AdminKeysViewProps) {
                 key={ks.id}
                 keySet={ks}
                 variant="admin"
-                onPress={() =>
-                  router.push(`/(app)/properties/keyset/${ks.id}` as never)
-                }
+                onPress={() => router.push(`/(app)/properties/keyset/${ks.id}` as never)}
               />
             ))}
           </View>

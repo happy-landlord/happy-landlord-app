@@ -152,6 +152,7 @@ export function PropertyInfoStep({
         value={data.landlordName}
         onChangeText={(landlordName) => onChange({ landlordName })}
         autoCapitalize="words"
+        labelBackground={theme.colors.background}
       />
 
       {/* Landlord Contact + Date Received */}
@@ -163,6 +164,7 @@ export function PropertyInfoStep({
           onChangeText={(landlordContact) => onChange({ landlordContact })}
           keyboardType="phone-pad"
           containerStyle={styles.phoneField}
+          labelBackground={theme.colors.background}
         />
         <OutlinedDateField
           label="Date Received"

@@ -5,7 +5,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
-import { invalidateProperties, PAGE_SIZE, QUERY_KEYS } from "@/lib/query";
+import { invalidateProperties, PAGE_SIZE, QUERY_KEYS, STALE_TIME } from "@/lib/query";
 import { useRole } from "@/hooks";
 import {
   createKeyHolder,
@@ -60,6 +60,7 @@ export function useProperty(id: string) {
     queryFn: () =>
       isAdmin ? fetchPropertyById(id) : fetchPropertyByIdForAgent(id),
     enabled: !!id,
+    staleTime: STALE_TIME.short,
   });
 }
 
@@ -68,6 +69,7 @@ export function usePropertyTenant(propertyId: string, enabled = true) {
     queryKey: ["propertyTenant", propertyId],
     queryFn: () => fetchTenantHolderForProperty(propertyId),
     enabled: !!propertyId && enabled,
+    staleTime: STALE_TIME.short,
   });
 }
 

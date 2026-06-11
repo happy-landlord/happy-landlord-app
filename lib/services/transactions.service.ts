@@ -19,12 +19,12 @@ const ACTIVITY_PAGE_SIZE = 25;
 export type FetchActivityOptions = {
   userId?: string;
   isAdmin?: boolean;
+  /** When true, only return transactions where the user is a holder or updated_by. */
+  myActivityOnly?: boolean;
   page?: number;
   search?: string;
   propertyId?: string;
   keySetId?: string;
-  /** When true (admin only), restrict to transactions where userId is involved */
-  myActivityOnly?: boolean;
   /** ISO date string "YYYY-MM-DD" — only return transactions on or after this date */
   dateFrom?: string;
   /** ISO date string "YYYY-MM-DD" — only return transactions on or before this date */
@@ -44,7 +44,7 @@ async function resolvePropertyIds(search: string): Promise<string[] | null> {
     .select("id")
     .eq("status", "active")
     .or(
-      `address.ilike.%${term}%,suburb.ilike.%${term}%,formatted_address.ilike.%${term}%`,
+      `address.ilike.%${term}%,unit_number.ilike.%${term}%,suburb.ilike.%${term}%,formatted_address.ilike.%${term}%`,
     );
 
   if (error) throw error;
@@ -69,18 +69,49 @@ async function resolveKeySetIds(search: string): Promise<string[] | null> {
 }
 
 /**
+ * Resolve key_holder IDs whose full_name contains the search term.
+ * Returns null when no search term is provided.
+ */
+async function resolveHolderIds(search: string): Promise<string[] | null> {
+  const term = search.trim();
+  if (!term) return null;
+
+  const { data, error } = await supabase
+    .from("key_holders")
+    .select("id")
+    .ilike("full_name", `%${term}%`);
+
+  if (error) throw error;
+  return (data ?? []).map((h) => h.id);
+}
+
+/**
+ * Resolve key_holder IDs linked to a specific user profile.
+ * Used for myActivityOnly filtering.
+ */
+async function resolveHolderIdsForProfile(userId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("key_holders")
+    .select("id")
+    .eq("profile_id", userId);
+
+  if (error) throw error;
+  return (data ?? []).map((h) => h.id);
+}
+
+/**
  * Unified paginated activity fetcher.
  * Returns all visible transactions for the Activity tab.
- * Supports server-side search by property address/suburb/keyset code,
- * "my activity only" scoping, and date-range filtering.
+ * Supports server-side search by property address/suburb/keyset code/agent name
+ * and date-range filtering.
  */
 export async function fetchActivity({
   userId,
+  myActivityOnly = false,
   page = 0,
   search = "",
   propertyId,
   keySetId,
-  myActivityOnly = false,
   dateFrom,
   dateTo,
 }: FetchActivityOptions): Promise<ActivityTransaction[]> {
@@ -99,17 +130,19 @@ export async function fetchActivity({
     return data as unknown as ActivityTransaction[];
   }
 
-  // Resolve property AND keyset IDs from search term in parallel
-  const [searchPropertyIds, searchKeySetIds] = await Promise.all([
+  // Resolve property, keyset, and holder IDs from search term in parallel
+  const [searchPropertyIds, searchKeySetIds, searchHolderIds] = await Promise.all([
     resolvePropertyIds(search),
     resolveKeySetIds(search),
+    resolveHolderIds(search),
   ]);
 
-  // If search was provided but matched neither properties nor keysets → empty
+  // If search was provided but matched nothing → empty
   const searchHasResults =
     searchPropertyIds === null ||
-    (searchPropertyIds.length > 0 ||
-      (searchKeySetIds !== null && searchKeySetIds.length > 0));
+    searchPropertyIds.length > 0 ||
+    (searchKeySetIds !== null && searchKeySetIds.length > 0) ||
+    (searchHolderIds !== null && searchHolderIds.length > 0);
 
   if (!searchHasResults) {
     return [];
@@ -122,11 +155,11 @@ export async function fetchActivity({
     .order("created_at", { ascending: false })
     .range(page * ACTIVITY_PAGE_SIZE, (page + 1) * ACTIVITY_PAGE_SIZE - 1);
 
-  // ── Property/keyset search filter ─────────────────────────────────────────
+  // ── Property/keyset/holder search filter ──────────────────────────────────
   if (propertyId) {
     query = query.eq("property_id", propertyId);
   } else if (searchPropertyIds !== null) {
-    // Build OR clause: match property address OR keyset code
+    // Build OR clause: match property address OR keyset code OR holder name
     const conditions: string[] = [];
     if (searchPropertyIds.length > 0) {
       conditions.push(`property_id.in.(${searchPropertyIds.join(",")})`);
@@ -134,17 +167,16 @@ export async function fetchActivity({
     if (searchKeySetIds && searchKeySetIds.length > 0) {
       conditions.push(`key_set_id.in.(${searchKeySetIds.join(",")})`);
     }
+    if (searchHolderIds && searchHolderIds.length > 0) {
+      const ids = searchHolderIds.join(",");
+      conditions.push(`from_holder_id.in.(${ids})`);
+      conditions.push(`to_holder_id.in.(${ids})`);
+    }
     if (conditions.length > 0) {
       query = query.or(conditions.join(","));
     }
   }
 
-  // ── "My activity only" filter ─────────────────────────────────────────────
-  if (myActivityOnly && userId) {
-    query = query.or(
-      `from_holder_id.eq.${userId},to_holder_id.eq.${userId},updated_by.eq.${userId}`,
-    );
-  }
 
   // ── Date range filter ─────────────────────────────────────────────────────
   if (dateFrom) {
@@ -152,6 +184,18 @@ export async function fetchActivity({
   }
   if (dateTo) {
     query = query.lte("created_at", `${dateTo}T23:59:59.999Z`);
+  }
+
+  // ── My activity filter ────────────────────────────────────────────────────
+  if (myActivityOnly && userId) {
+    const holderIds = await resolveHolderIdsForProfile(userId);
+    const myConditions: string[] = [`updated_by.eq.${userId}`];
+    if (holderIds.length > 0) {
+      const ids = holderIds.join(",");
+      myConditions.push(`from_holder_id.in.(${ids})`);
+      myConditions.push(`to_holder_id.in.(${ids})`);
+    }
+    query = query.or(myConditions.join(","));
   }
 
   const { data, error } = await query;

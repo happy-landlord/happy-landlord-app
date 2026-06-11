@@ -218,12 +218,6 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
     marginBottom: theme.spacing.xs,
   },
-  input: {
-    backgroundColor: theme.colors.surface,
-  },
-  errorText: {
-    color: theme.colors.danger,
-  },
   formActions: {
     flexDirection: "row",
     gap: theme.spacing.sm,
@@ -246,13 +240,6 @@ const styles = StyleSheet.create({
   submitBtn: {
     flex: 2,
     borderRadius: theme.radius.pill,
-  },
-  submitContent: {
-    minHeight: 44,
-  },
-  submitLabel: {
-    fontSize: 14,
-    fontWeight: "700",
   },
   btnPressed: {
     opacity: 0.65,

@@ -80,7 +80,6 @@ export default function ActivityScreen() {
     search: debouncedSearch,
     propertyId,
     keySetId,
-    myActivityOnly: filters.myActivityOnly,
     dateFrom: toIsoDate(filters.dateFrom),
     dateTo: toIsoDate(filters.dateTo),
   });
@@ -125,7 +124,7 @@ export default function ActivityScreen() {
           <TextInput
             ref={searchInputRef}
             style={styles.searchInput}
-            placeholder="Address or keyset code…"
+            placeholder="Address, keyset code or agent name…"
             placeholderTextColor={theme.colors.textLight}
             selectionColor={theme.colors.primary}
             value={searchText}
@@ -272,7 +271,7 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
     paddingHorizontal: theme.spacing.screen,
     paddingTop: theme.spacing.md,
-    paddingBottom: theme.spacing.sm,
+    paddingBottom: theme.spacing.xs,
     backgroundColor: theme.colors.background,
   },
   searchInputWrap: {
@@ -353,7 +352,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
     textTransform: "uppercase",
     letterSpacing: 0.6,
-    marginTop: theme.spacing.lg,
+    marginTop: theme.spacing.sm,
     marginBottom: 6,
   },
   itemSep: { height: 6 },

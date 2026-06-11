@@ -1,11 +1,9 @@
 import { useEffect, useRef } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import * as Linking from "expo-linking";
 
 import { supabase } from "@/lib/supabase";
-import { Logo } from "@/components/ui";
-import { theme } from "@/constants";
+import { BrandedSplash } from "@/components/ui";
 import { logger } from "@/lib/utils";
 
 /**
@@ -91,40 +89,6 @@ export default function AuthCallbackScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return (
-    <View style={styles.screen}>
-      <View style={styles.logoWrap}>
-        <Logo size={56} />
-      </View>
-      <ActivityIndicator
-        color={theme.colors.primary}
-        size="large"
-        style={styles.spinner}
-      />
-      <Text style={styles.label}>Verifying your email…</Text>
-    </View>
-  );
+  return <BrandedSplash message="Verifying your email…" />;
 }
-
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: theme.spacing.lg,
-  },
-  logoWrap: {
-    borderRadius: theme.radius.lg,
-    overflow: "hidden",
-  },
-  spinner: {
-    marginTop: theme.spacing.sm,
-  },
-  label: {
-    fontSize: 15,
-    color: theme.colors.textMuted,
-    fontWeight: "500",
-  },
-});
 

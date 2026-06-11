@@ -28,8 +28,23 @@
  *            suburb so the rest of the app still receives a PlaceResult.
  *            Useful for web testing or when no API key is available.
  * ─────────────────────────────────────────────────────────────────────────────
+ * ─────────────────────────────────────────────────────────────────────────────
+ * PUSH_NOTIFICATIONS   (default: true)
+ *
+ *   true  → Push notifications are fully active.
+ *            • Expo push token is silently registered on app launch.
+ *            • The push toggle appears in Settings → Notifications.
+ *            • Notification tap deep-links into the app.
+ *            • Requires a native dev/production build — does NOT work in Expo Go.
+ *
+ *   false → Push delivery is disabled; only the in-app bell / list works.
+ *            • No push token is registered (no OS permission prompt).
+ *            • The push toggle is hidden in Settings.
+ *            • Safe to use while developing in Expo Go.
+ * ─────────────────────────────────────────────────────────────────────────────
  */
 export const FEATURES = {
   BIOMETRIC_LOCK: false,
   GOOGLE_PLACES: true,
+  PUSH_NOTIFICATIONS: true,
 } as const;

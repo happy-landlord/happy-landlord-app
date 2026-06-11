@@ -1,4 +1,5 @@
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image } from "expo-image";
 import { KeyRound, Pencil } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
@@ -11,6 +12,7 @@ import {
 } from "@/lib/hooks";
 import { useRole } from "@/hooks";
 import { getTotalKeyQuantity } from "@/lib/utils";
+import { getVisibleKeySetImages } from "@/lib/services";
 
 import { getKeySetCardStatus } from "@/components/keyset/getKeySetCardStatus";
 import { KeyStatusChip } from "@/components/keyset/KeyStatusChip";
@@ -34,6 +36,13 @@ export function KeySetDetailsCard() {
 
   if (!keySet) return null;
 
+  // Knowing whether a banner will eventually render is decided from the
+  // keyset payload itself (already cached) — NOT from the resolved signed
+  // URL. This lets us reserve the banner slot from the first frame so the
+  // Edit/Share controls don't visibly jump from above the card into the
+  // banner overlay once the signed URL resolves.
+  const hasImage = getVisibleKeySetImages(keySet.images ?? []).length > 0;
+
   const holderProfileId = keySet.current_holder?.profile_id;
   const { isCheckedOut, chipStatus } = getKeySetCardStatus(
     keySet,
@@ -51,7 +60,7 @@ export function KeySetDetailsCard() {
   return (
     <View style={styles.wrap}>
       {/* Edit + Share buttons above card when no image */}
-      {isAdmin && !imageUrl && (
+      {isAdmin && !hasImage && (
         <View style={styles.actionRow}>
           <PillButton
             label="Edit"
@@ -69,14 +78,23 @@ export function KeySetDetailsCard() {
       )}
 
       <View style={styles.card}>
-        {/* Image banner */}
-        {imageUrl ? (
+        {/* Image banner — reserve the slot as soon as we know an image
+            exists; a themed placeholder fills it until the signed URL
+            resolves, then expo-image fades in over the top. */}
+        {hasImage ? (
           <View style={styles.banner}>
-            <Image
-              source={{ uri: imageUrl }}
-              style={styles.bannerImage}
-              resizeMode="cover"
-            />
+            <View style={styles.bannerPlaceholder} />
+            {imageUrl ? (
+              <Image
+                source={{ uri: imageUrl }}
+                style={styles.bannerImage}
+                contentFit="cover"
+                cachePolicy="memory-disk"
+                transition={180}
+                recyclingKey={imageUrl}
+                accessibilityIgnoresInvertColors
+              />
+            ) : null}
             {/* Floating Edit + Share overlay — top right */}
             {isAdmin && (
               <View style={styles.bannerOverlay}>
@@ -89,7 +107,7 @@ export function KeySetDetailsCard() {
                   accessibilityRole="button"
                   accessibilityLabel="Edit keyset"
                 >
-                  <Pencil size={13} color="#fff" strokeWidth={2} />
+                  <Pencil size={13} color={theme.colors.textInverse} strokeWidth={2} />
                   <Text style={styles.overlayBtnText}>Edit</Text>
                 </Pressable>
                 <ShareQrButton
@@ -194,7 +212,15 @@ const styles = StyleSheet.create({
   },
 
   banner: { width: "100%", height: 160 },
-  bannerImage: { width: "100%", height: "100%" },
+  bannerPlaceholder: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: theme.colors.neutralSoft,
+  },
+  bannerImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: "100%",
+    height: "100%",
+  },
   bannerOverlay: {
     position: "absolute",
     top: 10,
@@ -214,7 +240,7 @@ const styles = StyleSheet.create({
   overlayBtnText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#fff",
+    color: theme.colors.textInverse,
   },
 
   top: {

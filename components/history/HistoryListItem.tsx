@@ -37,6 +37,11 @@ export type ActivityRowProps = CommonProps & {
   showAddress?: boolean;
   /** Draw a 1px bottom separator (for stacked rows inside a host card). */
   divider?: boolean;
+  /**
+   * When true, always show the plain action label (e.g. "Checked Out")
+   * without "You" prefix or actor name. Used in the agent's own activity list.
+   */
+  plain?: boolean;
 };
 
 // ── Card variant ─────────────────────────────────────────────────────────────
@@ -92,10 +97,11 @@ export function ActivityRow({
   item,
   showAddress = true,
   divider = false,
+  plain = false,
 }: ActivityRowProps) {
   const currentUserId = useCurrentUserId();
   const movement = MOVEMENT_CONFIG[item.transaction_type];
-  const label = getMovementLabel(item, currentUserId);
+  const label = plain ? movement.label : getMovementLabel(item, currentUserId);
   const address = showAddress ? formatShortAddress(item.property) : null;
 
   return (

@@ -1,6 +1,5 @@
 import { memo, useCallback, useDeferredValue, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Pressable,
   RefreshControl,
@@ -16,7 +15,7 @@ import { theme } from "@/constants";
 import { useAgents, useProfileImageUrl } from "@/lib/hooks";
 import { useRefreshControl } from "@/hooks";
 import type { AgentProfile } from "@/lib/services";
-import { PhoneLink } from "@/components/ui";
+import { EmptyState, ErrorState, LoadingState, PhoneLink } from "@/components/ui";
 
 import { AgentDetailsSheet } from "./AgentDetailsSheet";
 import { sharedStyles } from "./styles";
@@ -51,39 +50,26 @@ export function AgentsList() {
   );
 
   if (isLoading) {
-    return (
-      <View style={sharedStyles.centered}>
-        <ActivityIndicator color={theme.colors.primary} size="large" />
-      </View>
-    );
+    return <LoadingState message="Loading agents…" />;
   }
 
   if (error) {
     return (
-      <View style={sharedStyles.centered}>
-        <Text style={sharedStyles.errorText}>Failed to load agents.</Text>
-        <Pressable onPress={() => refetch()} style={sharedStyles.retryBtn}>
-          <Text style={sharedStyles.retryLabel}>Retry</Text>
-        </Pressable>
-      </View>
+      <ErrorState
+        title="Couldn't load agents"
+        message="Check your connection and try again."
+        onRetry={refetch}
+      />
     );
   }
 
   if (!agents || agents.length === 0) {
     return (
-      <View style={sharedStyles.centered}>
-        <View style={sharedStyles.emptyIcon}>
-          <UserCheck
-            size={32}
-            color={theme.colors.textLight}
-            strokeWidth={1.5}
-          />
-        </View>
-        <Text style={sharedStyles.emptyTitle}>No agents yet</Text>
-        <Text style={sharedStyles.emptyMessage}>
-          Approved agents will appear here once they complete registration.
-        </Text>
-      </View>
+      <EmptyState
+        Icon={UserCheck}
+        title="No agents yet"
+        message="Approved agents will appear here once they complete registration."
+      />
     );
   }
 
@@ -128,7 +114,9 @@ export function AgentsList() {
         }
         keyboardShouldPersistTaps="handled"
       />
-      <AgentDetailsSheet agent={selected} onClose={handleClose} />
+      {selected ? (
+        <AgentDetailsSheet agent={selected} onClose={handleClose} />
+      ) : null}
     </>
   );
 }
@@ -169,7 +157,9 @@ const AgentCard = memo(function AgentCard({
             source={{ uri: imageUrl }}
             style={styles.image}
             contentFit="cover"
+            cachePolicy="memory-disk"
             transition={160}
+            recyclingKey={imageUrl}
           />
         ) : (
           <View style={styles.imageFallback}>

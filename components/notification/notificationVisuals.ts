@@ -1,9 +1,9 @@
 import {
   AlertTriangle,
   Bell,
+  Building2,
+  CalendarClock,
   Clock,
-  KeyRound,
-  LogIn,
   RotateCcw,
   UserPlus,
 } from "lucide-react-native";
@@ -31,12 +31,6 @@ export type NotificationVisual = {
 
 export const NOTIFICATION_VISUALS: Record<NotificationType, NotificationVisual> =
   {
-    KEY_CHECKOUT_CREATED: {
-      label: "Keyset checkout",
-      Icon: KeyRound,
-      color: theme.colors.info,
-      bg: theme.colors.infoSoft,
-    },
     KEY_DUE_SOON: {
       label: "Due soon",
       Icon: Clock,
@@ -48,12 +42,6 @@ export const NOTIFICATION_VISUALS: Record<NotificationType, NotificationVisual> 
       Icon: AlertTriangle,
       color: theme.colors.danger,
       bg: theme.colors.dangerSoft,
-    },
-    KEY_RETURNED: {
-      label: "Returned",
-      Icon: LogIn,
-      color: theme.colors.success,
-      bg: theme.colors.successSoft,
     },
     KEY_LOST_REPORTED: {
       label: "Lost keyset",
@@ -72,6 +60,20 @@ export const NOTIFICATION_VISUALS: Record<NotificationType, NotificationVisual> 
       Icon: RotateCcw,
       color: theme.colors.warning,
       bg: theme.colors.warningSoft,
+    },
+    // ── Agent ───────────────────────────────────────────────────────────────
+    UPCOMING_RESERVATION: {
+      label: "Upcoming reservation",
+      Icon: CalendarClock,
+      color: theme.colors.info,
+      bg: theme.colors.infoSoft,
+    },
+    // ── Admin ───────────────────────────────────────────────────────────────
+    TENANCY_REMINDER: {
+      label: "Tenancy reminder",
+      Icon: Building2,
+      color: theme.colors.primary,
+      bg: theme.colors.primarySoft,
     },
   };
 

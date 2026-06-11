@@ -21,6 +21,8 @@ type InputProps = TextInputProps & {
   rightIcon?: React.ReactNode;
   /** Style override for the outer border container */
   containerStyle?: ViewStyle;
+  /** Background colour of the floating label pill — should match the parent surface */
+  labelBackground?: string;
 };
 
 export function Input({
@@ -29,6 +31,7 @@ export function Input({
   required,
   rightIcon,
   containerStyle,
+  labelBackground,
   multiline,
   style,
   onFocus,
@@ -39,47 +42,49 @@ export function Input({
   const hasError = Boolean(error);
 
   return (
-    <View
-      style={[
-        styles.wrap,
-        multiline ? styles.wrapMultiline : styles.wrapSingle,
-        focused && styles.wrapFocused,
-        hasError && styles.wrapError,
-        containerStyle,
-      ]}
-    >
-      {label ? (
-        <Text
-          style={[
-            styles.label,
-            focused && styles.labelFocused,
-            hasError && styles.labelError,
-          ]}
-          numberOfLines={1}
-        >
-          {label}
-          {required ? <Text style={styles.asterisk}> *</Text> : null}
-        </Text>
-      ) : null}
+    <View style={[styles.outer, containerStyle]}>
+      <View
+        style={[
+          styles.wrap,
+          multiline ? styles.wrapMultiline : styles.wrapSingle,
+          focused && styles.wrapFocused,
+          hasError && styles.wrapError,
+        ]}
+      >
+        {label ? (
+          <Text
+            style={[
+              styles.label,
+              labelBackground ? { backgroundColor: labelBackground } : undefined,
+              focused && styles.labelFocused,
+              hasError && styles.labelError,
+            ]}
+            numberOfLines={1}
+          >
+            {label}
+            {required ? <Text style={styles.asterisk}> *</Text> : null}
+          </Text>
+        ) : null}
 
-      <View style={styles.row}>
-        <TextInput
-          style={[styles.input, multiline && styles.inputMultiline, style]}
-          placeholderTextColor={theme.colors.textLight}
-          selectionColor={theme.colors.primary}
-          multiline={multiline}
-          textAlignVertical={multiline ? "top" : undefined}
-          onFocus={(e) => {
-            setFocused(true);
-            onFocus?.(e);
-          }}
-          onBlur={(e) => {
-            setFocused(false);
-            onBlur?.(e);
-          }}
-          {...props}
-        />
-        {rightIcon ? <View style={styles.iconWrap}>{rightIcon}</View> : null}
+        <View style={styles.row}>
+          <TextInput
+            style={[styles.input, multiline && styles.inputMultiline, style]}
+            placeholderTextColor={theme.colors.textLight}
+            selectionColor={theme.colors.primary}
+            multiline={multiline}
+            textAlignVertical={multiline ? "top" : undefined}
+            onFocus={(e) => {
+              setFocused(true);
+              onFocus?.(e);
+            }}
+            onBlur={(e) => {
+              setFocused(false);
+              onBlur?.(e);
+            }}
+            {...props}
+          />
+          {rightIcon ? <View style={styles.iconWrap}>{rightIcon}</View> : null}
+        </View>
       </View>
 
       {hasError ? <Text style={styles.error}>{error}</Text> : null}
@@ -88,8 +93,10 @@ export function Input({
 }
 
 const styles = StyleSheet.create({
-  wrap: {
+  outer: {
     marginTop: 10,
+  },
+  wrap: {
     borderWidth: 1,
     borderColor: theme.colors.border,
     borderRadius: theme.radius.md,
@@ -116,7 +123,7 @@ const styles = StyleSheet.create({
     top: -9,
     left: 10,
     paddingHorizontal: 4,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.surfaceWarm,
     fontSize: 11,
     fontWeight: "500",
     color: theme.colors.textMuted,
