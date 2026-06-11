@@ -9,6 +9,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 
 import { theme } from "@/constants";
 
@@ -26,6 +27,16 @@ type BottomSheetProps = {
   backdropColor?: string;
   /** Whether the modal sits over the system status bar. Default true. */
   statusBarTranslucent?: boolean;
+  /**
+   * How the sheet reacts when the keyboard appears.
+   * - `"position"` (default): lifts the entire sheet so its bottom sits on top
+   *   of the keyboard. Best for short sheets whose natural height is much
+   *   smaller than the screen.
+   * - `"none"`: no automatic avoidance — the sheet stays put. Use for tall
+   *   sheets (e.g. those with an internal `ScrollView` that already handles
+   *   keyboard insets via `automaticallyAdjustKeyboardInsets`).
+   */
+  keyboardBehavior?: "position" | "none";
   /**
    * Extra content rendered INSIDE the Modal but outside the sliding sheet.
    * Use this to place absolutely-positioned overlays (e.g. a right-side picker
@@ -51,6 +62,7 @@ export function BottomSheet({
   hideHandle = false,
   backdropColor = "rgba(0,0,0,0.4)",
   statusBarTranslucent = true,
+  keyboardBehavior = "position",
   overlayChildren,
 }: BottomSheetProps) {
   const insets = useSafeAreaInsets();
@@ -110,18 +122,48 @@ export function BottomSheet({
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
       </Animated.View>
 
-      {/* Sheet slides up independently */}
-      <Animated.View
-        style={[
-          styles.sheet,
-          { paddingBottom: insets.bottom + theme.spacing.md },
-          { transform: [{ translateY: slideAnim }] },
-          containerStyle,
-        ]}
-      >
-        {!hideHandle && <View style={styles.handle} />}
-        {children}
-      </Animated.View>
+      {/* Sheet slides up independently. When `keyboardBehavior="position"`,
+          `KeyboardAvoidingView` lifts the whole sheet so its bottom sits on
+          top of the keyboard. The negative `keyboardVerticalOffset` cancels
+          out the sheet's bottom safe-area padding (unnecessary while the
+          keyboard is up) leaving a small breathing gap above the keyboard.
+          Tall sheets with internal scrolling should opt out via
+          `keyboardBehavior="none"` and handle keyboard insets inside their
+          own ScrollView. */}
+      {keyboardBehavior === "position" ? (
+        <KeyboardAvoidingView
+          behavior="position"
+          style={styles.avoider}
+          keyboardVerticalOffset={
+            -(insets.bottom + theme.spacing.md) + theme.spacing.sm
+          }
+        >
+          <Animated.View
+            style={[
+              styles.sheet,
+              { paddingBottom: insets.bottom + theme.spacing.md },
+              { transform: [{ translateY: slideAnim }] },
+              containerStyle,
+            ]}
+          >
+            {!hideHandle && <View style={styles.handle} />}
+            {children}
+          </Animated.View>
+        </KeyboardAvoidingView>
+      ) : (
+        <Animated.View
+          style={[
+            styles.sheet,
+            styles.sheetAnchored,
+            { paddingBottom: insets.bottom + theme.spacing.md },
+            { transform: [{ translateY: slideAnim }] },
+            containerStyle,
+          ]}
+        >
+          {!hideHandle && <View style={styles.handle} />}
+          {children}
+        </Animated.View>
+      )}
 
       {/* Optional overlay content (e.g. right-side picker panel) */}
       {overlayChildren}
@@ -133,11 +175,13 @@ const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
   },
-  sheet: {
+  avoider: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
+  },
+  sheet: {
     backgroundColor: theme.colors.surface,
     borderTopLeftRadius: theme.radius.xl,
     borderTopRightRadius: theme.radius.xl,
@@ -148,6 +192,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 16,
     elevation: 12,
+  },
+  sheetAnchored: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   handle: {
     alignSelf: "center",

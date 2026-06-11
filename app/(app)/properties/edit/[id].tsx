@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -8,6 +9,8 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Check,
   ChevronDown,
@@ -16,30 +19,32 @@ import {
   Minus,
   Plus,
   Trash2,
-  X,
 } from "lucide-react-native";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { BottomSheet, PickerModal } from "@/components/ui";
+import { useLocalSearchParams, useRouter } from "expo-router";
+
+import { Button, ErrorState, LoadingState, PickerModal } from "@/components/ui";
 import {
   KEY_TYPE_ICON,
   KEY_TYPE_LABEL,
   PROPERTY_TYPES,
   theme,
 } from "@/constants";
-import { useDebouncedValue } from "@/hooks";
 import { getKeyName, getKeySignature } from "@/lib/utils";
 import {
   useAllPropertyKeys,
   useCreateKeys,
   useDeleteKey,
+  useProperty,
+  usePropertyTenant,
   useUpdateKey,
   useUpdatePropertyDetails,
-  usePropertyTenant,
 } from "@/lib/hooks";
 import { updateKeyHolder } from "@/lib/services";
 import type { EnrichedKey } from "@/lib/hooks";
-import type { PropertyWithLandlord } from "@/lib/services";
 import type { DbKeyInsert, KeyType, PropertyType } from "@/types";
+
+// ── Key type options ──────────────────────────────────────────────────────────
 
 const ALL_KEY_TYPE_OPTIONS = (Object.keys(KEY_TYPE_LABEL) as KeyType[]).map(
   (type) => {
@@ -54,26 +59,22 @@ const ALL_KEY_TYPE_OPTIONS = (Object.keys(KEY_TYPE_LABEL) as KeyType[]).map(
 
 type ComparableKey = Pick<EnrichedKey, "key_type" | "label" | "code">;
 
-// -- PropertyKeysSection -------------------------------------------------------
+// ── PropertyKeysSection ───────────────────────────────────────────────────────
+
 type PropertyKeysSectionProps = {
   propertyId: string;
   allKeys: EnrichedKey[];
 };
-function PropertyKeysSection({
-  propertyId,
-  allKeys,
-}: PropertyKeysSectionProps) {
+
+function PropertyKeysSection({ propertyId, allKeys }: PropertyKeysSectionProps) {
   const [pendingType, setPendingType] = useState<KeyType>("main_door");
   const [pendingQty, setPendingQty] = useState(1);
   const [pendingCode, setPendingCode] = useState("");
   const [typePickerOpen, setTypePickerOpen] = useState(false);
-  // `adding` is local to the Add-key flow so the Add button's spinner is NOT
-  // triggered by per-row stepper updates (which share the same updateMut).
   const [adding, setAdding] = useState(false);
   const createMut = useCreateKeys(propertyId);
   const deleteMut = useDeleteKey(propertyId);
   const updateMut = useUpdateKey(propertyId);
-  const addBusy = adding;
 
   function resetPendingKey() {
     setPendingQty(1);
@@ -81,7 +82,7 @@ function PropertyKeysSection({
   }
 
   function handleAdd() {
-    if (pendingQty < 1 || addBusy) return;
+    if (pendingQty < 1 || adding) return;
     setTypePickerOpen(false);
     const pendingLabel = KEY_TYPE_LABEL[pendingType] ?? pendingType;
     const pendingKey = {
@@ -101,10 +102,7 @@ function PropertyKeysSection({
           keyId: matchingKey.id,
           patch: { quantity: (matchingKey.quantity ?? 1) + pendingQty },
         },
-        {
-          onSuccess: resetPendingKey,
-          onSettled: () => setAdding(false),
-        },
+        { onSuccess: resetPendingKey, onSettled: () => setAdding(false) },
       );
       return;
     }
@@ -122,14 +120,17 @@ function PropertyKeysSection({
       onSettled: () => setAdding(false),
     });
   }
+
   function handleQtyChange(key: EnrichedKey, delta: number) {
     const next = Math.max(1, (key.quantity ?? 1) + delta);
     if (next === (key.quantity ?? 1)) return;
     updateMut.mutate({ keyId: key.id, patch: { quantity: next } }, {});
   }
+
   function handleDelete(key: EnrichedKey) {
     deleteMut.mutate(key.id);
   }
+
   return (
     <View style={styles.keysCard}>
       {allKeys.length === 0 && (
@@ -145,9 +146,7 @@ function PropertyKeysSection({
               <Icon size={13} color={theme.colors.accent} strokeWidth={1.8} />
             </View>
             <View style={styles.keyInfo}>
-              <Text style={styles.keyLabel} numberOfLines={1}>
-                {label}
-              </Text>
+              <Text style={styles.keyLabel} numberOfLines={1}>{label}</Text>
               {k.code ? <Text style={styles.keyCode}>{k.code}</Text> : null}
             </View>
             {k.keySetName && (
@@ -184,10 +183,7 @@ function PropertyKeysSection({
               onPress={() => handleDelete(k)}
               disabled={deleteMut.isPending}
               hitSlop={8}
-              style={({ pressed }) => [
-                styles.deleteBtn,
-                pressed && { opacity: 0.65 },
-              ]}
+              style={({ pressed }) => [styles.deleteBtn, pressed && { opacity: 0.65 }]}
             >
               {deleteMut.isPending ? (
                 <ActivityIndicator size={13} color={theme.colors.danger} />
@@ -209,33 +205,19 @@ function PropertyKeysSection({
               pressed && { opacity: 0.75 },
             ]}
             onPress={() => setTypePickerOpen((v) => !v)}
-            disabled={addBusy}
+            disabled={adding}
           >
             {(() => {
               const Icon = KEY_TYPE_ICON[pendingType] ?? KeyRound;
-              return (
-                <Icon
-                  size={14}
-                  color={theme.colors.textMuted}
-                  strokeWidth={1.8}
-                />
-              );
+              return <Icon size={14} color={theme.colors.textMuted} strokeWidth={1.8} />;
             })()}
             <Text style={styles.typePickerText} numberOfLines={1}>
               {KEY_TYPE_LABEL[pendingType]}
             </Text>
             {typePickerOpen ? (
-              <ChevronUp
-                size={13}
-                color={theme.colors.textMuted}
-                strokeWidth={2}
-              />
+              <ChevronUp size={13} color={theme.colors.textMuted} strokeWidth={2} />
             ) : (
-              <ChevronDown
-                size={13}
-                color={theme.colors.textMuted}
-                strokeWidth={2}
-              />
+              <ChevronDown size={13} color={theme.colors.textMuted} strokeWidth={2} />
             )}
           </Pressable>
           {typePickerOpen && (
@@ -271,11 +253,7 @@ function PropertyKeysSection({
                       {opt.label}
                     </Text>
                     {selected && (
-                      <Check
-                        size={13}
-                        color={theme.colors.accent}
-                        strokeWidth={2.5}
-                      />
+                      <Check size={13} color={theme.colors.accent} strokeWidth={2.5} />
                     )}
                   </Pressable>
                 );
@@ -286,22 +264,20 @@ function PropertyKeysSection({
         <View style={styles.stepper}>
           <Pressable
             onPress={() => setPendingQty((v) => Math.max(1, v - 1))}
-            disabled={addBusy || pendingQty <= 1}
+            disabled={adding || pendingQty <= 1}
             hitSlop={6}
             style={[styles.stepBtn, pendingQty <= 1 && styles.stepBtnDisabled]}
           >
             <Minus
               size={11}
-              color={
-                pendingQty <= 1 ? theme.colors.textLight : theme.colors.text
-              }
+              color={pendingQty <= 1 ? theme.colors.textLight : theme.colors.text}
               strokeWidth={2.5}
             />
           </Pressable>
           <Text style={styles.stepVal}>{pendingQty}</Text>
           <Pressable
             onPress={() => setPendingQty((v) => v + 1)}
-            disabled={addBusy}
+            disabled={adding}
             hitSlop={6}
             style={styles.stepBtn}
           >
@@ -312,12 +288,12 @@ function PropertyKeysSection({
           style={({ pressed }) => [
             styles.addKeyBtn,
             pressed && { opacity: 0.78 },
-            addBusy && { opacity: 0.6 },
+            adding && { opacity: 0.6 },
           ]}
           onPress={handleAdd}
-          disabled={addBusy}
+          disabled={adding}
         >
-          {addBusy ? (
+          {adding ? (
             <ActivityIndicator size="small" color={theme.colors.accent} />
           ) : (
             <Text style={styles.addKeyBtnText}>Add</Text>
@@ -336,33 +312,33 @@ function PropertyKeysSection({
     </View>
   );
 }
-// -- PropertyEditModal ---------------------------------------------------------
-type Props = {
-  property: PropertyWithLandlord;
-  visible: boolean;
-  onClose: () => void;
-};
-export function PropertyEditSheet({ property, visible, onClose }: Props) {
+
+// ── Screen ────────────────────────────────────────────────────────────────────
+
+export default function EditPropertyScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
-  const { allKeys } = useAllPropertyKeys(property.id);
-  const updateDetailsMut = useUpdatePropertyDetails(property.id);
-  const isLeased = property.status === "leased";
+
+  const { data: property, isPending: propertyLoading, isError, refetch } = useProperty(id);
+
+  const isLeased = property?.status === "leased";
+  const { allKeys } = useAllPropertyKeys(id);
+  const updateDetailsMut = useUpdatePropertyDetails(id);
 
   const [propertyType, setPropertyType] = useState<PropertyType>(
-    property.property_type,
+    property?.property_type ?? "apartment",
   );
-  const [landlordName, setLandlordName] = useState(
-    property.landlord?.full_name ?? "",
-  );
-  const [landlordContact, setLandlordContact] = useState(
-    property.landlord?.phone ?? "",
-  );
+  const [landlordName, setLandlordName] = useState(property?.landlord?.full_name ?? "");
+  const [landlordContact, setLandlordContact] = useState(property?.landlord?.phone ?? "");
   const [showTypePicker, setShowTypePicker] = useState(false);
 
-  // ── Tenant state ────────────────────────────────────────────────────────
-  const { data: tenant } = usePropertyTenant(property.id, isLeased);
+  // ── Tenant state ─────────────────────────────────────────────────────────
+  const { data: tenant } = usePropertyTenant(id, isLeased);
   const [tenantName, setTenantName] = useState(tenant?.full_name ?? "");
   const [tenantPhone, setTenantPhone] = useState(tenant?.phone ?? "");
+
   const tenantUpdateMut = useMutation({
     mutationFn: ({ name, phone }: { name: string; phone: string }) => {
       if (!tenant?.id) return Promise.resolve();
@@ -372,145 +348,80 @@ export function PropertyEditSheet({ property, visible, onClose }: Props) {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["propertyTenant", property.id],
-      });
+      queryClient.invalidateQueries({ queryKey: ["propertyTenant", id] });
     },
   });
 
-  const lastSavedTenantRef = useRef({
-    name: (tenant?.full_name ?? "").trim(),
-    phone: (tenant?.phone ?? "").trim(),
-  });
-
-  // Track last-saved snapshot so the debounced auto-save effect only fires
-  // when the user actually changes something (not on every re-render or after
-  // the parent re-emits the same prop values).
-  const lastSavedRef = useRef({
-    type: property.property_type,
-    name: (property.landlord?.full_name ?? "").trim(),
-    phone: (property.landlord?.phone ?? "").trim(),
-  });
-
+  // Sync form once property/tenant data arrives
+  const propertySyncedRef = useRef(false);
   useEffect(() => {
-    if (visible) {
+    if (property && !propertySyncedRef.current) {
       setPropertyType(property.property_type);
       setLandlordName(property.landlord?.full_name ?? "");
       setLandlordContact(property.landlord?.phone ?? "");
-      lastSavedRef.current = {
-        type: property.property_type,
-        name: (property.landlord?.full_name ?? "").trim(),
-        phone: (property.landlord?.phone ?? "").trim(),
-      };
+      propertySyncedRef.current = true;
     }
-  }, [visible, property]);
+  }, [property]);
 
-  // Sync tenant fields when tenant data loads or sheet opens
+  const tenantSyncedRef = useRef(false);
   useEffect(() => {
-    if (visible) {
-      setTenantName(tenant?.full_name ?? "");
-      setTenantPhone(tenant?.phone ?? "");
-      lastSavedTenantRef.current = {
-        name: (tenant?.full_name ?? "").trim(),
-        phone: (tenant?.phone ?? "").trim(),
-      };
+    if (tenant && !tenantSyncedRef.current) {
+      setTenantName(tenant.full_name ?? "");
+      setTenantPhone(tenant.phone ?? "");
+      tenantSyncedRef.current = true;
     }
-  }, [visible, tenant]);
+  }, [tenant]);
 
-  // ── Debounced auto-save ─────────────────────────────────────────────────
-  const debouncedType = useDebouncedValue(propertyType, 600);
-  const debouncedName = useDebouncedValue(landlordName, 600);
-  const debouncedPhone = useDebouncedValue(landlordContact, 600);
-  const debouncedTenantName = useDebouncedValue(tenantName, 600);
-  const debouncedTenantPhone = useDebouncedValue(tenantPhone, 600);
+  // ── Save ──────────────────────────────────────────────────────────────────
+  const isPending = updateDetailsMut.isPending || tenantUpdateMut.isPending;
 
-  useEffect(() => {
-    if (!visible) return;
-    const next = {
-      type: debouncedType,
-      name: debouncedName.trim(),
-      phone: debouncedPhone.trim(),
-    };
-    const last = lastSavedRef.current;
-    if (
-      next.type === last.type &&
-      next.name === last.name &&
-      next.phone === last.phone
-    ) {
-      return;
-    }
-    updateDetailsMut.mutate(
-      {
-        patch: next.type !== last.type ? { property_type: next.type } : {},
+  async function handleSave() {
+    if (isPending || !property) return;
+    try {
+      await updateDetailsMut.mutateAsync({
+        patch: { property_type: propertyType },
         landlord: {
           holderId: property.landlord?.id ?? null,
-          name: debouncedName,
-          phone: debouncedPhone,
+          name: landlordName,
+          phone: landlordContact,
         },
-      },
-      {
-        onSuccess: () => {
-          lastSavedRef.current = next;
-        },
-      },
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedType, debouncedName, debouncedPhone, visible]);
+      });
+      if (isLeased && tenant?.id) {
+        await tenantUpdateMut.mutateAsync({ name: tenantName, phone: tenantPhone });
+      }
+      router.back();
+    } catch {
+      // errors captured by mutation state — stay on screen
+    }
+  }
 
-  // Auto-save tenant changes
-  useEffect(() => {
-    if (!visible || !isLeased || !tenant?.id) return;
-    const next = {
-      name: debouncedTenantName.trim(),
-      phone: debouncedTenantPhone.trim(),
-    };
-    const last = lastSavedTenantRef.current;
-    if (next.name === last.name && next.phone === last.phone) return;
-    tenantUpdateMut.mutate(
-      { name: debouncedTenantName, phone: debouncedTenantPhone },
-      {
-        onSuccess: () => {
-          lastSavedTenantRef.current = next;
-        },
-      },
+  // ── Render ────────────────────────────────────────────────────────────────
+  if (propertyLoading) return <LoadingState message="Loading property…" />;
+  if (isError || !property) {
+    return (
+      <ErrorState
+        title="Property not found"
+        message="Could not load this property."
+        onRetry={refetch}
+      />
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedTenantName, debouncedTenantPhone, visible]);
-
-  const isPending = updateDetailsMut.isPending || tenantUpdateMut.isPending;
+  }
 
   const selectedTypeLabel =
     PROPERTY_TYPES.find((t) => t.value === propertyType)?.label ?? "Select…";
 
   return (
     <>
-      <BottomSheet
-        visible={visible}
-        onClose={onClose}
-        containerStyle={styles.sheet}
-      >
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Edit Property</Text>
-          {isPending && (
-            <ActivityIndicator size="small" color={theme.colors.primary} />
-          )}
-          <Pressable
-            onPress={onClose}
-            hitSlop={8}
-            style={({ pressed }) => [
-              styles.closeBtn,
-              pressed && { opacity: 0.6 },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Close"
-          >
-            <X size={18} color={theme.colors.text} strokeWidth={2.2} />
-          </Pressable>
-        </View>
-        <ScrollView
+      <View style={styles.screen}>
+        <KeyboardAwareScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: theme.spacing.md },
+          ]}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          bottomOffset={Platform.OS === "ios" ? 32 : 16}
           showsVerticalScrollIndicator={false}
         >
           {/* Property type */}
@@ -518,19 +429,13 @@ export function PropertyEditSheet({ property, visible, onClose }: Props) {
             <Text style={styles.sectionLabel}>Property Type</Text>
             <Pressable
               onPress={() => setShowTypePicker(true)}
-              style={({ pressed }) => [
-                styles.selectField,
-                pressed && { opacity: 0.7 },
-              ]}
+              style={({ pressed }) => [styles.selectField, pressed && { opacity: 0.7 }]}
             >
               <Text style={styles.selectText}>{selectedTypeLabel}</Text>
-              <ChevronDown
-                size={16}
-                color={theme.colors.textMuted}
-                strokeWidth={2}
-              />
+              <ChevronDown size={16} color={theme.colors.textMuted} strokeWidth={2} />
             </Pressable>
           </View>
+
           {/* Landlord */}
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Landlord</Text>
@@ -556,6 +461,7 @@ export function PropertyEditSheet({ property, visible, onClose }: Props) {
               />
             </View>
           </View>
+
           {/* Tenant — only shown for leased properties */}
           {isLeased && (
             <View style={styles.section}>
@@ -583,13 +489,34 @@ export function PropertyEditSheet({ property, visible, onClose }: Props) {
               </View>
             </View>
           )}
+
           {/* Keys */}
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Keys</Text>
-            <PropertyKeysSection propertyId={property.id} allKeys={allKeys} />
+            <PropertyKeysSection propertyId={id} allKeys={allKeys} />
           </View>
-        </ScrollView>
-      </BottomSheet>
+        </KeyboardAwareScrollView>
+
+        {/* Footer */}
+        <View style={[styles.footer, { paddingBottom: insets.bottom + theme.spacing.sm }]}>
+          <Button
+            title="Cancel"
+            variant="outline"
+            onPress={() => router.back()}
+            disabled={isPending}
+            style={styles.cancelBtn}
+          />
+          <Button
+            title="Save"
+            variant="primary"
+            loading={isPending}
+            disabled={isPending}
+            onPress={handleSave}
+            style={styles.saveBtn}
+          />
+        </View>
+      </View>
+
       <PickerModal
         visible={showTypePicker}
         title="Property Type"
@@ -601,35 +528,26 @@ export function PropertyEditSheet({ property, visible, onClose }: Props) {
     </>
   );
 }
-// -- Styles --------------------------------------------------------------------
+
+// ── Styles ────────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  sheet: { maxHeight: "92%", paddingHorizontal: 0 },
-  header: {
+  screen: { flex: 1, backgroundColor: theme.colors.background },
+  footer: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
     gap: theme.spacing.sm,
     paddingHorizontal: theme.spacing.screen,
-    paddingBottom: theme.spacing.sm,
+    paddingTop: theme.spacing.md,
+    backgroundColor: theme.colors.background,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
   },
-  headerTitle: {
-    flex: 1,
-    fontSize: 17,
-    fontWeight: "700",
-    color: theme.colors.text,
-  },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: theme.colors.neutralSoft,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  cancelBtn: { flex: 1 },
+  saveBtn: { flex: 2 },
   scroll: { flex: 1 },
   scrollContent: {
     paddingHorizontal: theme.spacing.screen,
-    paddingBottom: theme.spacing.xl,
+    paddingTop: theme.spacing.lg,
     gap: theme.spacing.lg,
   },
   section: { gap: theme.spacing.sm },
@@ -685,11 +603,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingVertical: theme.spacing.xs,
   },
-  cardDivider: {
-    height: 1,
-    backgroundColor: theme.colors.border,
-    marginVertical: 2,
-  },
+  cardDivider: { height: 1, backgroundColor: theme.colors.border, marginVertical: 2 },
   keyRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -721,17 +635,8 @@ const styles = StyleSheet.create({
     maxWidth: 80,
     flexShrink: 1,
   },
-  keySetNameBadgeText: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: theme.colors.accent,
-  },
-  stepper: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    flexShrink: 0,
-  },
+  keySetNameBadgeText: { fontSize: 10, fontWeight: "700", color: theme.colors.accent },
+  stepper: { flexDirection: "row", alignItems: "center", gap: 5, flexShrink: 0 },
   stepBtn: {
     width: 26,
     height: 26,
@@ -759,11 +664,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexShrink: 0,
   },
-  addKeyRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-  },
+  addKeyRow: { flexDirection: "row", alignItems: "center", gap: theme.spacing.sm },
   typePickerWrapper: { flex: 1, position: "relative", zIndex: 10 },
   typePicker: {
     flexDirection: "row",
@@ -776,10 +677,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.sm,
     backgroundColor: theme.colors.background,
   },
-  typePickerOpen: {
-    borderColor: theme.colors.accent,
-    backgroundColor: theme.colors.accentSoft,
-  },
+  typePickerOpen: { borderColor: theme.colors.accent, backgroundColor: theme.colors.accentSoft },
   typePickerText: { flex: 1, fontSize: 13, color: theme.colors.text },
   inlinePicker: {
     position: "absolute",
@@ -820,11 +718,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     minWidth: 60,
   },
-  addKeyBtnText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: theme.colors.accent,
-  },
+  addKeyBtnText: { fontSize: 14, fontWeight: "700", color: theme.colors.accent },
   codeInput: {
     height: 40,
     borderWidth: 1,

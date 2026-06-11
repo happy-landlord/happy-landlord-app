@@ -8,7 +8,6 @@ import { useKeySetActions } from "@/components/keyset/detail/useKeySetActions";
 import { useKeysetAvailability } from "@/components/keyset/useKeysetAvailability";
 
 import { KeySetDurationModal } from "./KeySetDurationModal";
-import { KeySetEditSheet } from "./KeySetEditSheet";
 import { ReportLostSheet } from "./ReportLostSheet";
 import { ReserveKeySetModal } from "./ReserveKeySetModal";
 import { ReturnConfirmModal } from "./ReturnConfirmModal";
@@ -101,18 +100,6 @@ export function KeySetModals() {
           )
         }
       />
-
-      {/* Admin: edit keys */}
-      {isAdmin && (
-        <KeySetEditSheet
-          visible={modal.kind === "editKeys"}
-          onClose={closeModal}
-          propertyId={keySet.property_id}
-          keySetId={keySet.id}
-          keySetName={keySet.name}
-          keys={keySet.keys ?? []}
-        />
-      )}
 
       {/* Admin: return confirm */}
       <ReturnConfirmModal

@@ -218,13 +218,19 @@ const styles = StyleSheet.create({
   },
   label: {
     flex: 1,
-    fontSize: 13,
-    fontWeight: "600",
-    color: theme.colors.text,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.7,
+    textTransform: "uppercase",
+    color: theme.colors.textLight,
     paddingBottom: 4,
   },
   labelCompact: {
+    fontSize: 11,
     fontWeight: "700",
+    letterSpacing: 0.7,
+    textTransform: "uppercase",
+    color: theme.colors.textLight,
   },
   photoCount: {
     fontSize: 12,

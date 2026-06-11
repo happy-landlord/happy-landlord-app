@@ -135,6 +135,7 @@ export default function AppLayout() {
           options={{ headerShown: false, presentation: "fullScreenModal" }}
         />
         <Stack.Screen name="properties/add" options={{ headerShown: false }} />
+        <Stack.Screen name="properties/edit/[id]" />
         <Stack.Screen name="properties/[id]" />
         <Stack.Screen name="properties/[id]/keysets/[keysetId]" />
         <Stack.Screen name="checkouts/[id]" />

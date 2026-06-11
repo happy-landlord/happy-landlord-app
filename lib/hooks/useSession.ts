@@ -48,6 +48,22 @@ export function useSession() {
 
 // ── Convenience helpers ──────────────────────────────────────────────────────
 
+// ── Change password ──────────────────────────────────────────────────────────
+
+/**
+ * Updates the authenticated user's password via Supabase.
+ * The caller is responsible for validating that the two password fields match
+ * before invoking `mutate`.
+ */
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: async (newPassword: string) => {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+    },
+  });
+}
+
 /** Returns the current Supabase user id, or undefined if not signed in. */
 export function useCurrentUserId(): string | undefined {
   const { session } = useSession();

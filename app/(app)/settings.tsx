@@ -10,6 +10,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { useState } from "react";
 import {
   AlertCircle,
   BellOff,
@@ -19,6 +20,7 @@ import {
   ChevronRight,
   ExternalLink,
   Fingerprint,
+  KeyRound,
   ShieldCheck,
   Smartphone,
   Wrench,
@@ -38,6 +40,7 @@ import {
 import { getBiometricLabel } from "@/lib/services";
 import { useDevOverridesStore } from "@/lib/state";
 import { useRole } from "@/hooks";
+import { ChangePasswordSheet } from "@/components/settings";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -119,6 +122,9 @@ export default function SettingsScreen() {
   const biometricCapability = biometric?.capability ?? null;
   const biometricEnabled = biometric?.enabled ?? false;
 
+  // ── Change password ───────────────────────────────────────────────────
+  const [changePasswordVisible, setChangePasswordVisible] = useState(false);
+
   // ── Shared ────────────────────────────────────────────────────────────
   const permissionDenied = pushStatus?.permissionStatus === "denied";
   const pushEnabled = pushStatus?.pushEnabled ?? false;
@@ -153,6 +159,7 @@ export default function SettingsScreen() {
       : "Android device";
 
   return (
+    <>
     <ScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
@@ -219,6 +226,24 @@ export default function SettingsScreen() {
           iconColor={theme.colors.success}
           title="Session"
           subtitle="Your login session is managed securely by Supabase"
+        />
+
+        <RowDivider />
+
+        <SettingRow
+          Icon={KeyRound}
+          iconBg={theme.colors.primarySoft}
+          iconColor={theme.colors.primary}
+          title="Change password"
+          subtitle="Update your account password"
+          onPress={() => setChangePasswordVisible(true)}
+          right={
+            <ChevronRight
+              size={16}
+              color={theme.colors.textLight}
+              strokeWidth={2}
+            />
+          }
         />
       </SectionCard>
 
@@ -345,6 +370,12 @@ export default function SettingsScreen() {
       {/* ── Developer section (dev builds only) ───────────────────────── */}
       {__DEV__ && <DeveloperSection />}
     </ScrollView>
+
+    <ChangePasswordSheet
+      visible={changePasswordVisible}
+      onClose={() => setChangePasswordVisible(false)}
+    />
+    </>
   );
 }
 

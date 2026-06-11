@@ -4,7 +4,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Building2, Pencil, Users } from "lucide-react-native";
 import { useState } from "react";
@@ -15,7 +15,6 @@ import {
   HandoverLandlordSheet,
   HandoverTenantSheet,
   KeySetsSection,
-  PropertyEditSheet,
   PropertyHeader,
 } from "@/components/property";
 import { theme } from "@/constants";
@@ -25,6 +24,7 @@ import { useRole, useRefreshControl } from "@/hooks";
 export default function PropertyDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { isAdmin } = useRole();
 
   const { data: property, isPending, isError, refetch } = useProperty(id);
@@ -32,7 +32,6 @@ export default function PropertyDetailScreen() {
   const [tenantSheetOpen, setTenantSheetOpen] = useState(false);
   const [collectSheetOpen, setCollectSheetOpen] = useState(false);
   const [landlordSheetOpen, setLandlordSheetOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
 
   if (isPending) return <LoadingState message="Loading property…" />;
 
@@ -71,7 +70,7 @@ export default function PropertyDetailScreen() {
                 label="Edit"
                 variant="accent"
                 icon={<Pencil size={14} color={theme.colors.accent} strokeWidth={2} />}
-                onPress={() => setEditOpen(true)}
+                onPress={() => router.push(`/properties/edit/${id}`)}
                 accessibilityLabel="Edit property"
               />
             </View>
@@ -133,11 +132,6 @@ export default function PropertyDetailScreen() {
             visible={landlordSheetOpen}
             onClose={() => setLandlordSheetOpen(false)}
             propertyId={id}
-          />
-          <PropertyEditSheet
-            property={property}
-            visible={editOpen}
-            onClose={() => setEditOpen(false)}
           />
         </>
       )}

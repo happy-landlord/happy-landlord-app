@@ -1,5 +1,6 @@
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { KeyRound, Pencil } from "lucide-react-native";
+import { useRouter } from "expo-router";
 
 import { IconBadge, MetaRow, type MetaItem, Pill, PillButton, ShareQrButton } from "@/components/ui";
 import { theme } from "@/constants";
@@ -23,7 +24,8 @@ import { useKeySetScreen } from "./KeySetScreenContext";
 // the parent screen only needs to mount it inside `<KeySetScreenProvider>`.
 
 export function KeySetDetailsCard() {
-  const { keySetId, openModal } = useKeySetScreen();
+  const { keySetId } = useKeySetScreen();
+  const router = useRouter();
   const { data: keySet } = useKeySet(keySetId);
   const currentUserId = useCurrentUserId();
   const { isAdmin } = useRole();
@@ -55,7 +57,7 @@ export function KeySetDetailsCard() {
             label="Edit"
             variant="accent"
             icon={<Pencil size={14} color={theme.colors.accent} strokeWidth={2} />}
-            onPress={() => openModal({ kind: "editKeys" })}
+            onPress={() => router.push(`/properties/keyset/edit/${keySetId}`)}
             accessibilityLabel="Edit keyset"
           />
           <ShareQrButton
@@ -83,7 +85,7 @@ export function KeySetDetailsCard() {
                     styles.overlayBtn,
                     pressed && { opacity: 0.7 },
                   ]}
-                  onPress={() => openModal({ kind: "editKeys" })}
+                  onPress={() => router.push(`/properties/keyset/edit/${keySetId}`)}
                   accessibilityRole="button"
                   accessibilityLabel="Edit keyset"
                 >
