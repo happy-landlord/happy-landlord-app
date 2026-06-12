@@ -64,9 +64,7 @@ export function BottomNav({ state, navigation }: BottomTabBarProps) {
     const routeIndex = tabIndexMap[tab.name] ?? -1;
     const isFocused = state.index === routeIndex;
     const { Icon } = tab;
-    const color = isFocused
-      ? theme.colors.primary
-      : theme.colors.textMuted;
+    const color = isFocused ? theme.colors.primary : theme.colors.accentSoft;
 
     const onPress = () => {
       const event = navigation.emit({
@@ -83,18 +81,11 @@ export function BottomNav({ state, navigation }: BottomTabBarProps) {
       <Pressable
         key={tab.name}
         onPress={onPress}
-        style={({ pressed }) => [
-          styles.tab,
-          pressed && styles.tabPressed,
-        ]}
+        style={({ pressed }) => [styles.tab, pressed && styles.tabPressed]}
         accessibilityRole="button"
         accessibilityLabel={tab.label}
       >
-        <Icon
-          size={22}
-          color={color}
-          strokeWidth={isFocused ? 2.2 : 1.8}
-        />
+        <Icon size={22} color={color} strokeWidth={isFocused ? 2.2 : 1.8} />
         <Text style={[styles.label, { color }]}>{tab.label}</Text>
       </Pressable>
     );
@@ -154,7 +145,7 @@ const styles = StyleSheet.create({
   },
   shadowShell: {
     borderRadius: theme.radius.card,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.accentLight,
     shadowColor: theme.colors.accent,
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.34,
@@ -165,7 +156,7 @@ const styles = StyleSheet.create({
   bar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.accentLight,
     borderRadius: theme.radius.card,
     borderWidth: 1,
     borderColor: theme.colors.border,

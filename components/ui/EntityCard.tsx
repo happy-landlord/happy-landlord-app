@@ -2,7 +2,7 @@ import type { ComponentType, ReactNode } from "react";
 import { StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 
 import { theme } from "@/constants";
-import { Card, PressableCard } from "./Card";
+import { Card, PressableCard, type PressableCardPressEffect } from "./Card";
 import { IconBadge, type IconBadgeSize, type IconBadgeTone } from "./IconBadge";
 
 // ── EntityCard ───────────────────────────────────────────────────────────────
@@ -76,6 +76,8 @@ export type EntityCardProps = {
 
   /** When set, renders a `PressableCard` and forwards the handler. */
   onPress?: () => void;
+  /** Optional visual feedback mode used while pressing interactive cards. */
+  pressEffect?: PressableCardPressEffect;
 
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
@@ -94,6 +96,7 @@ export function EntityCard({
   meta,
   footer,
   onPress,
+  pressEffect,
   accessibilityLabel,
   style,
 }: EntityCardProps) {
@@ -147,6 +150,7 @@ export function EntityCard({
       <PressableCard
         onPress={onPress}
         flush
+        pressEffect={pressEffect}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
         style={style}

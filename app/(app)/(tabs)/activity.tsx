@@ -84,6 +84,11 @@ function AdminActivityView() {
 
   return (
     <View style={styles.screen}>
+      {/* Page title */}
+      <View style={styles.pageHeader}>
+        <Text style={styles.pageTitle}>Activity</Text>
+      </View>
+
       {/* Tab strip — matches Properties page Active/Leased/Inactive style */}
       <View style={tabStyles.strip}>
         {ADMIN_TABS.map((tab) => {
@@ -351,6 +356,11 @@ function AgentActivityView() {
 
   const ListHeader = (
     <View style={styles.agentHeader}>
+      {/* Page title */}
+      <View style={styles.pageHeader}>
+        <Text style={styles.pageTitle}>Activity</Text>
+      </View>
+
       <View style={styles.section}>
         <SectionHeader title="My Keysets" />
         {keysetsLoading ? (
@@ -465,6 +475,17 @@ function AgentActivityView() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.background },
+  pageHeader: {
+    paddingHorizontal: theme.spacing.screen,
+    paddingTop: theme.spacing.lg,
+    paddingBottom: theme.spacing.sm,
+  },
+  pageTitle: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: theme.colors.text,
+    letterSpacing: -0.3,
+  },
   stateArea: {
     flex: 1,
     paddingHorizontal: theme.spacing.screen,
@@ -480,7 +501,6 @@ const styles = StyleSheet.create({
   footerLoader: { paddingVertical: theme.spacing.lg, alignItems: "center" },
   // Agent
   agentHeader: {
-    paddingTop: theme.spacing.md,
     gap: theme.spacing.lg,
     paddingBottom: theme.spacing.sm,
   },

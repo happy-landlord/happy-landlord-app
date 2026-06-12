@@ -353,7 +353,13 @@ const styles = StyleSheet.create({
     gap: theme.spacing.xs,
   },
   signUpPrompt: { color: theme.colors.textMuted, fontSize: 13 },
-  signUpLink: { fontSize: 13, color: theme.colors.primary, fontWeight: "700" },
+  signUpLink: {
+    fontSize: 13,
+    color: theme.colors.text,
+    fontWeight: "600",
+    textDecorationLine: "underline",
+    textDecorationColor: theme.colors.border,
+  },
   verifyBanner: {
     flexDirection: "row",
     gap: theme.spacing.sm,

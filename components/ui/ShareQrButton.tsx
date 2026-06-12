@@ -105,10 +105,10 @@ export function ShareQrButton({
       {variant === "pill" ? (
         <PillButton
           label={label}
-          variant="primary"
+          variant="accent"
           icon={
             busy ? null : (
-              <Share2 size={14} color={theme.colors.primary} strokeWidth={2} />
+              <Share2 size={14} color={theme.colors.accent} strokeWidth={2} />
             )
           }
           loading={busy}

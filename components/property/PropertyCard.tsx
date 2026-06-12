@@ -1,11 +1,11 @@
 import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Building2 } from "lucide-react-native";
+import { Building2, ChevronRight } from "lucide-react-native";
 
 import type { DbProperty } from "@/types";
 import { useRole } from "@/hooks";
 import { useCurrentUserId } from "@/lib/hooks";
-import { PROPERTY_TYPE_LABEL } from "@/constants";
+import { PROPERTY_TYPE_LABEL, theme } from "@/constants";
 import { QUERY_KEYS } from "@/lib/query";
 import {
   fetchKeySetsForProperty,
@@ -85,7 +85,9 @@ export function PropertyCard({ property }: PropertyCardProps) {
             property.property_type}
         </Pill>
       }
+      right={<ChevronRight size={16} color={theme.colors.textLight} strokeWidth={2.5} />}
       onPress={handlePress}
+      pressEffect="lift"
       accessibilityLabel={streetLine}
     />
   );

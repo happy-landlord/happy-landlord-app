@@ -62,10 +62,16 @@ export function Card({ tone = "default", flush, style, children, ...rest }: Card
 // Interactive variant — same look as <Card> but with a consistent pressed
 // feedback. Drop-in replacement for hand-rolled `<Pressable style={card}>`.
 
-export type PressableCardProps = BaseProps & Omit<PressableProps, "style" | "children">;
+export type PressableCardPressEffect = "opacity" | "lift";
+
+export type PressableCardProps = BaseProps &
+  Omit<PressableProps, "style" | "children"> & {
+    /** Visual feedback while pressed. Defaults to the legacy opacity treatment. */
+    pressEffect?: PressableCardPressEffect;
+  };
 
 export const PressableCard = forwardRef<View, PressableCardProps>(function PressableCard(
-  { tone = "default", flush, style, children, ...rest },
+  { tone = "default", flush, style, children, pressEffect = "opacity", ...rest },
   ref,
 ) {
   return (
@@ -76,8 +82,8 @@ export const PressableCard = forwardRef<View, PressableCardProps>(function Press
         styles.base,
         { borderColor: toneBorder[tone] },
         !flush && styles.padded,
-        pressed && styles.pressed,
         style as StyleProp<ViewStyle>,
+        pressed && (pressEffect === "lift" ? styles.pressedLift : styles.pressedOpacity),
       ]}
     >
       {children as ReactNode}
@@ -97,8 +103,16 @@ const styles = StyleSheet.create({
   padded: {
     padding: CARD_PADDING,
   },
-  pressed: {
+  pressedOpacity: {
     opacity: 0.72,
+  },
+  pressedLift: {
+    opacity: 0.96,
+    transform: [{ translateY: -2 }, { scale: 1.01 }],
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 5,
   },
 });
 

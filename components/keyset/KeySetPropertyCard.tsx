@@ -1,6 +1,7 @@
-import { KeyRound } from "lucide-react-native";
+import { ChevronRight, KeyRound } from "lucide-react-native";
 
 import { EntityCard, MetaRow, type MetaItem, Pill } from "@/components/ui";
+import { theme } from "@/constants";
 import { formatStreetLine, getTotalKeyQuantity } from "@/lib/utils";
 
 import { getKeySetCardStatus, type KeySetLike } from "./getKeySetCardStatus";
@@ -92,7 +93,15 @@ export function KeySetPropertyCard({
         </>
       }
       meta={holderMeta ? <MetaRow items={holderMeta} divider={false} /> : undefined}
+      right={
+        <ChevronRight
+          size={16}
+          color={theme.colors.textLight}
+          strokeWidth={2.5}
+        />
+      }
       onPress={onPress}
+      pressEffect="lift"
       accessibilityLabel={streetLine}
     />
   );

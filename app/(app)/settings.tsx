@@ -165,6 +165,11 @@ export default function SettingsScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
+      {/* Page title */}
+      <View style={styles.pageHeader}>
+        <Text style={styles.pageTitle}>Settings</Text>
+      </View>
+
       {/* ── Security section ──────────────────────────────────────────── */}
       <SectionHeader title="Security" />
 
@@ -461,6 +466,15 @@ const styles = StyleSheet.create({
   content: {
     padding: theme.spacing.screen,
     paddingBottom: theme.spacing.xl * 2,
+  },
+  pageHeader: {
+    paddingBottom: theme.spacing.sm,
+  },
+  pageTitle: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: theme.colors.text,
+    letterSpacing: -0.3,
   },
 
   // Section

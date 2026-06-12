@@ -31,7 +31,7 @@ export function AdminPushTestPanel() {
     "This is a test push — sent from the admin panel.",
   );
   const [selectedType, setSelectedType] = useState<NotificationType>(
-    "KEY_CHECKOUT_CREATED",
+    "KEY_DUE_SOON",
   );
 
   const sendTest = useAdminSendTestNotification();

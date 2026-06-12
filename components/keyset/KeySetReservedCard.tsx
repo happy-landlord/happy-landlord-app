@@ -1,6 +1,7 @@
-import { CalendarClock } from "lucide-react-native";
+import { CalendarClock, ChevronRight } from "lucide-react-native";
 
 import { EntityCard, Pill } from "@/components/ui";
+import { theme } from "@/constants";
 import { formatStreetLine } from "@/lib/utils";
 import type { MyReservation } from "@/lib/services";
 
@@ -46,7 +47,15 @@ export function KeySetReservedCard({
           ) : null}
         </>
       }
+      right={
+        <ChevronRight
+          size={16}
+          color={theme.colors.textLight}
+          strokeWidth={2.5}
+        />
+      }
       onPress={onPress}
+      pressEffect="lift"
       accessibilityLabel={key_set?.name ?? "Reserved keyset"}
     />
   );

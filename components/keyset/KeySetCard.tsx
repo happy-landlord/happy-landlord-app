@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
-import { KeyRound } from "lucide-react-native";
+import { KeyRound, ChevronRight } from "lucide-react-native";
 
 import { EntityCard, MetaRow, type MetaItem, Pill } from "@/components/ui";
 import { KeyStatusChip } from "./KeyStatusChip";
 import { getTotalKeyQuantity } from "@/lib/utils";
 import type { KeySetWithDetails } from "@/lib/services";
+import { theme } from "@/constants";
 
 import { getKeySetCardStatus } from "./getKeySetCardStatus";
 import { useKeysetAvailabilityFor } from "./useKeysetAvailability";
@@ -32,7 +33,12 @@ export type KeySetCardProps = {
   footer?: ReactNode;
 };
 
-export function KeySetCard({ keySet, variant, onPress, footer }: KeySetCardProps) {
+export function KeySetCard({
+  keySet,
+  variant,
+  onPress,
+  footer,
+}: KeySetCardProps) {
   const availability = useKeysetAvailabilityFor(keySet);
   const { isCheckedOut, isHandover, isMissingDamaged, chipStatus } =
     getKeySetCardStatus(keySet, availability);
@@ -42,6 +48,7 @@ export function KeySetCard({ keySet, variant, onPress, footer }: KeySetCardProps
   const totalKeys = getTotalKeyQuantity(keySet);
   const keyCountLabel = `${totalKeys} ${totalKeys === 1 ? "key" : "keys"}`;
   const isAdmin = variant === "admin";
+  const isAdminPressable = isAdmin && !!onPress;
 
   const showHolder =
     (isCheckedOut || isHandover || (isAdmin && isMissingDamaged)) &&
@@ -67,12 +74,26 @@ export function KeySetCard({ keySet, variant, onPress, footer }: KeySetCardProps
       pills={
         <>
           <KeyStatusChip status={chipStatus} />
-          <Pill tone="neutral" size="sm">{keyCountLabel}</Pill>
+          <Pill tone="neutral" size="sm">
+            {keyCountLabel}
+          </Pill>
         </>
       }
-      meta={holderMeta ? <MetaRow items={holderMeta} divider={false} /> : undefined}
+      right={
+        isAdmin && onPress ? (
+          <ChevronRight
+            size={16}
+            color={theme.colors.textLight}
+            strokeWidth={2.5}
+          />
+        ) : undefined
+      }
+      meta={
+        holderMeta ? <MetaRow items={holderMeta} divider={false} /> : undefined
+      }
       footer={footer}
       onPress={onPress}
+      pressEffect={isAdminPressable ? "lift" : undefined}
       accessibilityLabel={keySet.name}
     />
   );

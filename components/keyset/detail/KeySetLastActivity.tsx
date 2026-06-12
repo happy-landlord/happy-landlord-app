@@ -53,7 +53,7 @@ export function KeySetLastActivity({
             <Text style={styles.viewAllText}>View all</Text>
             <ChevronRight
               size={13}
-              color={theme.colors.primary}
+              color={theme.colors.textMuted}
               strokeWidth={2.5}
             />
           </Pressable>
@@ -99,8 +99,8 @@ const styles = StyleSheet.create({
   },
   viewAllText: {
     fontSize: 12,
-    fontWeight: "700",
-    color: theme.colors.primary,
+    fontWeight: "600",
+    color: theme.colors.textMuted,
   },
   card: {
     backgroundColor: theme.colors.surface,

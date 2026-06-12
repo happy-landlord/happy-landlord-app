@@ -496,7 +496,13 @@ const styles = StyleSheet.create({
     gap: theme.spacing.xs,
   },
   loginPrompt: { color: theme.colors.textMuted, fontSize: 13 },
-  loginLink: { fontSize: 13, color: theme.colors.primary, fontWeight: "700" },
+  loginLink: {
+    fontSize: 13,
+    color: theme.colors.text,
+    fontWeight: "600",
+    textDecorationLine: "underline",
+    textDecorationColor: theme.colors.border,
+  },
   approvalNote: {
     flexDirection: "row",
     alignItems: "center",
@@ -515,9 +521,10 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   approvalLink: {
-    color: theme.colors.primary,
+    color: theme.colors.text,
     fontWeight: "600",
     textDecorationLine: "underline",
+    textDecorationColor: theme.colors.border,
   },
   // ── Success state ──
   successScreen: { flex: 1, backgroundColor: theme.colors.background },

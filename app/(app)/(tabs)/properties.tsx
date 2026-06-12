@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from "react-native";
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
 
 import { PropertyCard } from "@/components/property";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui";
@@ -79,6 +79,11 @@ export default function PropertiesScreen() {
 
   return (
     <View style={styles.screen}>
+      {/* Page title */}
+      <View style={styles.pageHeader}>
+        <Text style={styles.pageTitle}>Properties</Text>
+      </View>
+
       <PropertiesFilterBar
         selectedPlace={selectedPlace}
         onPlaceChange={setSelectedPlace}
@@ -143,6 +148,17 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  pageHeader: {
+    paddingHorizontal: theme.spacing.screen,
+    paddingTop: theme.spacing.lg,
+    paddingBottom: theme.spacing.sm,
+  },
+  pageTitle: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: theme.colors.text,
+    letterSpacing: -0.3,
   },
   list: {
     paddingHorizontal: theme.spacing.screen,

@@ -80,11 +80,8 @@ export function PropertiesFilterBar({
             accessibilityRole="button"
             accessibilityLabel="Add property"
           >
-            <Plus
-              size={20}
-              color={theme.colors.accent}
-              strokeWidth={2.4}
-            />
+            <Plus size={16} color={theme.colors.accent} strokeWidth={2.5} />
+            <Text style={styles.addButtonLabel}>Add</Text>
           </Pressable>
         </RoleGate>
       </View>
@@ -138,16 +135,22 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   addButton: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    gap: 5,
+    paddingHorizontal: theme.spacing.sm + 4,
+    paddingVertical: 10,
+    borderRadius: theme.radius.lg,
     backgroundColor: theme.colors.primary,
     flexShrink: 0,
   },
   addButtonPressed: {
     opacity: 0.75,
+  },
+  addButtonLabel: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: theme.colors.accent,
   },
 
   // ── Admin tabs ──────────────────────────────────────────────────────────
@@ -155,7 +158,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     paddingHorizontal: theme.spacing.screen,
     paddingTop: theme.spacing.sm,
-    paddingBottom: theme.spacing.xs,
+    paddingBottom: theme.spacing.sm,
     gap: theme.spacing.sm,
     backgroundColor: theme.colors.background,
   },

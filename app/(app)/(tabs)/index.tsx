@@ -19,7 +19,15 @@ import { useRouter, usePathname } from "expo-router";
 import { KeyDashboardSummary, PropertyStatsBanner } from "@/components/keyset";
 import { SectionHeader } from "@/components/ui";
 import { useRole, useRefreshControl } from "@/hooks";
+import { useProfile } from "@/lib/hooks";
 import { theme, useBottomListPadding } from "@/constants";
+
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good Morning";
+  if (hour < 17) return "Good Afternoon";
+  return "Good Evening";
+}
 
 // ── Quick actions config ──────────────────────────────────────────────────────
 
@@ -37,8 +45,8 @@ const AGENT_QUICK_ACTIONS: QuickAction[] = [
     label: "Scan",
     sublabel: "Scan a keyset",
     Icon: ScanLine,
-    iconColor: theme.colors.accent,
-    iconBg: theme.colors.primary,
+    iconColor: theme.colors.primaryDark,
+    iconBg: theme.colors.primarySoft,
     onPress: (router, pathname) =>
       router.push({ pathname: "/(app)/scan", params: { returnTo: pathname } } as never),
   },
@@ -73,8 +81,8 @@ const ADMIN_QUICK_ACTIONS: QuickAction[] = [
     label: "Scan",
     sublabel: "Scan a keyset",
     Icon: ScanLine,
-    iconColor: theme.colors.accent,
-    iconBg: theme.colors.primary,
+    iconColor: theme.colors.primaryDark,
+    iconBg: theme.colors.primarySoft,
     onPress: (router, pathname) =>
       router.push({ pathname: "/(app)/scan", params: { returnTo: pathname } } as never),
   },
@@ -156,7 +164,7 @@ function QuickActionsGrid({ actions }: { actions: QuickAction[] }) {
 export default function HomeScreen() {
   const listPaddingBottom = useBottomListPadding();
   const { isAdmin } = useRole();
-
+  const { data: profile } = useProfile();
   const { refreshing, onRefresh } = useRefreshControl();
 
   return (
@@ -176,6 +184,13 @@ export default function HomeScreen() {
         />
       }
     >
+      {/* Greeting */}
+      <View style={styles.greeting}>
+        <Text style={styles.greetingLabel}>{getGreeting()}</Text>
+        <Text style={styles.greetingName} numberOfLines={1}>
+          {profile?.full_name ?? ""}
+        </Text>
+      </View>
       {/* Admin dashboard */}
       {isAdmin && (
         <>
@@ -208,6 +223,23 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.background },
   content: { padding: theme.spacing.screen, gap: theme.spacing.lg },
   section: { gap: theme.spacing.sm },
+
+  // ── Greeting ──────────────────────────────────────────────────────────────
+  greeting: {
+    gap: 2,
+  },
+  greetingLabel: {
+    fontSize: 13,
+    fontWeight: "400",
+    color: theme.colors.textMuted,
+    letterSpacing: 0.1,
+  },
+  greetingName: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: theme.colors.text,
+    letterSpacing: -0.5,
+  },
 
   // ── Quick actions grid ────────────────────────────────────────────────────
   grid: {

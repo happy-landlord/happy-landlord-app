@@ -111,12 +111,17 @@ export default function ActivityScreen() {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <View style={styles.screen}>
+      {/* Page title */}
+      <View style={styles.pageHeader}>
+        <Text style={styles.pageTitle}>History</Text>
+      </View>
+
       {/* ── Search row ────────────────────────────────────────────────────── */}
       <View style={styles.searchRow}>
         {/* Search input */}
         <View style={styles.searchInputWrap}>
           <Search
-            size={16}
+            size={18}
             color={theme.colors.textLight}
             strokeWidth={2}
             style={styles.searchIcon}
@@ -124,7 +129,7 @@ export default function ActivityScreen() {
           <TextInput
             ref={searchInputRef}
             style={styles.searchInput}
-            placeholder="Address, keyset code or agent name…"
+            placeholder="Address, keyset code or name…"
             placeholderTextColor={theme.colors.textLight}
             selectionColor={theme.colors.primary}
             value={searchText}
@@ -263,6 +268,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
+  pageHeader: {
+    paddingHorizontal: theme.spacing.screen,
+    paddingTop: theme.spacing.lg,
+    paddingBottom: theme.spacing.sm,
+  },
+  pageTitle: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: theme.colors.text,
+    letterSpacing: -0.3,
+  },
 
   // ── Search row ─────────────────────────────────────────────────────────────
   searchRow: {
@@ -271,19 +287,19 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
     paddingHorizontal: theme.spacing.screen,
     paddingTop: theme.spacing.md,
-    paddingBottom: theme.spacing.xs,
+    paddingBottom: theme.spacing.sm,
     backgroundColor: theme.colors.background,
   },
   searchInputWrap: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    height: 48,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: theme.radius.md,
+    borderRadius: theme.radius.lg,
     backgroundColor: theme.colors.surface,
-    paddingHorizontal: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 10,
     gap: theme.spacing.sm,
   },
   searchIcon: {
@@ -296,9 +312,9 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   filterBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: theme.radius.md,
+    width: 40,
+    height: 40,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
     borderColor: theme.colors.border,
     backgroundColor: theme.colors.surface,

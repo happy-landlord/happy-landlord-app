@@ -4,6 +4,7 @@ import {
   GooglePlacesAutocomplete,
   type GooglePlacesAutocompleteRef,
 } from "react-native-google-places-autocomplete";
+import { Search } from "lucide-react-native";
 import { useDebouncedCallback } from "use-debounce";
 
 import { FEATURES, SYDNEY_BIAS, theme } from "@/constants";
@@ -109,10 +110,35 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
 
     // ── Bypass: plain TextInput ───────────────────────────────────────────────
     if (!FEATURES.GOOGLE_PLACES) {
+      if (borderless) {
+        return (
+          <View>
+            <TextInput
+              style={resolvedTextInputStyle}
+              placeholder={placeholder}
+              placeholderTextColor={theme.colors.textLight}
+              selectionColor={theme.colors.primary}
+              value={text}
+              onChangeText={(v) => {
+                setText(v);
+                debouncedFallbackSelect(v);
+              }}
+              onSubmitEditing={() => {
+                debouncedFallbackSelect.cancel();
+                const trimmed = text.trim();
+                if (!trimmed) return;
+                onSelect({ placeId: "", description: trimmed, suburb: trimmed });
+              }}
+              returnKeyType="search"
+            />
+          </View>
+        );
+      }
       return (
-        <View>
+        <View style={styles.searchWrapper}>
+          <Search size={18} color={theme.colors.textLight} strokeWidth={2} style={{ flexShrink: 0 }} />
           <TextInput
-            style={resolvedTextInputStyle}
+            style={styles.searchWrapperInput}
             placeholder={placeholder}
             placeholderTextColor={theme.colors.textLight}
             selectionColor={theme.colors.primary}
@@ -125,11 +151,7 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
               debouncedFallbackSelect.cancel();
               const trimmed = text.trim();
               if (!trimmed) return;
-              onSelect({
-                placeId: "",
-                description: trimmed,
-                suburb: trimmed,
-              });
+              onSelect({ placeId: "", description: trimmed, suburb: trimmed });
             }}
             returnKeyType="search"
           />
@@ -139,71 +161,78 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
 
     // ── Real Google Places Autocomplete ───────────────────────────────────────
     return (
-      <GooglePlacesAutocomplete
-        ref={placesRef}
-        placeholder={placeholder}
-        fetchDetails
-        // Debounce keystrokes → fewer Places API hits, lower bill, smoother UI.
-        debounce={400}
-        enablePoweredByContainer={false}
-        query={{
-          key: API_KEY,
-          language: "en",
-          components: "country:au",
-          types: mode === "full" ? "address" : "geocode",
-          // Bias toward Greater Sydney (soft — other cities still discoverable)
-          ...SYDNEY_BIAS,
-        }}
-        onPress={(data, details) => {
-          const components = details?.address_components ?? [];
+      <View>
+        {!borderless && (
+          <View style={styles.searchIconOverlay} pointerEvents="none">
+            <Search size={18} color={theme.colors.textLight} strokeWidth={2} />
+          </View>
+        )}
+        <GooglePlacesAutocomplete
+          ref={placesRef}
+          placeholder={placeholder}
+          fetchDetails
+          // Debounce keystrokes → fewer Places API hits, lower bill, smoother UI.
+          debounce={400}
+          enablePoweredByContainer={false}
+          query={{
+            key: API_KEY,
+            language: "en",
+            components: "country:au",
+            types: mode === "full" ? "address" : "geocode",
+            // Bias toward Greater Sydney (soft — other cities still discoverable)
+            ...SYDNEY_BIAS,
+          }}
+          onPress={(data, details) => {
+            const components = details?.address_components ?? [];
 
-          const get = (...types: string[]) =>
-            components.find((c) =>
-              types.every((t) => (c.types as string[]).includes(t)),
-            )?.long_name;
+            const get = (...types: string[]) =>
+              components.find((c) =>
+                types.every((t) => (c.types as string[]).includes(t)),
+              )?.long_name;
 
-          const getShort = (...types: string[]) =>
-            components.find((c) =>
-              types.every((t) => (c.types as string[]).includes(t)),
-            )?.short_name;
+            const getShort = (...types: string[]) =>
+              components.find((c) =>
+                types.every((t) => (c.types as string[]).includes(t)),
+              )?.short_name;
 
-          onSelect({
-            placeId: data.place_id,
-            description: data.description,
-            streetNumber: get("street_number"),
-            street: get("route"),
-            suburb: normaliseSuburb(
-              get("sublocality_level_1") ??
-                get("locality") ??
-                get("postal_town"),
-            ),
-            council: get("administrative_area_level_2"),
-            state: getShort("administrative_area_level_1"),
-            postcode: get("postal_code"),
-            country: get("country"),
-            lat: details?.geometry.location.lat,
-            lng: details?.geometry.location.lng,
-          });
-        }}
-        styles={{
-          container: resolvedContainerStyle,
-          textInputContainer: styles.textInputContainer,
-          textInput: resolvedTextInputStyle,
-          listView: resolvedListViewStyle,
-          row: styles.row,
-          description: styles.description,
-          separator: styles.separator,
-          poweredContainer: { display: "none" },
-        }}
-        textInputProps={{
-          placeholderTextColor: theme.colors.textLight,
-          selectionColor: theme.colors.primary,
-        }}
-        keyboardShouldPersistTaps="handled"
-        // Disable internal list scrolling — max 5 suggestions, never needs scroll,
-        // and this prevents Android scroll-stealing from the outer ScrollView.
-        {...DISABLE_LIST_SCROLL}
-      />
+            onSelect({
+              placeId: data.place_id,
+              description: data.description,
+              streetNumber: get("street_number"),
+              street: get("route"),
+              suburb: normaliseSuburb(
+                get("sublocality_level_1") ??
+                  get("locality") ??
+                  get("postal_town"),
+              ),
+              council: get("administrative_area_level_2"),
+              state: getShort("administrative_area_level_1"),
+              postcode: get("postal_code"),
+              country: get("country"),
+              lat: details?.geometry.location.lat,
+              lng: details?.geometry.location.lng,
+            });
+          }}
+          styles={{
+            container: resolvedContainerStyle,
+            textInputContainer: styles.textInputContainer,
+            textInput: borderless ? resolvedTextInputStyle : styles.textInputWithIcon,
+            listView: resolvedListViewStyle,
+            row: styles.row,
+            description: styles.description,
+            separator: styles.separator,
+            poweredContainer: { display: "none" },
+          }}
+          textInputProps={{
+            placeholderTextColor: theme.colors.textLight,
+            selectionColor: theme.colors.primary,
+          }}
+          keyboardShouldPersistTaps="handled"
+          // Disable internal list scrolling — max 5 suggestions, never needs scroll,
+          // and this prevents Android scroll-stealing from the outer ScrollView.
+          {...DISABLE_LIST_SCROLL}
+        />
+      </View>
     );
   },
 );
@@ -214,35 +243,76 @@ const styles = StyleSheet.create({
   },
   containerBorderless: {
     flex: 0,
-    height: 48,
+    height: 40,
     zIndex: 9999,
     elevation: 24,
   },
   textInputContainer: {
     backgroundColor: "transparent",
   },
+  // ── Standalone bordered input (borderless=false, Google Places) ────────────
   textInput: {
-    height: 48,
+    height: 40,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: theme.radius.md,
+    borderRadius: theme.radius.lg,
     backgroundColor: theme.colors.surface,
     paddingHorizontal: theme.spacing.md,
-    fontSize: 16,
+    fontSize: 15,
     color: theme.colors.text,
     marginBottom: 0,
+  },
+  // Same but with extra left padding to clear the search icon overlay
+  textInputWithIcon: {
+    height: 40,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.surface,
+    paddingLeft: theme.spacing.md + 18 + theme.spacing.sm, // icon indent
+    paddingRight: theme.spacing.md,
+    fontSize: 15,
+    color: theme.colors.text,
+    marginBottom: 0,
+  },
+  // ── Icon overlay for Google Places path ───────────────────────────────────
+  searchIconOverlay: {
+    position: "absolute",
+    left: theme.spacing.md,
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
+    zIndex: 2,
+  },
+  // ── Wrapper row for fallback plain-text path ──────────────────────────────
+  searchWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.lg,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 10,
+  },
+  searchWrapperInput: {
+    flex: 1,
+    fontSize: 15,
+    color: theme.colors.text,
+    padding: 0,
   },
   listView: {
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: theme.radius.md,
+    borderRadius: theme.radius.lg,
     backgroundColor: theme.colors.surface,
     marginTop: theme.spacing.xs,
     overflow: "hidden",
   },
   listViewBorderless: {
     position: "absolute",
-    top: 48,
+    top: 40,
     left: -theme.spacing.sm,
     right: -theme.spacing.sm,
     maxHeight: 280,
