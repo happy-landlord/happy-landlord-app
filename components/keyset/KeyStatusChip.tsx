@@ -15,11 +15,11 @@ type StatusConfig = { label: string; tone: PillTone };
 const STATUS_CONFIG: Record<KeyStatusChipStatus, StatusConfig> = {
   available: { label: "Available", tone: "success" },
   reserved: { label: "Reserved", tone: "warning" },
-  checked_out: { label: "Checked Out", tone: "warning" },
+  checked_out: { label: "Checked Out", tone: "neutral" },
   overdue: { label: "Overdue", tone: "danger" },
   handover_tenant: { label: "With Tenant", tone: "tenant" },
   handover_landlord: { label: "With Landlord", tone: "primary" },
-  missing_damaged: { label: "Lost", tone: "neutral" },
+  missing_damaged: { label: "Lost", tone: "warning" },
   inactive: { label: "Inactive", tone: "neutral" },
 };
 
@@ -54,7 +54,7 @@ export function KeyStatusChip({
 }) {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.inactive;
   return (
-    <Pill tone={cfg.tone} size={size}>
+    <Pill tone={cfg.tone} variant="outline" size={size}>
       {cfg.label}
     </Pill>
   );

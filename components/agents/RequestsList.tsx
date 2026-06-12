@@ -1,20 +1,12 @@
 import { memo, useMemo } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { CheckCircle, Clock, Phone, UserX, XCircle } from "lucide-react-native";
 
 import { theme } from "@/constants";
 import { useRegistrationRequests, useReviewRequest } from "@/lib/hooks";
 import { useRefreshControl } from "@/hooks";
 import { formatDate } from "@/lib/utils";
-import { EmptyState, ErrorState, LoadingState } from "@/components/ui";
+import { EmptyState, ErrorState, LoadingState, Button } from "@/components/ui";
 import type { RegistrationRequest } from "@/lib/services";
 
 import { sharedStyles } from "./styles";
@@ -32,14 +24,11 @@ export function RequestsList() {
   const { approve, reject } = useReviewRequest();
   const { refreshing, onRefresh } = useRefreshControl(refetch);
 
-  const { sorted, pendingCount } = useMemo(() => {
+  const sorted = useMemo<RegistrationRequest[]>(() => {
     const rows = requests ?? [];
-    const pending: RegistrationRequest[] = [];
-    const reviewed: RegistrationRequest[] = [];
-    for (const r of rows) {
-      (r.status === "pending" ? pending : reviewed).push(r);
-    }
-    return { sorted: [...pending, ...reviewed], pendingCount: pending.length };
+    const pending = rows.filter((r) => r.status === "pending");
+    const reviewed = rows.filter((r) => r.status !== "pending");
+    return [...pending, ...reviewed];
   }, [requests]);
 
   // Derive a single "which row is currently being processed" descriptor so
@@ -85,17 +74,6 @@ export function RequestsList() {
       keyExtractor={keyExtractor}
       contentContainerStyle={sharedStyles.list}
       ItemSeparatorComponent={Separator}
-      ListHeaderComponent={
-        pendingCount > 0 ? (
-          <View style={styles.sectionHeader}>
-            <View style={styles.pendingDot} />
-            <Text style={styles.sectionTitle}>
-              {pendingCount} pending{" "}
-              {pendingCount === 1 ? "request" : "requests"}
-            </Text>
-          </View>
-        ) : null
-      }
       renderItem={({ item }) => (
         <RequestCard
           request={item}
@@ -174,12 +152,7 @@ const RequestCard = memo(function RequestCard({
 
       {/* ── Status row ── */}
       <View style={styles.statusRow}>
-        {isPending ? (
-          <>
-            <View style={styles.pendingDot} />
-            <Text style={styles.statusPending}>Awaiting review</Text>
-          </>
-        ) : request.status === "approved" ? (
+        {request.status === "approved" ? (
           <>
             <CheckCircle
               size={14}
@@ -191,7 +164,7 @@ const RequestCard = memo(function RequestCard({
               {reviewedDate ? ` · ${reviewedDate}` : ""}
             </Text>
           </>
-        ) : (
+        ) : !isPending ? (
           <>
             <UserX size={14} color={theme.colors.danger} strokeWidth={2.2} />
             <Text style={styles.statusRejected}>
@@ -199,7 +172,7 @@ const RequestCard = memo(function RequestCard({
               {reviewedDate ? ` · ${reviewedDate}` : ""}
             </Text>
           </>
-        )}
+        ) : null}
       </View>
 
       {/* ── User message (pending) ── */}
@@ -221,54 +194,34 @@ const RequestCard = memo(function RequestCard({
       {/* ── Actions (pending only) ── */}
       {isPending && (
         <View style={styles.actions}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.actionBtn,
-              styles.approveBtn,
-              pressed && styles.btnPressed,
-            ]}
+          <Button
+            title="Approve"
+            variant="success"
+            size="md"
+            loading={processing === "approve"}
+            disabled={isBusy}
             onPress={onApprove}
-            disabled={isBusy}
-          >
-            {processing === "approve" ? (
-              <ActivityIndicator
-                size="small"
+            icon={
+              <CheckCircle
+                size={15}
                 color={theme.colors.textInverse}
+                strokeWidth={2}
               />
-            ) : (
-              <>
-                <CheckCircle
-                  size={15}
-                  color={theme.colors.textInverse}
-                  strokeWidth={2}
-                />
-                <Text style={styles.approveBtnLabel}>Approve</Text>
-              </>
-            )}
-          </Pressable>
-
-          <Pressable
-            style={({ pressed }) => [
-              styles.actionBtn,
-              styles.rejectBtn,
-              pressed && styles.btnPressed,
-            ]}
-            onPress={onReject}
+            }
+            style={styles.actionBtn}
+          />
+          <Button
+            title="Reject"
+            variant="dangerOutline"
+            size="md"
+            loading={processing === "reject"}
             disabled={isBusy}
-          >
-            {processing === "reject" ? (
-              <ActivityIndicator size="small" color={theme.colors.danger} />
-            ) : (
-              <>
-                <XCircle
-                  size={15}
-                  color={theme.colors.danger}
-                  strokeWidth={2}
-                />
-                <Text style={styles.rejectBtnLabel}>Reject</Text>
-              </>
-            )}
-          </Pressable>
+            onPress={onReject}
+            icon={
+              <XCircle size={15} color={theme.colors.danger} strokeWidth={2} />
+            }
+            style={styles.actionBtn}
+          />
         </View>
       )}
     </View>
@@ -276,30 +229,10 @@ const RequestCard = memo(function RequestCard({
 });
 
 const styles = StyleSheet.create({
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-    marginBottom: theme.spacing.md,
-    marginTop: theme.spacing.sm,
-  },
-  pendingDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: theme.colors.warning,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: theme.colors.textMuted,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-  },
 
   // ── Card ─────────────────────────────────────────────────────────────────
   card: {
-    backgroundColor: theme.colors.surfaceWarm,
+    backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.card,
     borderWidth: 1,
     borderColor: theme.colors.border,
@@ -355,11 +288,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     paddingTop: 2,
-  },
-  statusPending: {
-    fontSize: 13,
-    color: theme.colors.warning,
-    fontWeight: "600",
   },
   statusApproved: {
     fontSize: 13,
@@ -420,29 +348,5 @@ const styles = StyleSheet.create({
   },
   actionBtn: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: theme.spacing.xs,
-    paddingVertical: theme.spacing.sm + 2,
-    borderRadius: theme.radius.pill,
-    minHeight: 40,
-  },
-  btnPressed: { opacity: 0.75 },
-  approveBtn: { backgroundColor: theme.colors.success },
-  approveBtnLabel: {
-    color: theme.colors.textInverse,
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  rejectBtn: {
-    backgroundColor: theme.colors.dangerSoft,
-    borderWidth: 1,
-    borderColor: theme.colors.danger,
-  },
-  rejectBtnLabel: {
-    color: theme.colors.danger,
-    fontWeight: "600",
-    fontSize: 14,
   },
 });

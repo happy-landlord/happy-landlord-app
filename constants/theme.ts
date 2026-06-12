@@ -47,15 +47,15 @@ export const theme = {
 
     // ── Semantic status ───────────────────────────────────────────────────────
     /** Available – warm olive */
-    success: "#4F7A4A",
+    success: "#2F8F5B",
     successSoft: "#E8F2EA",
 
     /** Checked out – warm amber */
-    warning: "#A06A00",
-    warningSoft: "#FFF0C7",
+    warning: "#B7791F",
+    warningSoft: "#F6EFE4",
 
     /** Overdue – warm red */
-    danger: "#B64242",
+    danger: "#D94444",
     dangerSoft: "#FBE3E3",
 
     /** Info – warm brown */
@@ -67,18 +67,8 @@ export const theme = {
     neutralSoft: "#ECE7E1",
 
     // ── Key statuses ─────────────────────────────────────────────────────────
-    keyAvailable: "#4F7A4A",
-    keyAvailableSoft: "#E8F2EA",
-    keyCheckedOut: "#A06A00",
-    keyCheckedOutSoft: "#FFF2D6",
     keyTenant: "#4A6F9D",
     keyTenantSoft: "#EAF1FF",
-    keyOverdue: "#B64242",
-    keyOverdueSoft: "#FCE8E8",
-    keyInactive: "#8A837B",
-    keyInactiveSoft: "#F2F0EC",
-    keyLost: "#75695D",
-    keyLostSoft: "#ECE7E1",
   },
 
   radius: {

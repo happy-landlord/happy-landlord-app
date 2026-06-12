@@ -4,8 +4,10 @@ import { Clock3 } from "lucide-react-native";
 import { Card, IconBadge } from "@/components/ui";
 import { theme, MOVEMENT_CONFIG, getMovementLabel } from "@/constants";
 import { useCurrentUserId } from "@/lib/hooks";
+import { useRole } from "@/hooks";
 import {
   formatActivityTimestamp,
+  formatDateTime,
   formatShortAddress,
   formatTime,
 } from "@/lib/utils";
@@ -27,10 +29,7 @@ type CommonProps = {
   item: ActivityTransaction;
 };
 
-export type HistoryCardProps = CommonProps & {
-  /** Include the keyset short code alongside the name (admin view). */
-  showKeySetCode?: boolean;
-};
+export type HistoryCardProps = CommonProps;
 
 export type ActivityRowProps = CommonProps & {
   /** Show the property address subtitle. Defaults to true. */
@@ -46,24 +45,32 @@ export type ActivityRowProps = CommonProps & {
 
 // ── Card variant ─────────────────────────────────────────────────────────────
 
-export function HistoryCard({ item, showKeySetCode = false }: HistoryCardProps) {
+export function HistoryCard({ item }: HistoryCardProps) {
   const currentUserId = useCurrentUserId();
+  const { isAdmin } = useRole();
   const movement = MOVEMENT_CONFIG[item.transaction_type];
   const label = getMovementLabel(item, currentUserId);
   const propertyLine = formatShortAddress(item.property);
-  const keysLine = item.key_set
-    ? showKeySetCode
-      ? `${item.key_set.name} (${item.key_set.code})`
-      : item.key_set.name
+  // Admins see keyset name + code; agents see neither (irrelevant in their workflow)
+  const keysLine = isAdmin && item.key_set
+    ? `${item.key_set.name} (${item.key_set.code})`
     : null;
+  // Admins see simple time (HH:MM am/pm); agents see full date + time
+  const timestamp = isAdmin
+    ? formatTime(item.created_at)
+    : formatDateTime(item.created_at);
 
   return (
     <Card style={cardStyles.card}>
+      {/* Left accent stripe — the Card already has overflow:hidden so it clips to border-radius */}
+      <View
+        style={[cardStyles.stripe, { backgroundColor: movement.color }]}
+      />
       <IconBadge
         icon={movement.Icon}
         size="md"
-        background={movement.bg}
-        iconColor={movement.color}
+        background={theme.colors.neutralSoft}
+        iconColor={theme.colors.textMuted}
         strokeWidth={2}
       />
       <View style={cardStyles.body}>
@@ -71,7 +78,7 @@ export function HistoryCard({ item, showKeySetCode = false }: HistoryCardProps) 
           <Text style={cardStyles.label} numberOfLines={2}>
             {label}
           </Text>
-          <Text style={cardStyles.time}>{formatTime(item.created_at)}</Text>
+          <Text style={cardStyles.time}>{timestamp}</Text>
         </View>
         <Text style={cardStyles.address} numberOfLines={1}>
           {propertyLine}
@@ -109,8 +116,8 @@ export function ActivityRow({
       <IconBadge
         icon={movement.Icon}
         size="sm"
-        background={movement.bg}
-        iconColor={movement.color}
+        background={theme.colors.neutralSoft}
+        iconColor={theme.colors.textMuted}
         strokeWidth={2}
       />
       <View style={rowStyles.body}>
@@ -140,6 +147,16 @@ const cardStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing.md,
+    paddingVertical: theme.spacing.md,
+    paddingRight: theme.spacing.md,
+    paddingLeft: theme.spacing.md + 3, // compensate for the stripe
+  },
+  stripe: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
   },
   body: { flex: 1, gap: 2 },
   topRow: {
@@ -150,8 +167,8 @@ const cardStyles = StyleSheet.create({
   },
   label: { fontSize: 14, fontWeight: "600", color: theme.colors.text },
   time: { fontSize: 12, color: theme.colors.textLight },
-  address: { fontSize: 13, color: theme.colors.text, fontWeight: "500" },
-  keys: { fontSize: 12, color: theme.colors.textMuted, fontWeight: "500" },
+  address: { fontSize: 12, color: theme.colors.textMuted, fontWeight: "500" },
+  keys: { fontSize: 11, color: theme.colors.textMuted, fontWeight: "500" },
   notes: {
     fontSize: 12,
     color: theme.colors.textLight,

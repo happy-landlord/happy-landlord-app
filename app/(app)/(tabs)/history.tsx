@@ -19,7 +19,7 @@ import {
 } from "@/components/history";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui";
 import { useInfiniteHistory } from "@/lib/hooks";
-import { useRole, useDebouncedValue } from "@/hooks";
+import { useDebouncedValue } from "@/hooks";
 import { theme, useBottomListPadding } from "@/constants";
 import { toDateLabel, toIsoDate } from "@/lib/utils";
 import type { ActivityTransaction } from "@/types";
@@ -45,7 +45,6 @@ function groupByDate(transactions: ActivityTransaction[]): Section[] {
 // ── Screen ───────────────────────────────────────────────────────────────────
 
 export default function ActivityScreen() {
-  const { isAdmin } = useRole();
   const listPaddingBottom = useBottomListPadding();
   const searchInputRef = useRef<TextInput>(null);
 
@@ -88,10 +87,8 @@ export default function ActivityScreen() {
   const sections = useMemo(() => groupByDate(allItems), [allItems]);
 
   const renderItem = useCallback(
-    ({ item }: { item: ActivityTransaction }) => (
-      <HistoryCard item={item} showKeySetCode={isAdmin} />
-    ),
-    [isAdmin],
+    ({ item }: { item: ActivityTransaction }) => <HistoryCard item={item} />,
+    [],
   );
 
   const renderFooter = useCallback(() => {

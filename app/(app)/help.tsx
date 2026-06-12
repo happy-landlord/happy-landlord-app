@@ -147,16 +147,10 @@ function getPopularTopics(setSearchQuery: (q: string) => void): PopularTopic[] {
       onPress: () => setSearchQuery("lost keyset"),
     },
     {
-      id: "access",
-      icon: "lock-closed-outline",
-      title: "I can't access a property",
-      onPress: () => setSearchQuery("access property"),
-    },
-    {
       id: "return",
       icon: "return-down-back-outline",
       title: "How to return a keyset",
-      onPress: () => setSearchQuery("return keyset"),
+      onPress: () => setSearchQuery("handover"),
     },
     {
       id: "password",

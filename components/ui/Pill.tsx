@@ -23,40 +23,47 @@ export type PillTone =
   | "tenant"
   | "neutral";
 
-export type PillVariant = "soft" | "solid";
+export type PillVariant = "soft" | "solid" | "outline";
 export type PillSize = "sm" | "md";
 
 const TONE: Record<
   PillTone,
-  { soft: { bg: string; fg: string }; solid: { bg: string; fg: string } }
+  { soft: { bg: string; fg: string }; solid: { bg: string; fg: string }; outline: { bg: string; fg: string } }
 > = {
   primary: {
     soft: { bg: theme.colors.primarySoft, fg: theme.colors.primaryDark },
     solid: { bg: theme.colors.primary, fg: theme.colors.accent },
+    outline: { bg: "transparent", fg: theme.colors.primaryDark },
   },
   accent: {
     soft: { bg: theme.colors.accentSoft, fg: theme.colors.accent },
     solid: { bg: theme.colors.accent, fg: theme.colors.textInverse },
+    outline: { bg: "transparent", fg: theme.colors.accent },
   },
   success: {
     soft: { bg: theme.colors.successSoft, fg: theme.colors.success },
     solid: { bg: theme.colors.success, fg: theme.colors.textInverse },
+    outline: { bg: "transparent", fg: theme.colors.success },
   },
   warning: {
     soft: { bg: theme.colors.warningSoft, fg: theme.colors.warning },
     solid: { bg: theme.colors.warning, fg: theme.colors.textInverse },
+    outline: { bg: "transparent", fg: theme.colors.warning },
   },
   danger: {
     soft: { bg: theme.colors.dangerSoft, fg: theme.colors.danger },
     solid: { bg: theme.colors.danger, fg: theme.colors.textInverse },
+    outline: { bg: "transparent", fg: theme.colors.danger },
   },
   tenant: {
     soft: { bg: theme.colors.keyTenantSoft, fg: theme.colors.keyTenant },
     solid: { bg: theme.colors.keyTenant, fg: theme.colors.textInverse },
+    outline: { bg: "transparent", fg: theme.colors.keyTenant },
   },
   neutral: {
     soft: { bg: theme.colors.neutralSoft, fg: theme.colors.textMuted },
     solid: { bg: theme.colors.neutral, fg: theme.colors.textInverse },
+    outline: { bg: "transparent", fg: theme.colors.textMuted },
   },
 };
 
@@ -97,6 +104,10 @@ export function Pill({
           backgroundColor: colors.bg,
           paddingHorizontal: sz.paddingHorizontal,
           paddingVertical: sz.paddingVertical,
+          ...(variant === "outline" && {
+            borderWidth: 1,
+            borderColor: colors.fg,
+          }),
         },
         style,
       ]}

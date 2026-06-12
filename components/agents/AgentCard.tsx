@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   card: {
     minHeight: 72,
     flexDirection: "row",
-    backgroundColor: theme.colors.surfaceWarm,
+    backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.card,
     borderWidth: 1,
     borderColor: theme.colors.border,
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.colors.accentSoft,
+    backgroundColor: theme.colors.surface,
     padding: theme.spacing.sm,
   },
   initialCircle: {

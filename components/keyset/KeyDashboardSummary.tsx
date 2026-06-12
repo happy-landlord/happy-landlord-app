@@ -61,7 +61,7 @@ function DonutChart({
   return (
     <Svg width={SIZE} height={SIZE}>
       {paths.map((p, i) => (
-        <Path key={i} d={p.path} fill={p.color} fillOpacity={0.55} />
+        <Path key={i} d={p.path} fill={p.color} fillOpacity={0.75} />
       ))}
       <SvgText
         x={CX}
@@ -96,22 +96,22 @@ function buildSegments(d: AdminDashboardSummary): Segment[] {
     {
       label: "Available",
       value: d.available_keysets,
-      color: theme.colors.keyAvailable,
+      color: theme.colors.success,
     },
     {
       label: "Checked out",
       value: d.checked_out_keysets,
-      color: theme.colors.keyCheckedOut,
+      color: theme.colors.info,
     },
     {
       label: "Overdue",
       value: d.overdue_keysets,
-      color: theme.colors.keyOverdue,
+      color: theme.colors.danger,
     },
     {
       label: "Lost/Damaged",
       value: d.lost_keysets,
-      color: theme.colors.keyLost,
+      color: theme.colors.warning,
     },
   ];
 }

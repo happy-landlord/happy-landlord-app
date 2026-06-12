@@ -11,7 +11,7 @@ import {
 import { Building2, KeyRound } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
-import { ActivityRow } from "@/components/history";
+import { HistoryCard } from "@/components/history";
 import {
   KeySetPropertyCard,
   KeySetReservedCard,
@@ -399,9 +399,7 @@ function AgentActivityView() {
 
   const renderItem = useCallback(
     ({ item }: { item: ActivityTransaction }) => (
-      <Card style={styles.historyCard}>
-        <ActivityRow item={item} plain />
-      </Card>
+      <HistoryCard item={item} />
     ),
     [],
   );
@@ -516,7 +514,6 @@ const styles = StyleSheet.create({
   },
   historyLoading: { paddingVertical: theme.spacing.lg, alignItems: "center" },
   historyItemSep: { height: 6 },
-  historyCard: { padding: 0 },
   emptyActivityText: {
     fontSize: 13,
     color: theme.colors.textMuted,
