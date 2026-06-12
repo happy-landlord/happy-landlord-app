@@ -50,7 +50,7 @@
         "appleTeamId": "4S69N9TL92"
       },
       "android": {
-        "serviceAccountKeyPath": "./google-play-service-account.json",
+        "serviceAccountKeyPath": "./credentials/google-play-service-account.json",
         "track": "internal",
         "releaseStatus": "draft"
       }
