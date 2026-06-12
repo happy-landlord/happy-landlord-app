@@ -420,14 +420,15 @@ const styles = StyleSheet.create({
   logoWrap: {
     borderRadius: theme.radius.lg,
     overflow: "hidden",
-    marginBottom: theme.spacing.md,
+    marginBottom: 6,
   },
   eyebrow: {
-    marginBottom: theme.spacing.xs,
-    color: theme.colors.primary,
-    fontSize: 13,
+    marginBottom: 18,
+    color: theme.colors.accentLight,
+    fontFamily: "Georgia",
+    fontSize: 15,
     fontWeight: "700",
-    letterSpacing: 1.6,
+    letterSpacing: 3,
     textAlign: "center",
   },
   card: {
