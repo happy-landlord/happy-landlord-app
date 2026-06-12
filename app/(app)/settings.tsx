@@ -35,7 +35,6 @@ import {
 } from "@/lib/hooks";
 import { getBiometricLabel } from "@/lib/services";
 import { useDevOverridesStore } from "@/lib/state";
-import { useRole } from "@/hooks";
 import { ChangePasswordSheet } from "@/components/settings";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -150,212 +149,197 @@ export default function SettingsScreen() {
 
   return (
     <>
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Page title */}
-      <View style={styles.pageHeader}>
-        <Text style={styles.pageTitle}>Settings</Text>
-      </View>
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Page title */}
+        <View style={styles.pageHeader}>
+          <Text style={styles.pageTitle}>Settings</Text>
+        </View>
 
-      {/* ── Security section ──────────────────────────────────────────── */}
-      <SectionHeader title="Security" />
+        {/* ── Security section ──────────────────────────────────────────── */}
+        <SectionHeader title="Security" />
 
-      <SectionCard>
-        {/* Biometric row — hidden when FEATURES.BIOMETRIC_LOCK is false */}
-        {FEATURES.BIOMETRIC_LOCK && (
-          <>
-            <SettingRow
-              Icon={Fingerprint}
-              iconBg={
-                biometricEnabled
-                  ? theme.colors.accentSoft
-                  : theme.colors.neutralSoft
-              }
-              iconColor={
-                biometricEnabled ? theme.colors.accent : theme.colors.neutral
-              }
-              title={`${biometricLabel} login`}
-              subtitle={
-                biometricCapability?.isAvailable
-                  ? `Unlock the app with ${biometricLabel}`
-                  : "Not available on this device"
-              }
-              disabled={
-                !biometricCapability?.isAvailable || toggleBiometric.isPending
-              }
-              right={
-                toggleBiometric.isPending ? (
-                  <ActivityIndicator
-                    size="small"
-                    color={theme.colors.accent}
-                    style={styles.rowSpinner}
-                  />
-                ) : (
-                  <Switch
-                    value={biometricEnabled}
-                    onValueChange={(v) => toggleBiometric.mutate(v)}
-                    disabled={
-                      !biometricCapability?.isAvailable ||
-                      toggleBiometric.isPending
-                    }
-                    trackColor={{
-                      false: theme.colors.neutralSoft,
-                      true: theme.colors.accent,
-                    }}
-                    thumbColor={theme.colors.surface}
-                    ios_backgroundColor={theme.colors.neutralSoft}
-                  />
-                )
-              }
-            />
-            <RowDivider />
-          </>
-        )}
-
-        <SettingRow
-          Icon={KeyRound}
-          iconBg={theme.colors.accentSoft}
-          iconColor={theme.colors.accent}
-          title="Change password"
-          subtitle="Update your account password"
-          onPress={() => setChangePasswordVisible(true)}
-          right={
-            <ChevronRight
-              size={16}
-              color={theme.colors.textLight}
-              strokeWidth={2}
-            />
-          }
-        />
-      </SectionCard>
-
-      {/* ── Notifications section ──────────────────────────────────────── */}
-      <SectionHeader title="Notifications" />
-
-      <SectionCard>
-        {/* Push toggle — hidden when FEATURES.PUSH_NOTIFICATIONS is false */}
-        {FEATURES.PUSH_NOTIFICATIONS && (
-          <>
-            <SettingRow
-              Icon={pushEnabled ? BellRing : BellOff}
-              iconBg={
-                pushEnabled ? theme.colors.accentSoft : theme.colors.neutralSoft
-              }
-              iconColor={pushEnabled ? theme.colors.accent : theme.colors.neutral}
-              title="Push notifications"
-              subtitle="Alerts for keyset due dates, overdue keysets, recalls and reservations"
-              disabled={pushLoading || togglePush.isPending}
-              right={
-                pushLoading ? (
-                  <ActivityIndicator
-                    size="small"
-                    color={theme.colors.accent}
-                    style={styles.rowSpinner}
-                  />
-                ) : (
-                  <Switch
-                    value={pushEnabled}
-                    onValueChange={handlePushToggle}
-                    disabled={togglePush.isPending}
-                    trackColor={{
-                      false: theme.colors.neutralSoft,
-                      true: theme.colors.accent,
-                    }}
-                    thumbColor={theme.colors.surface}
-                    ios_backgroundColor={theme.colors.neutralSoft}
-                  />
-                )
-              }
-            />
-
-            {permissionDenied ? (
-              <Pressable
-                onPress={() => Linking.openSettings()}
-                style={({ pressed }) => [
-                  styles.permissionBanner,
-                  pressed && { opacity: 0.75 },
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel="Open system settings to allow notifications"
-              >
-                <AlertCircle
-                  size={14}
-                  color={theme.colors.warning}
-                  strokeWidth={2.2}
-                />
-                <Text style={styles.permissionText}>
-                  Notifications are blocked in system settings.
-                </Text>
-                <View style={styles.permissionLink}>
-                  <Text style={styles.permissionLinkText}>Open Settings</Text>
-                  <ExternalLink
-                    size={12}
-                    color={theme.colors.accentDark}
-                    strokeWidth={2.5}
-                  />
-                </View>
-              </Pressable>
-            ) : null}
-
-
-            <RowDivider />
-          </>
-        )}
-
-        <SettingRow
-          Icon={CheckCheck}
-          iconBg={
-            unreadCount > 0
-              ? theme.colors.successSoft
-              : theme.colors.neutralSoft
-          }
-          iconColor={
-            unreadCount > 0 ? theme.colors.success : theme.colors.neutral
-          }
-          title="Mark all as read"
-          subtitle={
-            unreadCount > 0
-              ? `${unreadCount} unread notification${unreadCount !== 1 ? "s" : ""}`
-              : "No unread notifications"
-          }
-          onPress={unreadCount > 0 ? handleMarkAllRead : undefined}
-          disabled={unreadCount === 0 || markAllRead.isPending}
-          right={
-            markAllRead.isPending ? (
-              <ActivityIndicator
-                size="small"
-                color={theme.colors.accent}
-                style={styles.rowSpinner}
+        <SectionCard>
+          {/* Biometric row — hidden when FEATURES.BIOMETRIC_LOCK is false */}
+          {FEATURES.BIOMETRIC_LOCK && (
+            <>
+              <SettingRow
+                Icon={Fingerprint}
+                iconBg={theme.colors.accentSoft}
+                iconColor={theme.colors.accent}
+                title={`${biometricLabel} login`}
+                subtitle={
+                  biometricCapability?.isAvailable
+                    ? `Unlock the app with ${biometricLabel}`
+                    : "Not available on this device"
+                }
+                disabled={
+                  !biometricCapability?.isAvailable || toggleBiometric.isPending
+                }
+                right={
+                  toggleBiometric.isPending ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={theme.colors.accent}
+                      style={styles.rowSpinner}
+                    />
+                  ) : (
+                    <Switch
+                      value={biometricEnabled}
+                      onValueChange={(v) => toggleBiometric.mutate(v)}
+                      disabled={
+                        !biometricCapability?.isAvailable ||
+                        toggleBiometric.isPending
+                      }
+                      trackColor={{
+                        false: theme.colors.neutralSoft,
+                        true: theme.colors.accent,
+                      }}
+                      thumbColor={theme.colors.surface}
+                      ios_backgroundColor={theme.colors.neutralSoft}
+                    />
+                  )
+                }
               />
-            ) : unreadCount > 0 ? (
-              <View style={styles.rowRight}>
-                <View style={styles.unreadBadge}>
-                  <Text style={styles.unreadBadgeText}>
-                    {unreadCount > 99 ? "99+" : unreadCount}
+              <RowDivider />
+            </>
+          )}
+
+          <SettingRow
+            Icon={KeyRound}
+            iconBg={theme.colors.accentSoft}
+            iconColor={theme.colors.accent}
+            title="Change password"
+            subtitle="Update your account password"
+            onPress={() => setChangePasswordVisible(true)}
+            right={
+              <ChevronRight
+                size={16}
+                color={theme.colors.textLight}
+                strokeWidth={2}
+              />
+            }
+          />
+        </SectionCard>
+
+        {/* ── Notifications section ──────────────────────────────────────── */}
+        <SectionHeader title="Notifications" />
+
+        <SectionCard>
+          {/* Push toggle — hidden when FEATURES.PUSH_NOTIFICATIONS is false */}
+          {FEATURES.PUSH_NOTIFICATIONS && (
+            <>
+              <SettingRow
+                Icon={pushEnabled ? BellRing : BellOff}
+                iconBg={theme.colors.accentSoft}
+                iconColor={theme.colors.accent}
+                title="Push notifications"
+                subtitle="Alerts for keyset due dates, recalls and reservations"
+                disabled={pushLoading || togglePush.isPending}
+                right={
+                  pushLoading ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={theme.colors.accent}
+                      style={styles.rowSpinner}
+                    />
+                  ) : (
+                    <Switch
+                      value={pushEnabled}
+                      onValueChange={handlePushToggle}
+                      disabled={togglePush.isPending}
+                      trackColor={{
+                        false: theme.colors.neutralSoft,
+                        true: theme.colors.accent,
+                      }}
+                      thumbColor={theme.colors.surface}
+                      ios_backgroundColor={theme.colors.neutralSoft}
+                    />
+                  )
+                }
+              />
+
+              {permissionDenied ? (
+                <Pressable
+                  onPress={() => Linking.openSettings()}
+                  style={({ pressed }) => [
+                    styles.permissionBanner,
+                    pressed && { opacity: 0.75 },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open system settings to allow notifications"
+                >
+                  <AlertCircle
+                    size={14}
+                    color={theme.colors.warning}
+                    strokeWidth={2.2}
+                  />
+                  <Text style={styles.permissionText}>
+                    Notifications are blocked in system settings.
                   </Text>
-                </View>
-                <ChevronRight
-                  size={16}
-                  color={theme.colors.textLight}
-                  strokeWidth={2}
+                  <View style={styles.permissionLink}>
+                    <Text style={styles.permissionLinkText}>Open Settings</Text>
+                    <ExternalLink
+                      size={12}
+                      color={theme.colors.accentDark}
+                      strokeWidth={2.5}
+                    />
+                  </View>
+                </Pressable>
+              ) : null}
+
+              <RowDivider />
+            </>
+          )}
+
+          <SettingRow
+            Icon={CheckCheck}
+            iconBg={theme.colors.accentSoft}
+            iconColor={theme.colors.accent}
+            title="Mark all as read"
+            subtitle={
+              unreadCount > 0
+                ? `${unreadCount} unread notification${unreadCount !== 1 ? "s" : ""}`
+                : "No unread notifications"
+            }
+            onPress={unreadCount > 0 ? handleMarkAllRead : undefined}
+            disabled={unreadCount === 0 || markAllRead.isPending}
+            right={
+              markAllRead.isPending ? (
+                <ActivityIndicator
+                  size="small"
+                  color={theme.colors.accent}
+                  style={styles.rowSpinner}
                 />
-              </View>
-            ) : null
-          }
-        />
-      </SectionCard>
+              ) : unreadCount > 0 ? (
+                <View style={styles.rowRight}>
+                  <View style={styles.unreadBadge}>
+                    <Text style={styles.unreadBadgeText}>
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </Text>
+                  </View>
+                  <ChevronRight
+                    size={16}
+                    color={theme.colors.textLight}
+                    strokeWidth={2}
+                  />
+                </View>
+              ) : null
+            }
+          />
+        </SectionCard>
 
         {/* ── Developer section (dev builds only) ───────────────────────── */}
         {FEATURES.DEVELOPER_SECTION && <DeveloperSection />}
-    </ScrollView>
+      </ScrollView>
 
-    <ChangePasswordSheet
-      visible={changePasswordVisible}
-      onClose={() => setChangePasswordVisible(false)}
-    />
+      <ChangePasswordSheet
+        visible={changePasswordVisible}
+        onClose={() => setChangePasswordVisible(false)}
+      />
     </>
   );
 }
@@ -366,16 +350,10 @@ export default function SettingsScreen() {
 // nor the store reference ship to end users.
 
 function DeveloperSection() {
-  const { role } = useRole();
   const adminOverride = useDevOverridesStore((s) => s.adminOverride);
   const toggleAdminOverride = useDevOverridesStore(
     (s) => s.toggleAdminOverride,
   );
-
-  const dbRole = role ?? "unknown";
-  const subtitle = adminOverride
-    ? `Override ON — DB role: ${dbRole}. Reload to clear.`
-    : `Force admin view (DB role: ${dbRole})`;
 
   return (
     <>
@@ -383,21 +361,17 @@ function DeveloperSection() {
       <SectionCard>
         <SettingRow
           Icon={Wrench}
-          iconBg={
-            adminOverride ? theme.colors.warningSoft : theme.colors.neutralSoft
-          }
-          iconColor={
-            adminOverride ? theme.colors.warning : theme.colors.neutral
-          }
+          iconBg={theme.colors.neutralSoft}
+          iconColor={theme.colors.textMuted}
           title="Make me admin"
-          subtitle={subtitle}
+          subtitle="Preview admin features in this dev session"
           right={
             <Switch
               value={adminOverride}
               onValueChange={toggleAdminOverride}
               trackColor={{
                 false: theme.colors.neutralSoft,
-                true: theme.colors.warning,
+                true: theme.colors.accent,
               }}
               thumbColor={theme.colors.surface}
               ios_backgroundColor={theme.colors.neutralSoft}

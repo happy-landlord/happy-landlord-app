@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Alert,
   Linking,
@@ -11,9 +11,11 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
+import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 
 import { theme } from "@/constants";
+import { useRole } from "@/hooks";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -54,105 +56,122 @@ type BrowseSection = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Contact constants
+// ─────────────────────────────────────────────────────────────────────────────
+
+const SUPPORT_EMAIL = "info@happylandlord.com.au";
+const TECH_EMAIL = "tech@happylandlord.com.au";
+const SUPPORT_PHONE = "0466663356";
+const SUPPORT_PHONE_DISPLAY = "0466 663 356";
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Static data
 // ─────────────────────────────────────────────────────────────────────────────
 
-const QUICK_ACTIONS: QuickAction[] = [
-  {
-    id: "contact",
-    icon: "chatbubble-ellipses-outline",
-    iconBg: theme.colors.accentSoft,
-    iconColor: theme.colors.accent,
-    title: "Contact Manager",
-    description: "Send a message to your property manager",
-    onPress: () =>
-      Alert.alert("Contact Manager", "This feature is coming soon."),
-  },
-  {
-    id: "report",
-    icon: "warning-outline",
-    iconBg: theme.colors.dangerSoft,
-    iconColor: theme.colors.danger,
-    title: "Report an Issue",
-    description: "Let us know about a problem",
-    onPress: () =>
-      Alert.alert("Report an Issue", "This feature is coming soon."),
-  },
-  {
-    id: "requests",
-    icon: "document-text-outline",
-    iconBg: theme.colors.infoSoft,
-    iconColor: theme.colors.info,
-    title: "My Requests",
-    description: "View your access requests & bookings",
-    onPress: () => Alert.alert("My Requests", "Navigate to requests screen."),
-  },
-  {
-    id: "emergency",
-    icon: "shield-outline",
-    iconBg: theme.colors.warningSoft,
-    iconColor: theme.colors.warning,
-    title: "Emergency Help",
-    description: "Locked out or unsafe? Get help now",
-    onPress: () =>
-      Alert.alert(
-        "Emergency Help",
-        "If you are in immediate danger, call 000. Otherwise contact your property manager directly.",
-        [
-          {
-            text: "Call 000",
-            onPress: () => Linking.openURL("tel:000"),
-            style: "destructive",
-          },
-          { text: "Close", style: "cancel" },
-        ],
-      ),
-  },
-];
+function getQuickActions(
+  router: ReturnType<typeof useRouter>,
+): QuickAction[] {
+  return [
+    {
+      id: "contact",
+      icon: "chatbubble-ellipses-outline",
+      iconBg: theme.colors.accentSoft,
+      iconColor: theme.colors.accent,
+      title: "Contact Support",
+      description: "Email the Happy Landlord support team",
+      onPress: () =>
+        Linking.openURL(
+          `mailto:${SUPPORT_EMAIL}?subject=Support%20Request`,
+        ).catch(() =>
+          Alert.alert("Unavailable", "Could not open your mail app."),
+        ),
+    },
+    {
+      id: "report",
+      icon: "bug-outline",
+      iconBg: theme.colors.infoSoft,
+      iconColor: theme.colors.info,
+      title: "Report a Tech Issue",
+      description: "Something broken? Let the tech team know",
+      onPress: () =>
+        Alert.alert(
+          "Report a Tech Issue",
+          "Describe the problem and we'll investigate.",
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Send Email",
+              onPress: () =>
+                Linking.openURL(
+                  `mailto:${TECH_EMAIL}?subject=Tech%20Issue%20Report`,
+                ).catch(() =>
+                  Alert.alert("Unavailable", "Could not open your mail app."),
+                ),
+            },
+          ],
+        ),
+    },
+    {
+      id: "requests",
+      icon: "document-text-outline",
+      iconBg: theme.colors.accentSoft,
+      iconColor: theme.colors.accent,
+      title: "My Activity",
+      description: "View your checked-out keysets",
+      onPress: () => router.push("/(app)/(tabs)/activity"),
+    },
+    {
+      id: "call",
+      icon: "call-outline",
+      iconBg: theme.colors.successSoft,
+      iconColor: theme.colors.success,
+      title: "Call Support",
+      description: `Speak to someone now · ${SUPPORT_PHONE_DISPLAY}`,
+      onPress: () => Linking.openURL(`tel:${SUPPORT_PHONE}`),
+    },
+  ];
+}
 
-const POPULAR_TOPICS: PopularTopic[] = [
-  {
-    id: "scanner",
-    icon: "scan-outline",
-    title: "Scanner not working",
-    onPress: () =>
-      Alert.alert("Scanner not working", "Help article coming soon."),
-  },
-  {
-    id: "missing-key",
-    icon: "key-outline",
-    title: "Keyset is missing",
-    onPress: () =>
-      Alert.alert("Keyset is missing", "Help article coming soon."),
-  },
-  {
-    id: "access",
-    icon: "lock-closed-outline",
-    title: "I can't access a property",
-    onPress: () =>
-      Alert.alert("Can't access a property", "Help article coming soon."),
-  },
-  {
-    id: "return",
-    icon: "return-down-back-outline",
-    title: "How to return a keyset",
-    onPress: () =>
-      Alert.alert("How to return a keyset", "Help article coming soon."),
-  },
-  {
-    id: "password",
-    icon: "eye-off-outline",
-    title: "Forgot password",
-    onPress: () => Alert.alert("Forgot password", "Help article coming soon."),
-  },
-  {
-    id: "notifications",
-    icon: "notifications-off-outline",
-    title: "Notifications not showing",
-    onPress: () =>
-      Alert.alert("Notifications not showing", "Help article coming soon."),
-  },
-];
+function getPopularTopics(setSearchQuery: (q: string) => void): PopularTopic[] {
+  return [
+    {
+      id: "scanner",
+      icon: "scan-outline",
+      title: "Scanner not working",
+      onPress: () => setSearchQuery("scanner"),
+    },
+    {
+      id: "missing-key",
+      icon: "key-outline",
+      title: "Keyset is missing",
+      onPress: () => setSearchQuery("lost keyset"),
+    },
+    {
+      id: "access",
+      icon: "lock-closed-outline",
+      title: "I can't access a property",
+      onPress: () => setSearchQuery("access property"),
+    },
+    {
+      id: "return",
+      icon: "return-down-back-outline",
+      title: "How to return a keyset",
+      onPress: () => setSearchQuery("return keyset"),
+    },
+    {
+      id: "password",
+      icon: "eye-off-outline",
+      title: "Forgot password",
+      onPress: () => setSearchQuery("password"),
+    },
+    {
+      id: "notifications",
+      icon: "notifications-off-outline",
+      title: "Notifications not showing",
+      onPress: () => setSearchQuery("notifications"),
+    },
+  ];
+}
 
 const BROWSE_SECTIONS: BrowseSection[] = [
   {
@@ -178,7 +197,7 @@ const BROWSE_SECTIONS: BrowseSection[] = [
         id: "a3",
         question: "Why is my account pending approval?",
         answer:
-          "New accounts require approval from your property manager before you can access keysets and properties.",
+          "New accounts require approval from Happy Landlord before you can access keysets and properties.",
       },
     ],
   },
@@ -205,13 +224,13 @@ const BROWSE_SECTIONS: BrowseSection[] = [
         id: "k3",
         question: "What does 'overdue' mean?",
         answer:
-          "A keyset is overdue when its scheduled return date has passed and it has not been returned. Contact your manager.",
+          "A keyset is overdue when its scheduled return date has passed and it has not been returned. Call support on 0466 663 356.",
       },
       {
         id: "k4",
         question: "How do I report a lost keyset?",
         answer:
-          "Open the keyset detail screen, tap the options menu, and select 'Report Lost'. Your manager will be notified.",
+          "Open the keyset detail screen, tap the options menu, and select 'Report Lost'. Support will be notified.",
       },
     ],
   },
@@ -265,7 +284,7 @@ const BROWSE_SECTIONS: BrowseSection[] = [
         id: "c3",
         question: "What happens if a handover is not confirmed?",
         answer:
-          "The keyset remains assigned to the original holder until the recipient scans and confirms. Contact your manager if you are stuck.",
+          "The keyset remains assigned to the original holder until the recipient scans and confirms. Call support on 0466 663 356 if you are stuck.",
       },
     ],
   },
@@ -280,13 +299,13 @@ const BROWSE_SECTIONS: BrowseSection[] = [
         id: "r1",
         question: "How do I request access to a property?",
         answer:
-          "Go to the property listing and tap 'Request Access'. Your manager will review and approve or decline.",
+          "Go to the property listing and tap 'Request Access'. Support will review and approve or decline.",
       },
       {
         id: "r2",
         question: "How long does approval take?",
         answer:
-          "Approval times depend on your property manager. You will receive a notification when your request is reviewed.",
+          "Approval times vary. You will receive a notification when your request is reviewed. For urgent access, call support on 0466 663 356.",
       },
       {
         id: "r3",
@@ -313,7 +332,7 @@ const BROWSE_SECTIONS: BrowseSection[] = [
         id: "n2",
         question: "Can I turn off specific notification types?",
         answer:
-          "Notification preferences are managed in Settings. Your property manager may control some alert types.",
+          "Notification preferences are managed in Settings. Contact support if you need specific alert types adjusted.",
       },
     ],
   },
@@ -501,8 +520,21 @@ function InfoRow({
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function HelpScreen() {
+  const router = useRouter();
+  const { isAdmin } = useRole();
   const [searchQuery, setSearchQuery] = useState("");
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
+
+  const quickActions = useMemo(() => getQuickActions(router), [router]);
+  const popularTopics = useMemo(
+    () => getPopularTopics(setSearchQuery),
+    [],
+  );
+
+  // Hide the Admin Setup section from non-admins
+  const visibleSections = isAdmin
+    ? BROWSE_SECTIONS
+    : BROWSE_SECTIONS.filter((s) => s.id !== "admin");
 
   function toggleSection(id: string) {
     setOpenSections((prev) => {
@@ -517,13 +549,13 @@ export default function HelpScreen() {
   }
 
   const filteredTopics = searchQuery.trim()
-    ? POPULAR_TOPICS.filter((t) =>
+    ? popularTopics.filter((t) =>
         t.title.toLowerCase().includes(searchQuery.toLowerCase()),
       )
-    : POPULAR_TOPICS;
+    : popularTopics;
 
   const filteredSections = searchQuery.trim()
-    ? BROWSE_SECTIONS.map((s) => ({
+    ? visibleSections.map((s) => ({
         ...s,
         faqs: s.faqs.filter(
           (f) =>
@@ -535,7 +567,7 @@ export default function HelpScreen() {
           s.faqs.length > 0 ||
           s.title.toLowerCase().includes(searchQuery.toLowerCase()),
       )
-    : BROWSE_SECTIONS;
+    : visibleSections;
 
   const activeSections = searchQuery.trim()
     ? new Set(filteredSections.map((s) => s.id))
@@ -552,7 +584,7 @@ export default function HelpScreen() {
       <View style={styles.headerBlock}>
         <Text style={styles.headerTitle}>Help & Support</Text>
         <Text style={styles.headerSubtitle}>
-          Find answers, report issues, or contact your property manager.
+          Find answers or get in touch with the Happy Landlord team.
         </Text>
       </View>
 
@@ -594,7 +626,7 @@ export default function HelpScreen() {
         <>
           <SectionLabel title="Quick Actions" />
           <View style={styles.qaGrid}>
-            {QUICK_ACTIONS.map((action) => (
+            {quickActions.map((action) => (
               <QuickActionCard key={action.id} item={action} />
             ))}
           </View>
@@ -653,53 +685,62 @@ export default function HelpScreen() {
           </View>
         )}
 
-      {/* ── Emergency card ─────────────────────────────────────────────────── */}
+      {/* ── Contact card ───────────────────────────────────────────────────── */}
       {!searchQuery.trim() && (
-        <View style={styles.emergencyCard}>
-          <View style={styles.emergencyHeader}>
-            <View style={styles.emergencyIconWrap}>
+        <View style={styles.contactCard}>
+          <View style={styles.contactHeader}>
+            <View style={styles.contactIconWrap}>
               <Ionicons
-                name="alert-circle-outline"
+                name="headset-outline"
                 size={20}
-                color={theme.colors.danger}
+                color={theme.colors.accent}
               />
             </View>
-            <Text style={styles.emergencyTitle}>Urgent issue?</Text>
+            <Text style={styles.contactTitle}>Still need help?</Text>
           </View>
-          <Text style={styles.emergencyBody}>
-            If you are locked out, feel unsafe, or there is an emergency at the
-            property, contact your property manager or emergency services
-            directly.
+          <Text style={styles.contactBody}>
+            Reach the Happy Landlord support team by phone or email.
           </Text>
-          <Pressable
-            onPress={() =>
-              Alert.alert(
-                "Emergency Services",
-                "If this is a life-threatening emergency, call 000.",
-                [
-                  {
-                    text: "Call 000",
-                    onPress: () => Linking.openURL("tel:000"),
-                    style: "destructive",
-                  },
-                  { text: "Close", style: "cancel" },
-                ],
-              )
-            }
-            style={({ pressed }) => [
-              styles.emergencyBtn,
-              pressed && styles.emergencyBtnPressed,
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Get emergency help"
-          >
-            <Ionicons
-              name="call-outline"
-              size={15}
-              color={theme.colors.danger}
-            />
-            <Text style={styles.emergencyBtnText}>Get Emergency Help</Text>
-          </Pressable>
+          <View style={styles.contactBtns}>
+            <Pressable
+              onPress={() => Linking.openURL(`tel:${SUPPORT_PHONE}`)}
+              style={({ pressed }) => [
+                styles.contactBtn,
+                pressed && styles.contactBtnPressed,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={`Call support ${SUPPORT_PHONE_DISPLAY}`}
+            >
+              <Ionicons
+                name="call-outline"
+                size={15}
+                color={theme.colors.accent}
+              />
+              <Text style={styles.contactBtnText}>{SUPPORT_PHONE_DISPLAY}</Text>
+            </Pressable>
+            <Pressable
+              onPress={() =>
+                Linking.openURL(
+                  `mailto:${SUPPORT_EMAIL}?subject=Support%20Request`,
+                ).catch(() =>
+                  Alert.alert("Unavailable", "Could not open your mail app."),
+                )
+              }
+              style={({ pressed }) => [
+                styles.contactBtn,
+                pressed && styles.contactBtnPressed,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Email support"
+            >
+              <Ionicons
+                name="mail-outline"
+                size={15}
+                color={theme.colors.accent}
+              />
+              <Text style={styles.contactBtnText}>{SUPPORT_EMAIL}</Text>
+            </Pressable>
+          </View>
         </View>
       )}
 
@@ -712,7 +753,7 @@ export default function HelpScreen() {
             size={18}
             color={theme.colors.textMuted}
           />
-          <Text style={styles.versionLabel}>Happy Landlord</Text>
+          <Text style={styles.versionLabel}>Key Manager</Text>
           <Text style={styles.versionValue}>v{APP_VERSION}</Text>
         </View>
         <Divider indent={46} />
@@ -750,7 +791,14 @@ export default function HelpScreen() {
                 {
                   text: "Send",
                   onPress: () =>
-                    Alert.alert("Thank you", "Diagnostic report submitted."),
+                    Linking.openURL(
+                      `mailto:${TECH_EMAIL}?subject=Diagnostics%20Report%20v${APP_VERSION}`,
+                    ).catch(() =>
+                      Alert.alert(
+                        "Unavailable",
+                        "Could not open your mail app.",
+                      ),
+                    ),
                 },
               ],
             )
@@ -762,8 +810,9 @@ export default function HelpScreen() {
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>
-          Happy Landlord · v{APP_VERSION} · © {new Date().getFullYear()} Arqon
+          © {new Date().getFullYear()} Happy Landlord
         </Text>
+        <Text style={styles.footerPoweredText}>Powered by Arqon</Text>
       </View>
     </ScrollView>
   );
@@ -961,57 +1010,60 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     paddingHorizontal: theme.spacing.xl,
   },
-  emergencyCard: {
+  contactCard: {
     marginTop: theme.spacing.lg,
-    backgroundColor: theme.colors.dangerSoft,
+    backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.card,
-    borderWidth: 1.5,
-    borderColor: theme.colors.dangerSoft,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     padding: theme.spacing.md,
     gap: theme.spacing.sm,
   },
-  emergencyHeader: {
+  contactHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing.sm,
   },
-  emergencyIconWrap: {
+  contactIconWrap: {
     width: 36,
     height: 36,
     borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.dangerSoft,
+    backgroundColor: theme.colors.accentSoft,
     alignItems: "center",
     justifyContent: "center",
   },
-  emergencyTitle: {
+  contactTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: theme.colors.danger,
+    color: theme.colors.text,
   },
-  emergencyBody: {
+  contactBody: {
     fontSize: 13,
-    color: theme.colors.danger,
+    color: theme.colors.textMuted,
     lineHeight: 20,
   },
-  emergencyBtn: {
+  contactBtns: {
+    gap: theme.spacing.xs,
+    marginTop: theme.spacing.xs,
+  },
+  contactBtn: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     gap: theme.spacing.sm,
-    marginTop: theme.spacing.xs,
     paddingVertical: 10,
+    paddingHorizontal: theme.spacing.md,
     borderRadius: theme.radius.md,
-    borderWidth: 1.5,
-    borderColor: theme.colors.danger,
-    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.accentSoft,
   },
-  emergencyBtnPressed: {
-    backgroundColor: theme.colors.dangerSoft,
+  contactBtnPressed: {
+    opacity: 0.7,
   },
-  emergencyBtnText: {
+  contactBtnText: {
     fontSize: 14,
-    fontWeight: "700",
-    color: theme.colors.danger,
+    fontWeight: "600",
+    color: theme.colors.accent,
   },
   versionRow: {
     flexDirection: "row",
@@ -1049,11 +1101,17 @@ const styles = StyleSheet.create({
   },
   footer: {
     alignItems: "center",
+    gap: 4,
     paddingTop: theme.spacing.xl,
     paddingBottom: theme.spacing.md,
   },
   footerText: {
     fontSize: 12,
     color: theme.colors.textLight,
+  },
+  footerPoweredText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: theme.colors.accent,
   },
 });
