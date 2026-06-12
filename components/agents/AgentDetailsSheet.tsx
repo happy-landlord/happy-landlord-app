@@ -7,18 +7,18 @@ import {
   View,
 } from "react-native";
 import { Image } from "expo-image";
-import { AlertTriangle, KeyRound, Mail, Phone } from "lucide-react-native";
+import { AlertTriangle, Mail, Phone } from "lucide-react-native";
+import { useRouter } from "expo-router";
 
-import { BottomSheet, Button, EntityCard, PhoneLink, Pill } from "@/components/ui";
-import { KeyStatusChip } from "@/components/keyset";
+import { BottomSheet, Button, PhoneLink } from "@/components/ui";
+import { KeySetPropertyCard } from "@/components/keyset";
 import { theme } from "@/constants";
 import {
   useAgentHeldKeySets,
   useDeactivateAgent,
   useProfileImageUrl,
 } from "@/lib/hooks";
-import { formatShortAddress, getTotalKeyQuantity } from "@/lib/utils";
-import type { CheckedOutKeySet, AgentProfile } from "@/lib/services";
+import type { AgentProfile } from "@/lib/services";
 
 
 type Props = {
@@ -27,6 +27,7 @@ type Props = {
 };
 
 export function AgentDetailsSheet({ agent, onClose }: Props) {
+  const router = useRouter();
   const profileId = agent?.id ?? null;
   const { data: heldKeySets, isLoading } = useAgentHeldKeySets(profileId);
   const deactivate = useDeactivateAgent();
@@ -94,7 +95,18 @@ export function AgentDetailsSheet({ agent, onClose }: Props) {
             Not holding any keysets right now.
           </Text>
         ) : (
-          heldKeySets!.map((ks) => <KeySetRow key={ks.id} keySet={ks} />)
+          heldKeySets!.map((ks) => (
+            <KeySetPropertyCard
+              key={ks.id}
+              item={ks}
+              showHolder={false}
+              hideCheckedOutBadge
+              onPress={() => {
+                onClose();
+                router.push(`/(app)/properties/keyset/${ks.id}`);
+              }}
+            />
+          ))
         )}
       </ScrollView>
 
@@ -183,29 +195,6 @@ function AgentProfileHeader({ agent }: { agent: AgentProfile }) {
   );
 }
 
-// ── KeySet row ────────────────────────────────────────────────────────────────
-
-function KeySetRow({ keySet }: { keySet: CheckedOutKeySet }) {
-  const keyCount = getTotalKeyQuantity(keySet);
-  const address = formatShortAddress(keySet.property);
-  const overdue = keySet.status === "overdue";
-  const keyCountLabel = `${keyCount} ${keyCount === 1 ? "key" : "keys"}`;
-
-  return (
-    <EntityCard
-      icon={KeyRound}
-      iconTone={overdue ? "danger" : "neutral"}
-      eyebrow={keySet.name}
-      title={address}
-      pills={
-        <>
-          <KeyStatusChip status={keySet.status} />
-          <Pill tone="neutral" size="sm">{keyCountLabel}</Pill>
-        </>
-      }
-    />
-  );
-}
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
@@ -237,14 +226,14 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   avatarFallback: {
-    backgroundColor: theme.colors.accentSoft,
+    backgroundColor: theme.colors.accent,
     alignItems: "center",
     justifyContent: "center",
   },
   avatarInitial: {
     fontSize: 28,
     fontWeight: "700",
-    color: theme.colors.accent,
+    color: theme.colors.textInverse,
   },
   profileInfo: {
     flex: 1,

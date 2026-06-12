@@ -110,8 +110,8 @@ export function RequestsList() {
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          tintColor={theme.colors.primary}
-          colors={[theme.colors.primary]}
+          tintColor={theme.colors.accentLight}
+          colors={[theme.colors.accentLight]}
         />
       }
     />
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: theme.colors.accentSoft,
+    backgroundColor: theme.colors.accent,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
   avatarLetter: {
     fontSize: 17,
     fontWeight: "700",
-    color: theme.colors.accent,
+    color: theme.colors.textInverse,
   },
   cardMeta: { flex: 1, gap: 1 },
   cardName: { fontSize: 15, fontWeight: "600", color: theme.colors.text },

@@ -16,11 +16,6 @@ import { useCurrentUserId, useKeySet } from "@/lib/hooks";
 import type { TenantHolder } from "@/lib/services";
 import { theme } from "@/constants";
 
-// -- Keyset detail screen ----------------------------------------------------
-// Orchestration only: fetches the keyset (to handle loading / error / access
-// gating), then hands off to `<KeySetScreenProvider>`. Every child component
-// reads its own data from TanStack + the screen context, so this file has no
-// modal state and no callback wiring.
 export default function KeySetDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
@@ -39,7 +34,6 @@ export default function KeySetDetailScreen() {
     );
   }
 
-  // Agents should not interact with missing/damaged keysets they do not hold.
   const isMissingDamaged = keySet.status === "missing_damaged";
   if (
     !isAdmin &&
@@ -57,8 +51,6 @@ export default function KeySetDetailScreen() {
 
   const showLastActivity = isAdmin && keySet.status === "available";
 
-  // When the keyset is on handover_tenant, surface the tenant in PropertyHeader
-  // so admins immediately see who has the keys without scrolling to the card.
   const tenant: TenantHolder =
     keySet.status === "handover_tenant" &&
     keySet.current_holder?.holder_type === "tenant"
@@ -98,12 +90,6 @@ export default function KeySetDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  content: {
-    padding: theme.spacing.screen,
-    gap: theme.spacing.md,
-  },
+  screen: { flex: 1, backgroundColor: theme.colors.background },
+  content: { padding: theme.spacing.screen, gap: theme.spacing.md },
 });

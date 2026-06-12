@@ -11,7 +11,7 @@ import {
   fetchKeySetsForProperty,
   type KeySetWithDetails,
 } from "@/lib/services";
-import { EntityCard, Pill } from "@/components/ui";
+import { EntityCard } from "@/components/ui";
 import { formatStreetLine } from "@/lib/utils";
 
 type PropertyCardProps = {
@@ -46,6 +46,9 @@ export function PropertyCard({ property }: PropertyCardProps) {
 
   const suburb = property.suburb?.trim() || property.city?.trim() || "";
   const streetLine = formatStreetLine(property);
+  const propTypeLabel =
+    PROPERTY_TYPE_LABEL[property.property_type] ?? property.property_type;
+  const subtitleText = [suburb, propTypeLabel].filter(Boolean).join(" · ");
 
   const handlePress = async () => {
     const propertyHref = `/(app)/properties/${property.id}` as const;
@@ -77,14 +80,8 @@ export function PropertyCard({ property }: PropertyCardProps) {
     <EntityCard
       icon={Building2}
       iconTone="neutral"
-      eyebrow={suburb}
       title={streetLine}
-      pills={
-        <Pill tone="accent" size="sm">
-          {PROPERTY_TYPE_LABEL[property.property_type] ??
-            property.property_type}
-        </Pill>
-      }
+      subtitle={subtitleText}
       right={<ChevronRight size={16} color={theme.colors.textLight} strokeWidth={2.5} />}
       onPress={handlePress}
       pressEffect="lift"

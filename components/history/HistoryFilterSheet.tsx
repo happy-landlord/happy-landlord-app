@@ -148,7 +148,7 @@ export function HistoryFilterSheet({
         <View style={styles.panelActions}>
           <Button
             title="Cancel"
-            variant="ghost"
+            variant="outline"
             onPress={closePicker}
             style={styles.panelBtn}
           />
@@ -258,27 +258,27 @@ function DateField({
       onPress={onPress}
       accessibilityRole="button"
     >
-      <CalendarDays
-        size={15}
-        color={isActive ? theme.colors.primary : theme.colors.textMuted}
-        strokeWidth={1.8}
-      />
-      <View style={styles.dateFieldText}>
-        <Text style={styles.dateFieldLabel}>{label}</Text>
-        <Text
-          style={[
-            styles.dateFieldValue,
-            isActive && styles.dateFieldValueActive,
-          ]}
-        >
+      {/* Floating label */}
+      <Text style={[styles.dateFieldLabel, isActive && styles.dateFieldLabelActive]}>
+        {label}
+      </Text>
+
+      {/* Row: icon + value + clear */}
+      <View style={styles.dateFieldRow}>
+        <CalendarDays
+          size={15}
+          color={isActive ? theme.colors.accent : theme.colors.textMuted}
+          strokeWidth={1.8}
+        />
+        <Text style={[styles.dateFieldValue, isActive && styles.dateFieldValueActive]}>
           {displayDate ? formatShortDate(displayDate.toISOString()) : "Any"}
         </Text>
+        {value ? (
+          <Pressable onPress={onClear} hitSlop={8} accessibilityRole="button">
+            <X size={14} color={theme.colors.textMuted} strokeWidth={2} />
+          </Pressable>
+        ) : null}
       </View>
-      {value ? (
-        <Pressable onPress={onClear} hitSlop={8} accessibilityRole="button">
-          <X size={14} color={theme.colors.textMuted} strokeWidth={2} />
-        </Pressable>
-      ) : null}
     </Pressable>
   );
 }
@@ -320,39 +320,52 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: theme.spacing.sm,
     marginBottom: theme.spacing.md,
+    marginTop: theme.spacing.sm,
   },
   dateField: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 10,
     borderWidth: 1,
     borderColor: theme.colors.border,
     borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.surface,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 12,
+    position: "relative",
   },
   dateFieldActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primarySoft,
+    borderColor: theme.colors.accent,
   },
   dateFieldPressed: { opacity: 0.75 },
-  dateFieldText: { flex: 1 },
   dateFieldLabel: {
+    position: "absolute",
+    top: -9,
+    left: 10,
+    paddingHorizontal: 4,
+    backgroundColor: theme.colors.surface,
     fontSize: 11,
-    fontWeight: "600",
-    color: theme.colors.textLight,
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-  },
-  dateFieldValue: {
-    fontSize: 14,
     fontWeight: "500",
     color: theme.colors.textMuted,
-    marginTop: 1,
+    lineHeight: 18,
+    zIndex: 10,
   },
-  dateFieldValueActive: { color: theme.colors.primary, fontWeight: "600" },
+  dateFieldLabelActive: {
+    color: theme.colors.accent,
+  },
+  dateFieldRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
+  dateFieldValue: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "500",
+    color: theme.colors.textMuted,
+  },
+  dateFieldValueActive: {
+    color: theme.colors.text,
+    fontWeight: "600",
+  },
 
   applyBtn: {
     marginTop: theme.spacing.sm,

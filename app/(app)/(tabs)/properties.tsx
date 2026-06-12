@@ -68,7 +68,7 @@ export default function PropertiesScreen() {
     if (!isFetchingNextPage) return null;
     return (
       <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" color={theme.colors.primary} />
+        <ActivityIndicator size="small" color={theme.colors.accentLight} />
       </View>
     );
   }, [isFetchingNextPage]);
@@ -131,8 +131,8 @@ export default function PropertiesScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={theme.colors.primary}
-              colors={[theme.colors.primary]}
+              tintColor={theme.colors.accentLight}
+              colors={[theme.colors.accentLight]}
             />
           }
           showsVerticalScrollIndicator={false}

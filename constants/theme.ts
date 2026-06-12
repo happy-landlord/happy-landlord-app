@@ -58,7 +58,7 @@ export const theme = {
     danger: "#B64242",
     dangerSoft: "#FBE3E3",
 
-    /** With tenant – warm brown */
+    /** Info – warm brown */
     info: "#7A6347",
     infoSoft: "#E8E1D4",
 
@@ -70,11 +70,11 @@ export const theme = {
     keyAvailable: "#4F7A4A",
     keyAvailableSoft: "#E8F2EA",
     keyCheckedOut: "#A06A00",
-    keyCheckedOutSoft: "#FFF0C7",
-    keyTenant: "#7A6347",
-    keyTenantSoft: "#E8E1D4",
+    keyCheckedOutSoft: "#FFF2D6",
+    keyTenant: "#4A6F9D",
+    keyTenantSoft: "#EAF1FF",
     keyOverdue: "#B64242",
-    keyOverdueSoft: "#FBE3E3",
+    keyOverdueSoft: "#FCE8E8",
     keyInactive: "#8A837B",
     keyInactiveSoft: "#F2F0EC",
     keyLost: "#75695D",

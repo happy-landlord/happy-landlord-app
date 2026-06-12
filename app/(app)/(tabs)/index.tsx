@@ -35,97 +35,65 @@ type QuickAction = {
   label: string;
   sublabel: string;
   Icon: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
-  iconColor: string;
-  iconBg: string;
   onPress: (router: ReturnType<typeof useRouter>, pathname: string) => void;
 };
 
+const ACTION_SCAN: QuickAction = {
+  label: "Scan",
+  sublabel: "Scan a keyset",
+  Icon: ScanLine,
+  onPress: (router, pathname) =>
+    router.push({ pathname: "/(app)/scan", params: { returnTo: pathname } } as never),
+};
+
+const ACTION_PROPERTIES: QuickAction = {
+  label: "Properties",
+  sublabel: "Browse all properties",
+  Icon: Building2,
+  onPress: (router) => router.push("/(app)/(tabs)/properties" as never),
+};
+
+const ACTION_SUPPORT: QuickAction = {
+  label: "Support",
+  sublabel: "Help & support",
+  Icon: HelpCircle,
+  onPress: (router) => router.push("/(app)/help" as never),
+};
+
 const AGENT_QUICK_ACTIONS: QuickAction[] = [
-  {
-    label: "Scan",
-    sublabel: "Scan a keyset",
-    Icon: ScanLine,
-    iconColor: theme.colors.primaryDark,
-    iconBg: theme.colors.primarySoft,
-    onPress: (router, pathname) =>
-      router.push({ pathname: "/(app)/scan", params: { returnTo: pathname } } as never),
-  },
+  ACTION_SCAN,
   {
     label: "My Keysets",
     sublabel: "Checked out & reserved",
     Icon: KeyRound,
-    iconColor: theme.colors.accent,
-    iconBg: theme.colors.accentSoft,
     onPress: (router) => router.push("/(app)/(tabs)/activity" as never),
   },
-  {
-    label: "Support",
-    sublabel: "Help & support",
-    Icon: HelpCircle,
-    iconColor: theme.colors.info,
-    iconBg: theme.colors.infoSoft,
-    onPress: (router) => router.push("/(app)/help" as never),
-  },
-  {
-    label: "Properties",
-    sublabel: "Browse all properties",
-    Icon: Building2,
-    iconColor: theme.colors.success,
-    iconBg: theme.colors.successSoft,
-    onPress: (router) => router.push("/(app)/(tabs)/properties" as never),
-  },
+  ACTION_PROPERTIES,
+  ACTION_SUPPORT,
 ];
 
 const ADMIN_QUICK_ACTIONS: QuickAction[] = [
-  {
-    label: "Scan",
-    sublabel: "Scan a keyset",
-    Icon: ScanLine,
-    iconColor: theme.colors.primaryDark,
-    iconBg: theme.colors.primarySoft,
-    onPress: (router, pathname) =>
-      router.push({ pathname: "/(app)/scan", params: { returnTo: pathname } } as never),
-  },
-  {
-    label: "Properties",
-    sublabel: "Browse all properties",
-    Icon: Building2,
-    iconColor: theme.colors.success,
-    iconBg: theme.colors.successSoft,
-    onPress: (router) => router.push("/(app)/(tabs)/properties" as never),
-  },
+  ACTION_SCAN,
+  ACTION_PROPERTIES,
   {
     label: "Activity",
     sublabel: "Checked out & attention",
     Icon: KeyRound,
-    iconColor: theme.colors.warning,
-    iconBg: theme.colors.warningSoft,
     onPress: (router) => router.push("/(app)/(tabs)/activity" as never),
   },
   {
     label: "Agents",
     sublabel: "Manage agents",
     Icon: Users,
-    iconColor: theme.colors.accent,
-    iconBg: theme.colors.accentSoft,
     onPress: (router) => router.push("/(app)/agents" as never),
   },
   {
     label: "Notifications",
     sublabel: "Send & view alerts",
     Icon: Bell,
-    iconColor: theme.colors.info,
-    iconBg: theme.colors.infoSoft,
     onPress: (router) => router.push("/(app)/notifications" as never),
   },
-  {
-    label: "Support",
-    sublabel: "Help & support",
-    Icon: HelpCircle,
-    iconColor: theme.colors.neutral,
-    iconBg: theme.colors.neutralSoft,
-    onPress: (router) => router.push("/(app)/help" as never),
-  },
+  ACTION_SUPPORT,
 ];
 
 // ── Shared quick-actions grid ─────────────────────────────────────────────────
@@ -146,8 +114,8 @@ function QuickActionsGrid({ actions }: { actions: QuickAction[] }) {
           accessibilityRole="button"
           accessibilityLabel={action.label}
         >
-          <View style={[styles.iconWrap, { backgroundColor: action.iconBg }]}>
-            <action.Icon size={24} color={action.iconColor} strokeWidth={2} />
+          <View style={[styles.iconWrap, styles.iconWrapBg]}>
+            <action.Icon size={24} color={theme.colors.info} strokeWidth={2} />
           </View>
           <Text style={styles.actionLabel}>{action.label}</Text>
           <Text style={styles.actionSublabel} numberOfLines={1}>
@@ -179,8 +147,8 @@ export default function HomeScreen() {
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          tintColor={theme.colors.primary}
-          colors={[theme.colors.primary]}
+          tintColor={theme.colors.accentLight}
+          colors={[theme.colors.accentLight]}
         />
       }
     >
@@ -266,6 +234,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: theme.spacing.xs,
+  },
+  iconWrapBg: {
+    backgroundColor: theme.colors.infoSoft,
   },
   actionLabel: {
     fontSize: 15,

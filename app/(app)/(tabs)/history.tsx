@@ -98,7 +98,7 @@ export default function ActivityScreen() {
     if (!isFetchingNextPage) return null;
     return (
       <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" color={theme.colors.primary} />
+        <ActivityIndicator size="small" color={theme.colors.accentLight} />
       </View>
     );
   }, [isFetchingNextPage]);

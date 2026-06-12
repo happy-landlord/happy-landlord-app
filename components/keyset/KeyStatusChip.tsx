@@ -17,7 +17,7 @@ const STATUS_CONFIG: Record<KeyStatusChipStatus, StatusConfig> = {
   reserved: { label: "Reserved", tone: "warning" },
   checked_out: { label: "Checked Out", tone: "warning" },
   overdue: { label: "Overdue", tone: "danger" },
-  handover_tenant: { label: "With Tenant", tone: "info" },
+  handover_tenant: { label: "With Tenant", tone: "tenant" },
   handover_landlord: { label: "With Landlord", tone: "primary" },
   missing_damaged: { label: "Lost", tone: "neutral" },
   inactive: { label: "Inactive", tone: "neutral" },
@@ -45,10 +45,16 @@ export function resolveKeyStatusChipStatus(opts: {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function KeyStatusChip({ status }: { status: KeyStatusChipStatus }) {
+export function KeyStatusChip({
+  status,
+  size = "sm",
+}: {
+  status: KeyStatusChipStatus;
+  size?: "sm" | "md";
+}) {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.inactive;
   return (
-    <Pill tone={cfg.tone} size="sm">
+    <Pill tone={cfg.tone} size={size}>
       {cfg.label}
     </Pill>
   );

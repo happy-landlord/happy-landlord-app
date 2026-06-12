@@ -272,7 +272,7 @@ export async function fetchKeySetsNeedingAttentionPaged({
     .select(
       `
       id, property_id, name, status, due_back_at, updated_at,
-      keys(label),
+      keys(label, quantity),
       current_holder:current_holder_id(full_name, holder_type, profile_id, phone),
       property:property_id(unit_number, address, suburb, city, postcode)
     `,

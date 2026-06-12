@@ -1,0 +1,73 @@
+import { useState } from "react";
+import { useRouter } from "expo-router";
+
+import { useRole } from "@/hooks";
+import type { TenantHolder } from "@/lib/services";
+import {
+  CollectFromTenantSheet,
+  HandoverLandlordSheet,
+  HandoverTenantSheet,
+} from "@/components/property";
+
+import { PropertyHeaderCard } from "./PropertyHeaderCard";
+
+// ── PropertyHeader ────────────────────────────────────────────────────────────
+// Orchestrator: self-manages the three action sheets (Edit, Handover, Collect).
+// Admin-only — when the current user is not an admin the ⋮ button is hidden
+// and the sheets are never mounted.
+
+export type PropertyHeaderProps = {
+  propertyId: string;
+  tenantOverride?: TenantHolder;
+};
+
+export function PropertyHeader({
+  propertyId,
+  tenantOverride,
+}: PropertyHeaderProps) {
+  const router = useRouter();
+  const { isAdmin } = useRole();
+
+  const [tenantSheetOpen, setTenantSheetOpen] = useState(false);
+  const [collectSheetOpen, setCollectSheetOpen] = useState(false);
+  const [landlordSheetOpen, setLandlordSheetOpen] = useState(false);
+
+  return (
+    <>
+      <PropertyHeaderCard
+        propertyId={propertyId}
+        tenantOverride={tenantOverride}
+        actions={
+          isAdmin
+            ? {
+                onEdit: () => router.push(`/properties/edit/${propertyId}`),
+                onHandoverTenant: () => setTenantSheetOpen(true),
+                onHandoverLandlord: () => setLandlordSheetOpen(true),
+                onCollect: () => setCollectSheetOpen(true),
+              }
+            : undefined
+        }
+      />
+
+      {isAdmin && (
+        <>
+          <HandoverTenantSheet
+            visible={tenantSheetOpen}
+            onClose={() => setTenantSheetOpen(false)}
+            propertyId={propertyId}
+          />
+          <CollectFromTenantSheet
+            visible={collectSheetOpen}
+            onClose={() => setCollectSheetOpen(false)}
+            propertyId={propertyId}
+          />
+          <HandoverLandlordSheet
+            visible={landlordSheetOpen}
+            onClose={() => setLandlordSheetOpen(false)}
+            propertyId={propertyId}
+          />
+        </>
+      )}
+    </>
+  );
+}

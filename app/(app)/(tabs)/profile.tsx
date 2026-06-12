@@ -1,4 +1,4 @@
-﻿import {
+import {
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -15,7 +15,7 @@ export default function ProfileScreen() {
   const listPaddingBottom = useBottomListPadding();
   const { data: profile, isLoading, isError, refetch } = useProfile();
   const { refreshing, onRefresh } = useRefreshControl(refetch);
-  if (isLoading) return <LoadingState message="Loading profile…" />;
+  if (isLoading) return <LoadingState message="Loading profile..." />;
   if (isError || !profile) {
     return (
       <ErrorState onRetry={refetch} message="Could not load your profile." />
@@ -33,8 +33,8 @@ export default function ProfileScreen() {
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          tintColor={theme.colors.primary}
-          colors={[theme.colors.primary]}
+          tintColor={theme.colors.accentLight}
+          colors={[theme.colors.accentLight]}
         />
       }
     >

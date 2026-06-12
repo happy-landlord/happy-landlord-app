@@ -61,7 +61,7 @@ function DonutChart({
   return (
     <Svg width={SIZE} height={SIZE}>
       {paths.map((p, i) => (
-        <Path key={i} d={p.path} fill={p.color} />
+        <Path key={i} d={p.path} fill={p.color} fillOpacity={0.55} />
       ))}
       <SvgText
         x={CX}
@@ -93,10 +93,26 @@ function DonutChart({
 
 function buildSegments(d: AdminDashboardSummary): Segment[] {
   return [
-    { label: "Available", value: d.available_keysets, color: theme.colors.keyAvailable },
-    { label: "Checked out", value: d.checked_out_keysets, color: theme.colors.keyCheckedOut },
-    { label: "Overdue", value: d.overdue_keysets, color: theme.colors.keyOverdue },
-    { label: "Lost/Damaged", value: d.lost_keysets, color: theme.colors.keyLost },
+    {
+      label: "Available",
+      value: d.available_keysets,
+      color: theme.colors.keyAvailable,
+    },
+    {
+      label: "Checked out",
+      value: d.checked_out_keysets,
+      color: theme.colors.keyCheckedOut,
+    },
+    {
+      label: "Overdue",
+      value: d.overdue_keysets,
+      color: theme.colors.keyOverdue,
+    },
+    {
+      label: "Lost/Damaged",
+      value: d.lost_keysets,
+      color: theme.colors.keyLost,
+    },
   ];
 }
 
@@ -162,7 +178,12 @@ export function KeyDashboardSummary() {
         <View style={styles.legend}>
           {segments.map((s) => (
             <View key={s.label} style={styles.legendRow}>
-              <View style={[styles.legendDot, { backgroundColor: s.color }]} />
+              <View
+                style={[
+                  styles.legendDot,
+                  { backgroundColor: s.color, opacity: 0.75 },
+                ]}
+              />
               <Text style={[styles.legendCount, { color: s.color }]}>
                 {s.value}
               </Text>

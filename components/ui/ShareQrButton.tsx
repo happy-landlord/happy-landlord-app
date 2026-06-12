@@ -29,7 +29,7 @@ export type ShareQrButtonProps = Omit<PressableProps, "onPress"> & {
   /** Used as the share dialog title */
   title?: string;
   /** @default "icon" */
-  variant?: "pill" | "icon" | "overlay";
+  variant?: "pill" | "icon" | "overlay" | "menuRow";
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -141,7 +141,28 @@ export function ShareQrButton({
             </>
           )}
         </Pressable>
-      ) : (
+      ) : variant === "menuRow" ? (
+        <Pressable
+          style={({ pressed }) => [
+            styles.menuRow,
+            pressed && styles.menuRowPressed,
+            busy && styles.disabled,
+            style as object,
+          ]}
+          onPress={handleShare}
+          disabled={busy}
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          {...pressableProps}
+        >
+          {busy ? (
+            <ActivityIndicator size="small" color={theme.colors.text} />
+          ) : (
+            <Share2 size={18} color={theme.colors.text} strokeWidth={1.8} />
+          )}
+          <Text style={styles.menuRowLabel}>{busy ? "Sharing…" : label}</Text>
+        </Pressable>
+      ) : variant === "icon" ? (
         <Pressable
           style={({ pressed }) => [
             styles.iconBtn,
@@ -156,12 +177,12 @@ export function ShareQrButton({
           {...pressableProps}
         >
           {busy ? (
-            <ActivityIndicator size="small" color={theme.colors.primary} />
+            <ActivityIndicator size="small" color={theme.colors.accentLight} />
           ) : (
             <Share2 size={18} color={theme.colors.primary} strokeWidth={2} />
           )}
         </Pressable>
-      )}
+      ) : null}
     </>
   );
 }
@@ -188,6 +209,23 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primarySoft,
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  menuRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.md,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+  },
+  menuRowPressed: {
+    backgroundColor: theme.colors.neutralSoft,
+  },
+  menuRowLabel: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: theme.colors.text,
+    flex: 1,
   },
 
   overlayBtn: {

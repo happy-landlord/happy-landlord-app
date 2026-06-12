@@ -187,7 +187,7 @@ export function KeySetActionsPanel() {
       {showAgentExtend && (
         <Button
           title="Extend Duration"
-          variant="primary"
+          variant="accent"
           disabled={isBusy}
           onPress={() => openModal({ kind: "extend", days: 1 })}
         />

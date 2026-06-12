@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
+import { StyleSheet, Text } from "react-native";
 import { KeyRound, ChevronRight } from "lucide-react-native";
 
-import { EntityCard, MetaRow, type MetaItem, Pill } from "@/components/ui";
+import { EntityCard, MetaRow, type MetaItem } from "@/components/ui";
 import { KeyStatusChip } from "./KeyStatusChip";
 import { getTotalKeyQuantity } from "@/lib/utils";
 import type { KeySetWithDetails } from "@/lib/services";
@@ -64,21 +65,23 @@ export function KeySetCard({
       ]
     : undefined;
 
+  // Admin: name (big) + "code · X keys" subtitle below
+  // Agent: "name · X keys" inline in title (name big, count smaller)
+  const agentTitle: ReactNode = !isAdmin ? (
+    <Text style={cardStyles.agentTitle} numberOfLines={2}>
+      {keySet.name}
+      <Text style={cardStyles.agentCount}> · {keyCountLabel}</Text>
+    </Text>
+  ) : undefined;
+
   return (
     <EntityCard
       icon={KeyRound}
       iconTone="neutral"
       iconSize={isAdmin ? "md" : "sm"}
-      eyebrow={isAdmin ? keySet.code : undefined}
-      title={keySet.name}
-      pills={
-        <>
-          <KeyStatusChip status={chipStatus} />
-          <Pill tone="neutral" size="sm">
-            {keyCountLabel}
-          </Pill>
-        </>
-      }
+      title={agentTitle ?? keySet.name}
+      subtitle={isAdmin ? `${keySet.code} · ${keyCountLabel}` : undefined}
+      pills={<KeyStatusChip status={chipStatus} size="md" />}
       right={
         isAdmin && onPress ? (
           <ChevronRight
@@ -98,3 +101,19 @@ export function KeySetCard({
     />
   );
 }
+
+const cardStyles = StyleSheet.create({
+  agentTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: theme.colors.text,
+    letterSpacing: -0.2,
+  },
+  agentCount: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: theme.colors.textMuted,
+    letterSpacing: 0,
+  },
+});
+

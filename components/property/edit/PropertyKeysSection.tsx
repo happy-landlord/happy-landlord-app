@@ -14,7 +14,7 @@ import {
   KeyRound,
   Minus,
   Plus,
-  Trash2,
+  X,
 } from "lucide-react-native";
 
 import { KEY_TYPE_ICON, KEY_TYPE_LABEL, theme } from "@/constants";
@@ -126,7 +126,7 @@ export function PropertyKeysSection({
               hitSlop={8}
               style={({ pressed }) => [styles.deleteBtn, pressed && { opacity: 0.65 }]}
             >
-              <Trash2 size={14} color={theme.colors.danger} strokeWidth={2} />
+              <X size={16} color={theme.colors.danger} strokeWidth={2} />
             </Pressable>
           </View>
         );

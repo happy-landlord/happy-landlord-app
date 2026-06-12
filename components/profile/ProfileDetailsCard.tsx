@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { Check, Pencil, Phone, User, X } from "lucide-react-native";
 
 import { theme } from "@/constants";
 import { useProfile, useUpdateProfile } from "@/lib/hooks";
 import { formatAuPhone } from "@/lib/utils";
 import type { ProfileEdits } from "@/lib/services";
-import { Button } from "@/components/ui";
+import { Button, Input } from "@/components/ui";
 
 // ── ProfileDetailsCard ───────────────────────────────────────────────────────
 // View / edit name + phone for the current user.
@@ -47,56 +47,53 @@ export function ProfileDetailsCard() {
     <View style={styles.section}>
       <Text style={styles.sectionLabel}>Account details</Text>
 
-      <View style={styles.card}>
-        <DetailRow
-          icon={
-            <User size={16} color={theme.colors.accent} strokeWidth={1.9} />
-          }
-          label="Name"
-        >
-          {editing ? (
-            <TextInput
-              style={styles.input}
-              value={draftName}
-              onChangeText={setDraftName}
-              placeholder="Enter your full name"
-              placeholderTextColor={theme.colors.textLight}
-              autoCapitalize="words"
-              autoCorrect={false}
-              returnKeyType="next"
-              autoFocus
-            />
-          ) : (
+      {editing ? (
+        /* ── Edit form ── */
+        <View style={styles.form}>
+          <Input
+            label="Full name"
+            value={draftName}
+            onChangeText={setDraftName}
+            placeholder="Enter your full name"
+            autoCapitalize="words"
+            autoCorrect={false}
+            returnKeyType="next"
+            autoFocus
+            labelBackground={theme.colors.surface}
+          />
+          <Input
+            label="Phone"
+            value={draftPhone}
+            onChangeText={setDraftPhone}
+            placeholder="Add phone number"
+            keyboardType="phone-pad"
+            textContentType="telephoneNumber"
+            returnKeyType="done"
+            labelBackground={theme.colors.surface}
+          />
+        </View>
+      ) : (
+        /* ── View card ── */
+        <View style={styles.card}>
+          <DetailRow
+            icon={<User size={16} color={theme.colors.accent} strokeWidth={1.9} />}
+            label="Name"
+          >
             <Text style={[styles.value, !hasName && styles.empty]}>
               {profile.full_name?.trim() || "Not set"}
             </Text>
-          )}
-        </DetailRow>
+          </DetailRow>
 
-        <DetailRow
-          icon={
-            <Phone size={16} color={theme.colors.accent} strokeWidth={1.9} />
-          }
-          label="Phone"
-        >
-          {editing ? (
-            <TextInput
-              style={styles.input}
-              value={draftPhone}
-              onChangeText={setDraftPhone}
-              placeholder="Add phone number"
-              placeholderTextColor={theme.colors.textLight}
-              keyboardType="phone-pad"
-              textContentType="telephoneNumber"
-              returnKeyType="done"
-            />
-          ) : (
+          <DetailRow
+            icon={<Phone size={16} color={theme.colors.accent} strokeWidth={1.9} />}
+            label="Phone"
+          >
             <Text style={[styles.value, !hasPhone && styles.empty]}>
               {profile.phone?.trim() || "Not set"}
             </Text>
-          )}
-        </DetailRow>
-      </View>
+          </DetailRow>
+        </View>
+      )}
 
       {editing ? (
         <View style={styles.btnRow}>
@@ -170,6 +167,16 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.card,
     overflow: "hidden",
   },
+  form: {
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.card,
+    paddingHorizontal: theme.spacing.md,
+    paddingTop: theme.spacing.xs,
+    paddingBottom: theme.spacing.md,
+    gap: theme.spacing.xs,
+  },
   row: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -201,18 +208,6 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   empty: { color: theme.colors.textMuted, fontWeight: "500" },
-  input: {
-    fontSize: 15,
-    color: theme.colors.text,
-    fontWeight: "600",
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.surfaceWarm,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    marginTop: theme.spacing.xs,
-  },
   btnRow: {
     flexDirection: "row",
     gap: theme.spacing.sm,

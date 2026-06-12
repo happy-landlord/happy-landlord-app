@@ -155,7 +155,7 @@ function CheckedOutTab({ paddingBottom }: { paddingBottom: number }) {
     () =>
       isFetchingNextPage ? (
         <View style={styles.footerLoader}>
-          <ActivityIndicator size="small" color={theme.colors.primary} />
+          <ActivityIndicator size="small" color={theme.colors.accentLight} />
         </View>
       ) : null,
     [isFetchingNextPage],
@@ -236,7 +236,6 @@ function NeedsAttentionTab({ paddingBottom }: { paddingBottom: number }) {
     ({ item }: { item: KeySetNeedingAttention }) => (
       <KeySetPropertyCard
         item={item}
-        hideCheckedOutBadge
         onPress={() =>
           router.push(`/(app)/properties/keyset/${item.id}` as never)
         }
@@ -249,7 +248,7 @@ function NeedsAttentionTab({ paddingBottom }: { paddingBottom: number }) {
     () =>
       isFetchingNextPage ? (
         <View style={styles.footerLoader}>
-          <ActivityIndicator size="small" color={theme.colors.primary} />
+          <ActivityIndicator size="small" color={theme.colors.accentLight} />
         </View>
       ) : null,
     [isFetchingNextPage],
@@ -379,6 +378,7 @@ function AgentActivityView() {
                 item={keySet}
                 showHolder={false}
                 hideCheckedOutBadge
+                hideCount
                 onPress={() => goToKeyset(keySet.id)}
               />
             ))}
@@ -410,7 +410,7 @@ function AgentActivityView() {
     () =>
       isFetchingNextPage ? (
         <View style={styles.footerLoader}>
-          <ActivityIndicator size="small" color={theme.colors.primary} />
+          <ActivityIndicator size="small" color={theme.colors.accentLight} />
         </View>
       ) : null,
     [isFetchingNextPage],
@@ -436,8 +436,8 @@ function AgentActivityView() {
         <RefreshControl
           refreshing={historyFetching && !historyLoading}
           onRefresh={onRefresh}
-          tintColor={theme.colors.primary}
-          colors={[theme.colors.primary]}
+          tintColor={theme.colors.accentLight}
+          colors={[theme.colors.accentLight]}
         />
       }
       onEndReached={() => {
@@ -447,7 +447,7 @@ function AgentActivityView() {
       ListEmptyComponent={
         historyLoading ? (
           <View style={styles.historyLoading}>
-            <ActivityIndicator size="small" color={theme.colors.primary} />
+            <ActivityIndicator size="small" color={theme.colors.accentLight} />
           </View>
         ) : historyError ? (
           <View style={styles.stateArea}>

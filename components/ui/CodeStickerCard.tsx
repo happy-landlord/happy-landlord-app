@@ -97,7 +97,7 @@ export function CodeStickerCard({
             accessibilityLabel="Print"
           >
             {printing ? (
-              <ActivityIndicator size="small" color={theme.colors.primary} />
+              <ActivityIndicator size="small" color={theme.colors.accentLight} />
             ) : (
               <>
                 <Printer size={14} color={theme.colors.primary} strokeWidth={2} />

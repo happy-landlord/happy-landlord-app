@@ -20,7 +20,7 @@ export type PillTone =
   | "success"
   | "warning"
   | "danger"
-  | "info"
+  | "tenant"
   | "neutral";
 
 export type PillVariant = "soft" | "solid";
@@ -50,9 +50,9 @@ const TONE: Record<
     soft: { bg: theme.colors.dangerSoft, fg: theme.colors.danger },
     solid: { bg: theme.colors.danger, fg: theme.colors.textInverse },
   },
-  info: {
-    soft: { bg: theme.colors.infoSoft, fg: theme.colors.info },
-    solid: { bg: theme.colors.info, fg: theme.colors.textInverse },
+  tenant: {
+    soft: { bg: theme.colors.keyTenantSoft, fg: theme.colors.keyTenant },
+    solid: { bg: theme.colors.keyTenant, fg: theme.colors.textInverse },
   },
   neutral: {
     soft: { bg: theme.colors.neutralSoft, fg: theme.colors.textMuted },

@@ -2,7 +2,6 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -21,12 +20,9 @@ import {
   ExternalLink,
   Fingerprint,
   KeyRound,
-  ShieldCheck,
-  Smartphone,
   Wrench,
 } from "lucide-react-native";
 import * as Sentry from "@sentry/react-native";
-import * as Device from "expo-device";
 
 import { theme, FEATURES } from "@/constants";
 import {
@@ -152,12 +148,6 @@ export default function SettingsScreen() {
     );
   }
 
-  const deviceLabel = Device.deviceName
-    ? `${Device.deviceName} · ${Platform.OS === "ios" ? "iOS" : "Android"}`
-    : Platform.OS === "ios"
-      ? "iOS device"
-      : "Android device";
-
   return (
     <>
     <ScrollView
@@ -213,7 +203,7 @@ export default function SettingsScreen() {
                     }
                     trackColor={{
                       false: theme.colors.neutralSoft,
-                      true: theme.colors.primary,
+                      true: theme.colors.accent,
                     }}
                     thumbColor={theme.colors.surface}
                     ios_backgroundColor={theme.colors.neutralSoft}
@@ -224,16 +214,6 @@ export default function SettingsScreen() {
             <RowDivider />
           </>
         )}
-
-        <SettingRow
-          Icon={ShieldCheck}
-          iconBg={theme.colors.successSoft}
-          iconColor={theme.colors.success}
-          title="Session"
-          subtitle="Your login session is managed securely by Supabase"
-        />
-
-        <RowDivider />
 
         <SettingRow
           Icon={KeyRound}
@@ -282,7 +262,7 @@ export default function SettingsScreen() {
                     disabled={togglePush.isPending}
                     trackColor={{
                       false: theme.colors.neutralSoft,
-                      true: theme.colors.primary,
+                      true: theme.colors.accent,
                     }}
                     thumbColor={theme.colors.surface}
                     ios_backgroundColor={theme.colors.neutralSoft}
@@ -320,15 +300,6 @@ export default function SettingsScreen() {
               </Pressable>
             ) : null}
 
-            <RowDivider />
-
-            <SettingRow
-              Icon={Smartphone}
-              iconBg={theme.colors.infoSoft}
-              iconColor={theme.colors.info}
-              title="This device"
-              subtitle={deviceLabel}
-            />
 
             <RowDivider />
           </>
@@ -377,8 +348,8 @@ export default function SettingsScreen() {
         />
       </SectionCard>
 
-      {/* ── Developer section (dev builds only) ───────────────────────── */}
-      {__DEV__ && <DeveloperSection />}
+        {/* ── Developer section (dev builds only) ───────────────────────── */}
+        {FEATURES.DEVELOPER_SECTION && <DeveloperSection />}
     </ScrollView>
 
     <ChangePasswordSheet

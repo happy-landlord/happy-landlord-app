@@ -46,12 +46,8 @@ const styles = StyleSheet.create({
   spinnerWrap: {
     width: 52,
     height: 52,
-    borderRadius: theme.radius.pill,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.colors.accentSoft,
-    borderWidth: 1,
-    borderColor: theme.colors.accentLight,
     marginBottom: theme.spacing.md,
   },
   message: {

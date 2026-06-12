@@ -107,8 +107,8 @@ export function AgentsList() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={theme.colors.primary}
-            colors={[theme.colors.primary]}
+            tintColor={theme.colors.accentLight}
+            colors={[theme.colors.accentLight]}
           />
         }
         keyboardShouldPersistTaps="handled"

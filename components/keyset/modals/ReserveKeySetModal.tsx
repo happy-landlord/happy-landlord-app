@@ -5,7 +5,6 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import DateTimePicker, {
@@ -65,7 +64,6 @@ export function ReserveKeySetModal({
   const insets = useSafeAreaInsets();
   const [startsAt, setStartsAt] = useState<Date>(() => nextHalfHour());
   const [durationDays, setDurationDays] = useState<number>(1);
-  const [notes, setNotes] = useState("");
   const [activePicker, setActivePicker] = useState<ActivePicker | null>(null);
   const [pickerValue, setPickerValue] = useState<Date>(new Date());
 
@@ -78,7 +76,6 @@ export function ReserveKeySetModal({
     if (visible) {
       setStartsAt(nextHalfHour());
       setDurationDays(1);
-      setNotes("");
     }
     // Dismiss picker whenever sheet visibility changes
     closePicker();
@@ -122,10 +119,8 @@ export function ReserveKeySetModal({
       Alert.alert("Invalid time", "Start time must be in the future.");
       return;
     }
-    onConfirm(startsAt, endsAt, notes);
-  };
-
-  // ── Right-side picker panel (rendered inside same Modal via overlayContent) ─
+    onConfirm(startsAt, endsAt, "");
+  };  // ── Right-side picker panel (rendered inside same Modal via overlayContent) ─
 
   const pickerPanel = (
     <>
@@ -181,7 +176,7 @@ export function ReserveKeySetModal({
         <View style={styles.panelActions}>
           <Button
             title="Cancel"
-            variant="ghost"
+            variant="outline"
             onPress={closePicker}
             style={styles.panelBtn}
           />
@@ -223,7 +218,7 @@ export function ReserveKeySetModal({
             ]}
             onPress={() => openPicker("date")}
           >
-            <Calendar size={14} color={theme.colors.primary} strokeWidth={2} />
+            <Calendar size={14} color={theme.colors.textMuted} strokeWidth={2} />
             <Text style={styles.dtValue}>
               {formatDate(startsAt.toISOString())}
             </Text>
@@ -236,7 +231,7 @@ export function ReserveKeySetModal({
             ]}
             onPress={() => openPicker("time")}
           >
-            <Clock size={14} color={theme.colors.primary} strokeWidth={2} />
+            <Clock size={14} color={theme.colors.textMuted} strokeWidth={2} />
             <Text style={styles.dtValue}>
               {formatTime(startsAt.toISOString())}
             </Text>
@@ -271,29 +266,13 @@ export function ReserveKeySetModal({
 
       {/* Computed end time callout */}
       <View style={styles.dueRow}>
-        <CalendarClock size={14} color={theme.colors.primary} strokeWidth={2} />
+        <CalendarClock size={14} color={theme.colors.textMuted} strokeWidth={2} />
         <Text style={styles.dueText}>
           Return by{" "}
           <Text style={styles.dueDate}>
             {formatDueAt(endsAt.toISOString())}
           </Text>
         </Text>
-      </View>
-
-      {/* Notes */}
-      <View style={styles.fieldGroup}>
-        <Text style={styles.fieldLabel}>NOTES (OPTIONAL)</Text>
-        <TextInput
-          style={styles.notesInput}
-          value={notes}
-          onChangeText={setNotes}
-          placeholder="Add a note…"
-          placeholderTextColor={theme.colors.textLight}
-          multiline
-          numberOfLines={3}
-          maxLength={300}
-          textAlignVertical="top"
-        />
       </View>
     </ConfirmSheet>
   );
@@ -325,7 +304,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   dtFieldActive: {
-    borderColor: theme.colors.primary,
+    borderColor: theme.colors.accent,
     backgroundColor: theme.colors.accentSoft,
   },
   dtFieldPressed: { opacity: 0.7 },
@@ -351,16 +330,11 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 13, fontWeight: "600", color: theme.colors.textMuted },
   chipTextSelected: { color: theme.colors.accent, fontWeight: "700" },
   dueRow: {
-    maxWidth: "100%",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     alignSelf: "center",
     gap: 6,
-    backgroundColor: theme.colors.accentSoft,
-    borderRadius: theme.radius.md,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: 10,
   },
   dueText: {
     flexShrink: 1,
@@ -369,17 +343,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   dueDate: { fontWeight: "700", color: theme.colors.text },
-  notesInput: {
-    backgroundColor: theme.colors.surfaceWarm,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: theme.colors.text,
-    minHeight: 72,
-  },
+  notesInput: {},
 
   // ── Bottom picker panel ───────────────────────────────────────────────────
   bottomPanel: {

@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   shell: {
     padding: theme.spacing.xs,
     borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.accentSoft,
     position: "relative",
   },
   shellPressed: { opacity: 0.8 },
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.accentLight,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 30,
     fontWeight: "800",
-    color: theme.colors.accent,
+    color: theme.colors.textInverse,
   },
   badge: {
     position: "absolute",
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.neutralSoft,
     borderWidth: 2,
     borderColor: theme.colors.background,
     alignItems: "center",

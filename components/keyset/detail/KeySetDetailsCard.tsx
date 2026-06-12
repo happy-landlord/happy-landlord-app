@@ -1,9 +1,10 @@
+import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
-import { KeyRound, Pencil } from "lucide-react-native";
+import { KeyRound, MoreVertical, Pencil } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
-import { IconBadge, MetaRow, type MetaItem, Pill, PillButton, ShareQrButton } from "@/components/ui";
+import { BottomSheet, IconBadge, MetaRow, type MetaItem, ShareQrButton } from "@/components/ui";
 import { theme } from "@/constants";
 import {
   useCurrentUserId,
@@ -21,9 +22,6 @@ import { KeySetKeysList } from "./KeySetKeysList";
 import { useKeySetScreen } from "./KeySetScreenContext";
 
 // ── KeySetDetailsCard ───────────────────────────────────────────────────────
-// Hero card on the keyset detail screen. Self-sufficient: pulls `keySet`,
-// `currentUserId`, role, availability, and its banner image from hooks —
-// the parent screen only needs to mount it inside `<KeySetScreenProvider>`.
 
 export function KeySetDetailsCard() {
   const { keySetId } = useKeySetScreen();
@@ -33,21 +31,14 @@ export function KeySetDetailsCard() {
   const { isAdmin } = useRole();
   const availability = useKeysetAvailabilityFor(keySet);
   const { data: imageUrl } = useFirstKeySetImageUrl(keySet?.images);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   if (!keySet) return null;
 
-  // Knowing whether a banner will eventually render is decided from the
-  // keyset payload itself (already cached) — NOT from the resolved signed
-  // URL. This lets us reserve the banner slot from the first frame so the
-  // Edit/Share controls don't visibly jump from above the card into the
-  // banner overlay once the signed URL resolves.
   const hasImage = getVisibleKeySetImages(keySet.images ?? []).length > 0;
 
   const holderProfileId = keySet.current_holder?.profile_id;
-  const { isCheckedOut, chipStatus } = getKeySetCardStatus(
-    keySet,
-    availability,
-  );
+  const { isCheckedOut, chipStatus } = getKeySetCardStatus(keySet, availability);
   const isHeldByMe = isCheckedOut && holderProfileId === currentUserId;
   const isHeldByOther = isCheckedOut && holderProfileId !== currentUserId;
 
@@ -57,30 +48,15 @@ export function KeySetDetailsCard() {
   const holderPhone = keySet.current_holder?.phone;
   const showHolderMeta = !!keySet.current_holder && isHeldByOther;
 
-  return (
-    <View style={styles.wrap}>
-      {/* Edit + Share buttons above card when no image */}
-      {isAdmin && !hasImage && (
-        <View style={styles.actionRow}>
-          <PillButton
-            label="Edit"
-            variant="accent"
-            icon={<Pencil size={14} color={theme.colors.accent} strokeWidth={2} />}
-            onPress={() => router.push(`/properties/keyset/edit/${keySetId}`)}
-            accessibilityLabel="Edit keyset"
-          />
-          <ShareQrButton
-            variant="pill"
-            code={keySet.code}
-            title={keySet.name}
-          />
-        </View>
-      )}
+  function pickEdit() {
+    setMenuOpen(false);
+    setTimeout(() => router.push(`/properties/keyset/edit/${keySetId}`), 250);
+  }
 
+  return (
+    <>
       <View style={styles.card}>
-        {/* Image banner — reserve the slot as soon as we know an image
-            exists; a themed placeholder fills it until the signed URL
-            resolves, then expo-image fades in over the top. */}
+        {/* Image banner */}
         {hasImage ? (
           <View style={styles.banner}>
             <View style={styles.bannerPlaceholder} />
@@ -95,70 +71,55 @@ export function KeySetDetailsCard() {
                 accessibilityIgnoresInvertColors
               />
             ) : null}
-            {/* Floating Edit + Share overlay — top right */}
-            {isAdmin && (
-              <View style={styles.bannerOverlay}>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.overlayBtn,
-                    pressed && { opacity: 0.7 },
-                  ]}
-                  onPress={() => router.push(`/properties/keyset/edit/${keySetId}`)}
-                  accessibilityRole="button"
-                  accessibilityLabel="Edit keyset"
-                >
-                  <Pencil size={13} color={theme.colors.textInverse} strokeWidth={2} />
-                  <Text style={styles.overlayBtnText}>Edit</Text>
-                </Pressable>
-                <ShareQrButton
-                  variant="overlay"
-                  code={keySet.code}
-                  title={keySet.name}
-                />
-              </View>
-            )}
           </View>
         ) : null}
 
-        {/* Top info row — mirrors AdminKeySetCard layout for both roles */}
+        {/* Top info row */}
         {isAdmin ? (
-          /* ── Admin: code prefix + status/count pills + name ── */
+          /* ── Admin: name (big) + status badge, code · keys count below, ⋮ button ── */
           <View style={styles.top}>
             <IconBadge icon={KeyRound} tone="neutral" size="md" />
             <View style={styles.info}>
-              <View style={styles.topRow}>
-                <Text style={styles.codePrefix} numberOfLines={1}>
-                  {keySet.code}
+              <View style={styles.titleRow}>
+                <Text style={styles.name} numberOfLines={1}>
+                  {keySet.name}
                 </Text>
-                <View style={styles.pillsRow}>
-                  <KeyStatusChip status={chipStatus} />
-                  <Pill tone="neutral" size="sm">
-                    {totalKeys} {totalKeys === 1 ? "key" : "keys"}
-                  </Pill>
-                </View>
+                <KeyStatusChip status={chipStatus} size="md" />
               </View>
-              <Text style={styles.name} numberOfLines={1}>
-                {keySet.name}
+              <Text style={styles.codePrefix} numberOfLines={1}>
+                {keySet.code} · {totalKeys} {totalKeys === 1 ? "key" : "keys"}
               </Text>
             </View>
+            <Pressable
+              style={({ pressed }) => [
+                styles.moreBtn,
+                pressed && styles.moreBtnPressed,
+              ]}
+              onPress={() => setMenuOpen(true)}
+              accessibilityLabel="Keyset options"
+              hitSlop={8}
+            >
+              <MoreVertical size={20} color={theme.colors.textLight} strokeWidth={2} />
+            </Pressable>
           </View>
         ) : (
-          /* ── Agent: smaller icon + name + status/count pills (mirrors AgentKeySetCard) ── */
+          /* ── Agent: name · count inline + status badge ── */
           <View style={styles.top}>
             <IconBadge icon={KeyRound} tone="neutral" size="sm" />
             <View style={styles.info}>
-              <Text style={styles.nameAgent} numberOfLines={1}>
-                {keySet.name}
-              </Text>
-            </View>
-            <View style={styles.pillsRow}>
-              <KeyStatusChip status={chipStatus} />
-              <Pill tone="neutral" size="sm">
-                {totalKeys} {totalKeys === 1 ? "key" : "keys"}
-              </Pill>
+              <View style={styles.titleRow}>
+                <Text style={styles.nameAgent} numberOfLines={1}>
+                  {keySet.name}
+                  <Text style={styles.agentCount}>
+                    {" "}· {totalKeys} {totalKeys === 1 ? "key" : "keys"}
+                  </Text>
+                </Text>
+                <KeyStatusChip status={chipStatus} size="md" />
+              </View>
             </View>
           </View>
         )}
+
         {showHolderMeta && (() => {
           const displayName = isHeldByMe ? "You" : (holderName ?? "Unknown");
           const showType = holderType && holderType !== "agent";
@@ -181,7 +142,7 @@ export function KeySetDetailsCard() {
           );
         })()}
 
-        {/* Keys list — embedded inside this card */}
+        {/* Keys list */}
         {keySet.keys && keySet.keys.length > 0 && (
           <>
             <View style={styles.keysDivider} />
@@ -189,20 +150,38 @@ export function KeySetDetailsCard() {
           </>
         )}
       </View>
-    </View>
+
+      {/* Options sheet — admin only */}
+      {isAdmin && (
+        <BottomSheet visible={menuOpen} onClose={() => setMenuOpen(false)}>
+          <Text style={styles.sheetTitle}>Keyset Options</Text>
+          <View style={styles.menuItems}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.menuItem,
+                pressed && styles.menuItemPressed,
+              ]}
+              onPress={pickEdit}
+            >
+              <Pencil size={18} color={theme.colors.text} strokeWidth={1.8} />
+              <Text style={styles.menuItemLabel}>Edit Keyset</Text>
+            </Pressable>
+            <View style={styles.sep} />
+            <ShareQrButton
+              variant="menuRow"
+              code={keySet.code}
+              title={keySet.name}
+            />
+          </View>
+        </BottomSheet>
+      )}
+    </>
   );
 }
 
+// ── Styles ────────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  wrap: { gap: theme.spacing.xs },
-
-  actionRow: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-  },
-
   card: {
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
@@ -221,27 +200,6 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  bannerOverlay: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    flexDirection: "row",
-    gap: 6,
-  },
-  overlayBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.accentDark + "85",
-  },
-  overlayBtnText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: theme.colors.textInverse,
-  },
 
   top: {
     flexDirection: "row",
@@ -249,9 +207,8 @@ const styles = StyleSheet.create({
     gap: theme.spacing.md,
     padding: theme.spacing.md,
   },
-
   info: { flex: 1, gap: 2, minWidth: 0 },
-  topRow: {
+  titleRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -265,12 +222,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.4,
   },
-  pillsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    flexShrink: 0,
-  },
   name: {
     flex: 1,
     fontSize: 17,
@@ -282,6 +233,23 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: theme.colors.text,
     letterSpacing: -0.1,
+    flex: 1,
+  },
+  agentCount: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: theme.colors.textMuted,
+    letterSpacing: 0,
+  },
+  moreBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  moreBtnPressed: {
+    backgroundColor: theme.colors.neutralSoft,
   },
 
   meta: {
@@ -293,9 +261,46 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.border,
     marginBottom: theme.spacing.sm,
   },
-
   keysDivider: {
     height: 1,
     backgroundColor: theme.colors.border,
+  },
+
+  // Sheet
+  sheetTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.textLight,
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    marginBottom: theme.spacing.sm,
+  },
+  menuItems: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.lg,
+    overflow: "hidden",
+    backgroundColor: theme.colors.surfaceWarm,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.md,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+  },
+  menuItemPressed: {
+    backgroundColor: theme.colors.neutralSoft,
+  },
+  menuItemLabel: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: theme.colors.text,
+    flex: 1,
+  },
+  sep: {
+    height: 1,
+    backgroundColor: theme.colors.border,
+    marginLeft: theme.spacing.md + 18 + theme.spacing.md,
   },
 });

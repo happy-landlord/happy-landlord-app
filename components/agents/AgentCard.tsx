@@ -116,21 +116,21 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.colors.surfaceWarm,
+    backgroundColor: theme.colors.accentSoft,
     padding: theme.spacing.sm,
   },
   initialCircle: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.accentSoft,
+    backgroundColor: theme.colors.accent,
     alignItems: "center",
     justifyContent: "center",
   },
   imageInitial: {
     fontSize: 20,
     fontWeight: "700",
-    color: theme.colors.accent,
+    color: theme.colors.textInverse,
   },
 
   content: {

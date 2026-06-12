@@ -1,6 +1,6 @@
 import { ChevronRight, KeyRound } from "lucide-react-native";
 
-import { EntityCard, MetaRow, type MetaItem, Pill } from "@/components/ui";
+import { EntityCard, MetaRow, type MetaItem } from "@/components/ui";
 import { theme } from "@/constants";
 import { formatStreetLine, getTotalKeyQuantity } from "@/lib/utils";
 
@@ -41,6 +41,8 @@ export type KeySetPropertyCardProps = {
   showHolder?: boolean;
   /** When true, the status chip is hidden if the status is "checked_out". Other statuses (overdue, handover, etc.) are still shown. */
   hideCheckedOutBadge?: boolean;
+  /** When true, the key-count pill is hidden. */
+  hideCount?: boolean;
   onPress: () => void;
 };
 
@@ -48,6 +50,7 @@ export function KeySetPropertyCard({
   item,
   showHolder = true,
   hideCheckedOutBadge = false,
+  hideCount = false,
   onPress,
 }: KeySetPropertyCardProps) {
   const { chipStatus, isCheckedOut, isHandover, isMissingDamaged } =
@@ -56,6 +59,12 @@ export function KeySetPropertyCard({
   const suburb = item.property?.suburb?.trim() ?? "";
   const streetLine = formatStreetLine(item.property);
   const keyCount = getTotalKeyQuantity(item);
+
+  const countLabel =
+    !hideCount && keyCount > 0
+      ? `${keyCount} ${keyCount === 1 ? "key" : "keys"}`
+      : null;
+  const eyebrow = [suburb, countLabel].filter(Boolean).join(" · ") || undefined;
 
   const holder = item.current_holder;
   const holderName = holder?.full_name ?? null;
@@ -78,19 +87,12 @@ export function KeySetPropertyCard({
     <EntityCard
       icon={KeyRound}
       iconTone="neutral"
-      eyebrow={suburb}
+      eyebrow={eyebrow}
       title={streetLine}
       pills={
-        <>
-          {!(hideCheckedOutBadge && chipStatus === "checked_out") && (
-            <KeyStatusChip status={chipStatus} />
-          )}
-          {keyCount > 0 ? (
-            <Pill tone="neutral" size="sm">
-              {keyCount} {keyCount === 1 ? "key" : "keys"}
-            </Pill>
-          ) : null}
-        </>
+        !(hideCheckedOutBadge && chipStatus === "checked_out") ? (
+          <KeyStatusChip status={chipStatus} size="md" />
+        ) : undefined
       }
       meta={holderMeta ? <MetaRow items={holderMeta} divider={false} /> : undefined}
       right={

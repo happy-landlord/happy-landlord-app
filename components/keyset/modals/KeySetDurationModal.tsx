@@ -154,16 +154,11 @@ const styles = StyleSheet.create({
   },
   chipTextSelected: { color: theme.colors.accent, fontWeight: "700" },
   dueRow: {
-    maxWidth: "100%",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     alignSelf: "center",
     gap: 6,
-    backgroundColor: theme.colors.accentSoft,
-    borderRadius: theme.radius.md,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: 10,
   },
   dueText: {
     flexShrink: 1,

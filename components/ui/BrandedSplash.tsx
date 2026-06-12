@@ -63,12 +63,8 @@ const styles = StyleSheet.create({
   spinnerWrap: {
     width: 52,
     height: 52,
-    borderRadius: theme.radius.pill,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.accentLight,
     marginTop: theme.spacing.sm,
   },
   spinner: {

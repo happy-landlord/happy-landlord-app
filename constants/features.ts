@@ -42,9 +42,20 @@
  *            • The push toggle is hidden in Settings.
  *            • Safe to use while developing in Expo Go.
  * ─────────────────────────────────────────────────────────────────────────────
+ * DEVELOPER_SECTION   (default: __DEV__)
+ *
+ *   true  → The Developer section appears in Settings.
+ *            • "Make me admin" role override toggle.
+ *            • "Test Sentry" error capture button.
+ *
+ *   false → Developer section is completely hidden in Settings.
+ *            • Automatically false in production builds (__DEV__ is false).
+ *            • Set to true manually to expose dev tools in a release build.
+ * ─────────────────────────────────────────────────────────────────────────────
  */
 export const FEATURES = {
   BIOMETRIC_LOCK: false,
   GOOGLE_PLACES: true,
   PUSH_NOTIFICATIONS: true,
+  DEVELOPER_SECTION: __DEV__,
 } as const;

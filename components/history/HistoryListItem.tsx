@@ -68,7 +68,7 @@ export function HistoryCard({ item, showKeySetCode = false }: HistoryCardProps) 
       />
       <View style={cardStyles.body}>
         <View style={cardStyles.topRow}>
-          <Text style={[cardStyles.label, { color: movement.color }]} numberOfLines={2}>
+          <Text style={cardStyles.label} numberOfLines={2}>
             {label}
           </Text>
           <Text style={cardStyles.time}>{formatTime(item.created_at)}</Text>
@@ -114,10 +114,7 @@ export function ActivityRow({
         strokeWidth={2}
       />
       <View style={rowStyles.body}>
-        <Text
-          style={[rowStyles.label, { color: movement.color }]}
-          numberOfLines={1}
-        >
+        <Text style={rowStyles.label} numberOfLines={1}>
           {label}
         </Text>
         {address ? (
@@ -151,7 +148,7 @@ const cardStyles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 2,
   },
-  label: { fontSize: 14, fontWeight: "600" },
+  label: { fontSize: 14, fontWeight: "600", color: theme.colors.text },
   time: { fontSize: 12, color: theme.colors.textLight },
   address: { fontSize: 13, color: theme.colors.text, fontWeight: "500" },
   keys: { fontSize: 12, color: theme.colors.textMuted, fontWeight: "500" },
@@ -176,7 +173,7 @@ const rowStyles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
   },
   body: { flex: 1, gap: 3, minWidth: 0 },
-  label: { fontSize: 13, fontWeight: "600" },
+  label: { fontSize: 13, fontWeight: "600", color: theme.colors.text },
   subtitle: {
     fontSize: 12,
     fontWeight: "500",
