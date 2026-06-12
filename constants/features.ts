@@ -57,5 +57,5 @@ export const FEATURES = {
   BIOMETRIC_LOCK: false,
   GOOGLE_PLACES: true,
   PUSH_NOTIFICATIONS: true,
-  DEVELOPER_SECTION: true,
+  DEVELOPER_SECTION: __DEV__,
 } as const;

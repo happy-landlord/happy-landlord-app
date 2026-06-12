@@ -63,7 +63,7 @@ export function AdminPushTestPanel() {
         style={({ pressed }) => [styles.header, pressed && { opacity: 0.7 }]}
         accessibilityRole="button"
         accessibilityLabel={
-          expanded ? "Collapse admin test panel" : "Expand admin test panel"
+          expanded ? "Collapse dev push test panel" : "Expand dev push test panel"
         }
       >
         <View style={styles.headerLeft}>
@@ -72,7 +72,7 @@ export function AdminPushTestPanel() {
             color={theme.colors.warning}
             strokeWidth={2}
           />
-          <Text style={styles.headerTitle}>Admin — Push Test</Text>
+          <Text style={styles.headerTitle}>Dev — Push Test</Text>
         </View>
         <Text style={styles.toggle}>{expanded ? "▲" : "▼"}</Text>
       </Pressable>

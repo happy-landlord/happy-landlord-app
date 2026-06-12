@@ -8,8 +8,7 @@ import {
   NotificationCard,
 } from "@/components/notification";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui";
-import { theme } from "@/constants";
-import { useRole } from "@/hooks";
+import { FEATURES, theme } from "@/constants";
 import {
   useMarkNotificationRead,
   useNotifications,
@@ -19,7 +18,6 @@ import type { DbNotification } from "@/types";
 
 export default function NotificationsScreen() {
   const router = useRouter();
-  const { isAdmin } = useRole();
   const { data, isLoading, isError, isFetching, refetch } = useNotifications();
   const markRead = useMarkNotificationRead();
 
@@ -73,7 +71,7 @@ export default function NotificationsScreen() {
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         contentContainerStyle={[
           styles.list,
-          (!data || data.length === 0) && !isAdmin && styles.listEmpty,
+          (!data || data.length === 0) && !FEATURES.DEVELOPER_SECTION && styles.listEmpty,
         ]}
         refreshControl={
           <RefreshControl
@@ -81,7 +79,7 @@ export default function NotificationsScreen() {
             onRefresh={refetch}
           />
         }
-        ListHeaderComponent={isAdmin ? <AdminPushTestPanel /> : null}
+        ListHeaderComponent={FEATURES.DEVELOPER_SECTION ? <AdminPushTestPanel /> : null}
         ListEmptyComponent={
           <EmptyState
             Icon={Bell}
