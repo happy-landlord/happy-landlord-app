@@ -17,6 +17,7 @@ type ButtonVariant =
   | "primaryOutline"
   | "accent"
   | "accentSoft"
+  | "accentOutline"
   | "outline"
   | "ghost"
   | "danger"
@@ -139,6 +140,15 @@ const variantStyles: Record<
   },
   accentSoft: {
     container: { backgroundColor: theme.colors.accentSoft },
+    label: { color: theme.colors.accent },
+    spinner: theme.colors.accent,
+  },
+  accentOutline: {
+    container: {
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1.5,
+      borderColor: theme.colors.accent,
+    },
     label: { color: theme.colors.accent },
     spinner: theme.colors.accent,
   },

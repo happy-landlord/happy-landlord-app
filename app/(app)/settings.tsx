@@ -200,7 +200,7 @@ export default function SettingsScreen() {
                 toggleBiometric.isPending ? (
                   <ActivityIndicator
                     size="small"
-                    color={theme.colors.primary}
+                    color={theme.colors.accent}
                     style={styles.rowSpinner}
                   />
                 ) : (
@@ -237,8 +237,8 @@ export default function SettingsScreen() {
 
         <SettingRow
           Icon={KeyRound}
-          iconBg={theme.colors.primarySoft}
-          iconColor={theme.colors.primary}
+          iconBg={theme.colors.accentSoft}
+          iconColor={theme.colors.accent}
           title="Change password"
           subtitle="Update your account password"
           onPress={() => setChangePasswordVisible(true)}
@@ -272,7 +272,7 @@ export default function SettingsScreen() {
                 pushLoading ? (
                   <ActivityIndicator
                     size="small"
-                    color={theme.colors.primary}
+                    color={theme.colors.accent}
                     style={styles.rowSpinner}
                   />
                 ) : (
@@ -313,7 +313,7 @@ export default function SettingsScreen() {
                   <Text style={styles.permissionLinkText}>Open Settings</Text>
                   <ExternalLink
                     size={12}
-                    color={theme.colors.primary}
+                    color={theme.colors.accentDark}
                     strokeWidth={2.5}
                   />
                 </View>
@@ -356,7 +356,7 @@ export default function SettingsScreen() {
             markAllRead.isPending ? (
               <ActivityIndicator
                 size="small"
-                color={theme.colors.success}
+                color={theme.colors.accent}
                 style={styles.rowSpinner}
               />
             ) : unreadCount > 0 ? (
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
   },
   rowTitleDisabled: {
-    color: theme.colors.textLight,
+    color: theme.colors.textDisabled,
   },
   rowSubtitle: {
     fontSize: 12,
@@ -573,7 +573,7 @@ const styles = StyleSheet.create({
   permissionLinkText: {
     fontSize: 12,
     fontWeight: "700",
-    color: theme.colors.primary,
+    color: theme.colors.accentDark,
   },
 
   // Unread badge
@@ -581,7 +581,7 @@ const styles = StyleSheet.create({
     minWidth: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.accent,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 5,

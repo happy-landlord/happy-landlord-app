@@ -4,14 +4,14 @@
  * key-transaction type.
  */
 import {
-  AlertTriangle,
   FileText,
+  Flag,
   Home,
-  LogIn,
-  LogOut,
+  LockKeyhole,
   Plus,
+  Share,
+  Undo2,
   User,
-  XCircle,
 } from "lucide-react-native";
 import { theme } from "@/constants/theme";
 import type { KeyTransactionType, ActivityTransaction } from "@/types";
@@ -37,26 +37,26 @@ export const MOVEMENT_CONFIG: Record<KeyTransactionType, MovementConfig> = {
   checked_out: {
     label: "Checked Out",
     youLabel: "You checked out",
-    Icon: LogOut,
+    Icon: Share,
     color: theme.colors.warning,
     bg: theme.colors.warningSoft,
   },
   returned: {
     label: "Returned",
-    Icon: LogIn,
-    color: theme.colors.success,
-    bg: theme.colors.successSoft,
+    Icon: Undo2,
+    color: theme.colors.keyAvailable,
+    bg: theme.colors.keyAvailableSoft,
   },
   marked_overdue: {
     label: "Overdue",
     youLabel: "You marked overdue",
-    Icon: AlertTriangle,
+    Icon: Flag,
     color: theme.colors.danger,
     bg: theme.colors.dangerSoft,
   },
   marked_missing_damaged: {
     label: "Reported Lost",
-    Icon: XCircle,
+    Icon: LockKeyhole,
     color: theme.colors.danger,
     bg: theme.colors.dangerSoft,
   },
@@ -69,8 +69,8 @@ export const MOVEMENT_CONFIG: Record<KeyTransactionType, MovementConfig> = {
   handover_landlord: {
     label: "Handed to Landlord",
     Icon: Home,
-    color: theme.colors.primary,
-    bg: theme.colors.primarySoft ?? theme.colors.neutralSoft,
+    color: theme.colors.primaryDark,
+    bg: theme.colors.primarySoft,
   },
   notes_updated: {
     label: "Notes Updated",

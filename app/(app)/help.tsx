@@ -61,8 +61,8 @@ const QUICK_ACTIONS: QuickAction[] = [
   {
     id: "contact",
     icon: "chatbubble-ellipses-outline",
-    iconBg: theme.colors.primarySoft,
-    iconColor: theme.colors.primary,
+    iconBg: theme.colors.accentSoft,
+    iconColor: theme.colors.accent,
     title: "Contact Manager",
     description: "Send a message to your property manager",
     onPress: () =>
@@ -158,8 +158,8 @@ const BROWSE_SECTIONS: BrowseSection[] = [
   {
     id: "account",
     icon: "person-circle-outline",
-    iconBg: theme.colors.primarySoft,
-    iconColor: theme.colors.primary,
+    iconBg: theme.colors.accentSoft,
+    iconColor: theme.colors.accent,
     title: "Account & Login",
     faqs: [
       {
@@ -272,8 +272,8 @@ const BROWSE_SECTIONS: BrowseSection[] = [
   {
     id: "requests",
     icon: "calendar-outline",
-    iconBg: theme.colors.primarySoft,
-    iconColor: theme.colors.primaryDark,
+    iconBg: theme.colors.warningSoft,
+    iconColor: theme.colors.warning,
     title: "Requests & Bookings",
     faqs: [
       {
@@ -391,7 +391,7 @@ function TopicRow({ item, isLast }: { item: PopularTopic; isLast: boolean }) {
         accessibilityLabel={item.title}
       >
         <View style={styles.topicIconWrap}>
-          <Ionicons name={item.icon} size={18} color={theme.colors.primary} />
+          <Ionicons name={item.icon} size={18} color={theme.colors.accent} />
         </View>
         <Text style={styles.topicTitle}>{item.title}</Text>
         <Ionicons
@@ -879,7 +879,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: theme.radius.sm,
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.accentSoft,
     alignItems: "center",
     justifyContent: "center",
   },

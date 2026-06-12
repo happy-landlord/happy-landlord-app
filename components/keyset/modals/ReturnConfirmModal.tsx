@@ -43,7 +43,7 @@ export const ReturnConfirmModal = memo(function ReturnConfirmModal({
       title={`Return ${keySetName}`}
       subtitle="Confirm these keys are going back into the cabinet. Place them on the hook for this property before confirming."
       confirmLabel={isPending ? "Returning…" : "Confirm return"}
-      confirmTone="danger"
+      confirmTone="primary"
       isPending={isPending}
       onCancel={onCancel}
       onConfirm={() => {

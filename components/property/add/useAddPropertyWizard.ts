@@ -3,6 +3,7 @@ import { Alert } from "react-native";
 import { useRouter } from "expo-router";
 
 import { useCreateProperty } from "@/lib/hooks";
+import { showSuccessToast } from "@/lib/utils";
 import type { PlaceResult } from "@/components/ui";
 import type { KeyType, PropertyType } from "@/types";
 
@@ -136,8 +137,15 @@ export function useAddPropertyWizard() {
       );
       return;
     }
+    if (step === 2 && keySets.some((ks) => !ks.name.trim())) {
+      Alert.alert(
+        "Keyset name required",
+        "Every keyset needs a name. Please name or remove any blank keysets.",
+      );
+      return;
+    }
     setStep((s) => s + 1);
-  }, [step, property.selectedPlace]);
+  }, [step, property.selectedPlace, keySets]);
 
   // ── Submit ─────────────────────────────────────────────────────────────
   const submit = useCallback(async () => {
@@ -164,6 +172,7 @@ export function useAddPropertyWizard() {
         keySets,
         createProperty: createProperty.mutateAsync,
       });
+      showSuccessToast("Property created");
       router.back();
     } catch (err) {
       Alert.alert(

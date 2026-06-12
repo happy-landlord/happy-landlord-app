@@ -1,16 +1,15 @@
 import { useState } from "react";
 import {
-  ActivityIndicator,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
+  Pressable,
 } from "react-native";
 import { Check } from "lucide-react-native";
 
-import { BottomSheet, OutlinedField } from "@/components/ui";
+import { BottomSheet, Button, OutlinedField } from "@/components/ui";
 import { theme } from "@/constants";
 import { useHandoverToTenant, useKeySets } from "@/lib/hooks";
 import { getTotalKeyQuantity } from "@/lib/utils";
@@ -156,38 +155,21 @@ export function HandoverTenantSheet({ visible, onClose, propertyId }: Props) {
       <View style={styles.divider} />
 
       <View style={styles.footer}>
-        <Pressable
-          style={({ pressed }) => [
-            styles.cancelBtn,
-            pressed && { opacity: 0.7 },
-          ]}
+        <Button
+          title="Cancel"
+          variant="outline"
           onPress={onClose}
-        >
-          <Text style={styles.cancelBtnText}>Cancel</Text>
-        </Pressable>
-        <Pressable
-          style={({ pressed }) => [
-            styles.confirmBtn,
-            (selected.size === 0 || !tenantName.trim() || !tenantPhone.trim()) &&
-              styles.confirmBtnDisabled,
-            pressed &&
-              selected.size > 0 &&
-              tenantName.trim() &&
-              tenantPhone.trim() && { opacity: 0.82 },
-          ]}
+          disabled={handoverMut.isPending}
+          style={styles.footerBtn}
+        />
+        <Button
+          title={`Complete (${selected.size})`}
+          variant="primary"
           onPress={handleComplete}
-          disabled={
-            selected.size === 0 || !tenantName.trim() || !tenantPhone.trim() || handoverMut.isPending
-          }
-        >
-          {handoverMut.isPending ? (
-            <ActivityIndicator size="small" color={theme.colors.accent} />
-          ) : (
-            <Text style={styles.confirmBtnText}>
-              Complete ({selected.size})
-            </Text>
-          )}
-        </Pressable>
+          disabled={selected.size === 0 || !tenantName.trim() || !tenantPhone.trim() || handoverMut.isPending}
+          loading={handoverMut.isPending}
+          style={styles.footerBtn}
+        />
       </View>
     </BottomSheet>
   );
@@ -299,34 +281,7 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: "row",
     gap: theme.spacing.sm,
+    paddingTop: theme.spacing.sm,
   },
-  cancelBtn: {
-    flex: 1,
-    height: 46,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.neutralSoft,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  cancelBtnText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: theme.colors.text,
-  },
-  confirmBtn: {
-    flex: 2,
-    height: 46,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.primary,
-  },
-  confirmBtnDisabled: { opacity: 0.4 },
-  confirmBtnText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: theme.colors.accent,
-  },
+  footerBtn: { flex: 1 },
 });

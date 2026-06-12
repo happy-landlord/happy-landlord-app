@@ -80,7 +80,11 @@ export function PropertiesFilterBar({
             accessibilityRole="button"
             accessibilityLabel="Add property"
           >
-            <Plus size={16} color={theme.colors.accent} strokeWidth={2.5} />
+            <Plus
+              size={16}
+              color={theme.colors.textInverse}
+              strokeWidth={2.5}
+            />
             <Text style={styles.addButtonLabel}>Add</Text>
           </Pressable>
         </RoleGate>
@@ -141,7 +145,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.sm + 4,
     paddingVertical: 10,
     borderRadius: theme.radius.lg,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.accent,
     flexShrink: 0,
   },
   addButtonPressed: {
@@ -150,7 +154,7 @@ const styles = StyleSheet.create({
   addButtonLabel: {
     fontSize: 15,
     fontWeight: "700",
-    color: theme.colors.accent,
+    color: theme.colors.textInverse,
   },
 
   // ── Admin tabs ──────────────────────────────────────────────────────────

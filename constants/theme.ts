@@ -1,71 +1,84 @@
 export const theme = {
   colors: {
     // ── Brand ────────────────────────────────────────────────────────────────
-    /** Golden yellow – main brand / CTA colour */
-    primary: "#F9D54B", //FDC107
-    /** Darker shade of primary (hover / pressed ~25%) */
-    primaryDark: "#C99706",
+    /** Primary yellow – main brand / CTA colour */
+    primary: "#F9D54B",
+    /** Darker shade of primary (pressed / hover) */
+    primaryDark: "#C9A200",
     /** Mid tint of primary */
-    primaryLight: "#FED54A",
+    primaryLight: "#FBE07A",
     /** Very pale primary tint (backgrounds, tags) */
-    primarySoft: "#FEF3C2",
+    primarySoft: "#FFF8DC",
     /** Text / icons placed on a primary-coloured surface */
-    primaryText: "#111111",
+    primaryText: "#3D3530",
 
     /** Dark charcoal – secondary / accent colour */
-    accent: "#3A3A3A",
+    accent: "#3D3530",
     /** Deeper charcoal (pressed state) */
-    accentDark: "#1E1E1E",
-    /** Mid charcoal (secondary text, icons) */
-    accentLight: "#5C5C5C",
-    /** Near-white charcoal tint (subtle backgrounds) */
-    accentSoft: "#EBEBEB",
+    accentDark: "#2B2B2B",
+    /** Mid charcoal / icon stroke */
+    accentLight: "#6D645B",
+    /** Warm off-white tint – icon background, subtle fills */
+    accentSoft: "#F4F1EB",
 
     // ── App base ─────────────────────────────────────────────────────────────
     /** Warm off-white page background */
-    background: "#F8F6F1",
+    background: "#F8F6F2",
     /** Pure white card / sheet surface */
     surface: "#FFFFFF",
-    /** Warm white (e.g. modals, elevated cards) */
-    surfaceWarm: "#FFFDF8",
-    /** Subtle warm-gray divider / border */
-    border: "#E4DFCE",
+    /** Warm off-white elevated surface (modals, sheets) */
+    surfaceWarm: "#F4F1EB",
+    /** Subtle warm divider / border */
+    border: "#E1D9CA",
     /** Stronger border / separator */
-    borderStrong: "#C8C0AE",
+    borderStrong: "#C8BFB0",
 
     // ── Text ─────────────────────────────────────────────────────────────────
-    /** Primary text (near-black) */
-    text: "#1A1A1A",
+    /** Primary text */
+    text: "#2B2B2B",
     /** Secondary / muted text */
-    textMuted: "#6B6560",
-    /** Placeholder / disabled text */
-    textLight: "#9E9890",
+    textMuted: "#7B756D",
+    /** Placeholder / hint text */
+    textLight: "#8A837B",
     /** Text on dark surfaces */
     textInverse: "#FFFFFF",
+    /** Disabled control text (lighter than placeholder) */
+    textDisabled: "#B8B8B8",
 
     // ── Semantic status ───────────────────────────────────────────────────────
-    success: "#2A7A55",
-    successSoft: "#E4F2EC",
+    /** Available – warm olive */
+    success: "#4F7A4A",
+    successSoft: "#E8F2EA",
 
-    warning: "#C07A18",
-    warningSoft: "#FFF1D6",
+    /** Checked out – warm amber */
+    warning: "#A06A00",
+    warningSoft: "#FFF0C7",
 
-    danger: "#C03838",
-    dangerSoft: "#FCEAEA",
+    /** Overdue – warm red */
+    danger: "#B64242",
+    dangerSoft: "#FBE3E3",
 
-    info: "#2F6A99",
-    infoSoft: "#E3EFF7",
+    /** With tenant – warm brown */
+    info: "#7A6347",
+    infoSoft: "#E8E1D4",
 
-    neutral: "#6B6560",
-    neutralSoft: "#EDEAE4",
+    /** Lost / neutral – warm gray-brown */
+    neutral: "#75695D",
+    neutralSoft: "#ECE7E1",
 
     // ── Key statuses ─────────────────────────────────────────────────────────
-    keyAvailable: "#2A7A55",
-    keyCheckedOut: "#C07A18",
-    keyBooked: "#2F6A99",
-    keyOverdue: "#C03838",
-    keyInactive: "#9E9890",
-    keyLost: "#3A3A3A",
+    keyAvailable: "#4F7A4A",
+    keyAvailableSoft: "#E8F2EA",
+    keyCheckedOut: "#A06A00",
+    keyCheckedOutSoft: "#FFF0C7",
+    keyTenant: "#7A6347",
+    keyTenantSoft: "#E8E1D4",
+    keyOverdue: "#B64242",
+    keyOverdueSoft: "#FBE3E3",
+    keyInactive: "#8A837B",
+    keyInactiveSoft: "#F2F0EC",
+    keyLost: "#75695D",
+    keyLostSoft: "#ECE7E1",
   },
 
   radius: {

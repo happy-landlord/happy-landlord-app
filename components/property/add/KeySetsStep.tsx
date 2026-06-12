@@ -1,15 +1,9 @@
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
-import { KeyRound, Plus, Trash2, X } from "lucide-react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyRound, Plus, Trash2 } from "lucide-react-native";
 
 import { KEY_TYPE_ICON, theme } from "@/constants";
 import { PhotoPicker, ShareQrButton } from "@/components/ui";
-import { buildKeySetCode, getDraftKeyLabel } from "@/lib/utils";
+import { buildKeySetCode, countAllocatedKeys, getDraftKeyLabel } from "@/lib/utils";
 import type { KeyEntry, KeySetDraft } from "./useAddPropertyWizard";
 
 // ── KeySetsStep ──────────────────────────────────────────────────────────────
@@ -30,12 +24,7 @@ export function KeySetsStep({
   onChange,
 }: Props) {
   // Total allocated across ALL keysets, per KeyEntry id
-  const allocatedCounts: Record<string, number> = {};
-  for (const ks of keySets) {
-    for (const kid of ks.keyIds) {
-      allocatedCounts[kid] = (allocatedCounts[kid] ?? 0) + 1;
-    }
-  }
+  const allocatedCounts = countAllocatedKeys(keySets);
   function remaining(entry: KeyEntry) {
     return entry.count - (allocatedCounts[entry.id] ?? 0);
   }
@@ -61,13 +50,16 @@ export function KeySetsStep({
   return (
     <View style={styles.container}>
       <Text style={styles.subheading}>
-        Create one or more keysets, then assign keys from your inventory.
-        Keys distribute across keysets — counts show remaining copies.
+        Create keysets and assign inventory keys. Counts show remaining copies.
       </Text>
 
       {keys.length === 0 ? (
         <View style={styles.emptyKeys}>
-          <KeyRound size={18} color={theme.colors.textLight} strokeWidth={1.8} />
+          <KeyRound
+            size={18}
+            color={theme.colors.textLight}
+            strokeWidth={1.8}
+          />
           <Text style={styles.emptyKeysText}>
             No keys defined. Go back and add keys first.
           </Text>
@@ -102,7 +94,7 @@ export function KeySetsStep({
             accessibilityRole="button"
             accessibilityLabel="Add new keyset"
           >
-            <Plus size={16} color={theme.colors.primary} strokeWidth={2.5} />
+            <Plus size={16} color={theme.colors.accent} strokeWidth={2.5} />
             <Text style={styles.newSetBtnText}>New keyset</Text>
           </Pressable>
         </>
@@ -161,7 +153,7 @@ function KeySetDraftCard({
           onChangeText={(name) => onUpdate({ name })}
           placeholder="Keyset name"
           placeholderTextColor={theme.colors.textLight}
-          selectionColor={theme.colors.primary}
+          selectionColor={theme.colors.text}
           returnKeyType="done"
           maxLength={40}
         />
@@ -174,7 +166,10 @@ function KeySetDraftCard({
         <Pressable
           onPress={onDelete}
           hitSlop={8}
-          style={({ pressed }) => [styles.deleteBtn, pressed && { opacity: 0.6 }]}
+          style={({ pressed }) => [
+            styles.deleteBtn,
+            pressed && { opacity: 0.6 },
+          ]}
           accessibilityRole="button"
           accessibilityLabel="Remove keyset"
         >
@@ -192,9 +187,23 @@ function KeySetDraftCard({
             const Icon = KEY_TYPE_ICON[entry.type] ?? KeyRound;
             const qty = assignedCounts[entry.id] ?? 0;
             return (
-              <View key={entry.id} style={styles.keyRow}>
-                <View style={styles.keyIconCircle}>
-                  <Icon size={14} color={theme.colors.primary} strokeWidth={1.8} />
+              <Pressable
+                key={entry.id}
+                onPress={() => unassignOne(entry.id)}
+                style={({ pressed }) => [
+                  styles.keyRow,
+                  styles.assignedKeyRow,
+                  pressed && { opacity: 0.65 },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Unassign one key"
+              >
+                <View style={[styles.keyIconCircle, styles.assignedKeyIconCircle]}>
+                  <Icon
+                    size={14}
+                    color={theme.colors.surface}
+                    strokeWidth={1.8}
+                  />
                 </View>
                 <View style={styles.keyInfo}>
                   <Text style={styles.keyLabel} numberOfLines={1}>
@@ -211,19 +220,7 @@ function KeySetDraftCard({
                     <Text style={styles.qtyChipText}>{qty}</Text>
                   </View>
                 )}
-                <Pressable
-                  onPress={() => unassignOne(entry.id)}
-                  hitSlop={8}
-                  style={({ pressed }) => [
-                    styles.removeBtn,
-                    pressed && { opacity: 0.65 },
-                  ]}
-                  accessibilityRole="button"
-                  accessibilityLabel="Unassign one key"
-                >
-                  <X size={14} color={theme.colors.danger} strokeWidth={2.5} />
-                </Pressable>
-              </View>
+              </Pressable>
             );
           })}
         </View>
@@ -234,16 +231,25 @@ function KeySetDraftCard({
       {/* Available to assign */}
       {availableEntries.length > 0 && (
         <>
-          <View style={styles.divider} />
           <Text style={styles.sectionLabel}>Available to assign</Text>
           <View style={styles.assignedList}>
             {availableEntries.map((entry) => {
               const Icon = KEY_TYPE_ICON[entry.type] ?? KeyRound;
               const rem = remaining(entry);
               return (
-                <View key={entry.id} style={styles.keyRow}>
+                <Pressable
+                  key={entry.id}
+                  onPress={() => assignOne(entry.id)}
+                  style={({ pressed }) => [styles.keyRow, pressed && { opacity: 0.65 }]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Assign one key"
+                >
                   <View style={styles.keyIconCircle}>
-                    <Icon size={14} color={theme.colors.primary} strokeWidth={1.8} />
+                    <Icon
+                      size={14}
+                      color={theme.colors.accent}
+                      strokeWidth={1.8}
+                    />
                   </View>
                   <View style={styles.keyInfo}>
                     <Text style={styles.keyLabel} numberOfLines={1}>
@@ -260,19 +266,7 @@ function KeySetDraftCard({
                       <Text style={styles.qtyChipText}>{rem}</Text>
                     </View>
                   )}
-                  <Pressable
-                    onPress={() => assignOne(entry.id)}
-                    hitSlop={8}
-                    style={({ pressed }) => [
-                      styles.addBtn,
-                      pressed && { opacity: 0.65 },
-                    ]}
-                    accessibilityRole="button"
-                    accessibilityLabel="Assign one key"
-                  >
-                    <Plus size={14} color={theme.colors.success} strokeWidth={2.5} />
-                  </Pressable>
-                </View>
+                </Pressable>
               );
             })}
           </View>
@@ -284,7 +278,7 @@ function KeySetDraftCard({
         <PhotoPicker
           uris={draft.photoUris}
           onChange={(photoUris) => onUpdate({ photoUris })}
-          color={theme.colors.primary}
+          color={theme.colors.accent}
           label="Keyset Photos"
           hint="Tap to add photos of the keyset"
           gridInset={theme.spacing.md * 2 + 5}
@@ -336,7 +330,7 @@ const styles = StyleSheet.create({
   // -- Card ----------------------------------------------------------------
   card: {
     borderWidth: 1.5,
-    borderColor: theme.colors.primarySoft,
+    borderColor: theme.colors.border,
     borderRadius: theme.radius.lg,
     backgroundColor: theme.colors.surface,
     padding: theme.spacing.md,
@@ -351,7 +345,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: "700",
-    color: theme.colors.primary,
+    color: theme.colors.text,
     paddingVertical: 0,
     paddingHorizontal: 0,
   },
@@ -387,15 +381,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     backgroundColor: theme.colors.background,
     borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  assignedKeyRow: {
+    backgroundColor: theme.colors.accentSoft,
+    borderWidth: 1,
+    borderColor: theme.colors.accentLight,
   },
   keyIconCircle: {
     width: 30,
     height: 30,
     borderRadius: theme.radius.sm,
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.accentSoft,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
+  },
+  assignedKeyIconCircle: {
+    backgroundColor: theme.colors.accent,
+    borderColor: theme.colors.accent,
   },
   keyInfo: {
     flex: 1,
@@ -404,7 +411,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
-  keyLabel: { fontSize: 13, fontWeight: "600", color: theme.colors.text, flexShrink: 1 },
+  keyLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.text,
+    flexShrink: 1,
+  },
   codeChip: {
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -434,24 +446,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: theme.colors.textMuted,
   },
-  removeBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: theme.radius.sm,
-    backgroundColor: theme.colors.dangerSoft,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  addBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: theme.radius.sm,
-    backgroundColor: theme.colors.successSoft,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
   emptyText: {
     fontSize: 13,
     color: theme.colors.textLight,
@@ -459,7 +453,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingVertical: theme.spacing.sm,
   },
-
 
   // -- Photos --------------------------------------------------------------
   photoSection: {
@@ -478,12 +471,12 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.lg,
     borderWidth: 1.5,
     borderStyle: "dashed",
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primarySoft,
+    borderColor: theme.colors.accentLight,
+    backgroundColor: theme.colors.accentSoft,
   },
   newSetBtnText: {
     fontSize: 14,
     fontWeight: "700",
-    color: theme.colors.primary,
+    color: theme.colors.accent,
   },
 });

@@ -5,7 +5,7 @@ import {
   uploadKeySetImages,
   updateKeySetImages,
 } from "@/lib/services";
-import { buildKeySetCode, formatLongDate } from "@/lib/utils";
+import { buildKeySetCode, countAllocatedKeys, formatLongDate, getUnallocatedKeys } from "@/lib/utils";
 import type { DbKeyInsert, DbProperty, DbPropertyInsert } from "@/types";
 import { KEY_TYPE_LABEL } from "@/constants";
 import type {
@@ -62,8 +62,6 @@ export async function submitProperty({
     images: [],
   });
 
-  const allocatedCounts: Record<string, number> = {};
-
   // 3. Create each keyset with its selected keys. A key can appear only once
   // per keyset, so each assigned key record has quantity 1.
   for (let i = 0; i < keySets.length; i++) {
@@ -93,25 +91,17 @@ export async function submitProperty({
     const draftKeys = keys.filter((k) => draft.keyIds.includes(k.id));
     if (draftKeys.length > 0) {
       await createKeys(buildKeyInserts(created.id, keySet.id, draftKeys, 1));
-      for (const key of draftKeys) {
-        allocatedCounts[key.id] = (allocatedCounts[key.id] ?? 0) + 1;
-      }
     }
   }
 
   // 4. Persist leftover keys as unassigned keys (key_set_id = null), matching
   // the admin property-detail page's unassigned key section.
-  const unassigned = keys
-    .map((entry) => ({
-      entry,
-      quantity: Math.max(0, entry.count - (allocatedCounts[entry.id] ?? 0)),
-    }))
-    .filter(({ quantity }) => quantity > 0);
+  const unassigned = getUnallocatedKeys(keys, countAllocatedKeys(keySets));
 
   if (unassigned.length > 0) {
     await createKeys(
-      unassigned.map(({ entry, quantity }) =>
-        buildKeyInsert(created.id, null, entry, quantity),
+      unassigned.map(({ key, quantity }) =>
+        buildKeyInsert(created.id, null, key, quantity),
       ),
     );
   }

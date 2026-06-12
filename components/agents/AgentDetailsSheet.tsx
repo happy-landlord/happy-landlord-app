@@ -103,7 +103,7 @@ export function AgentDetailsSheet({ agent, onClose }: Props) {
       <View style={styles.footer}>
         {hasHoldings ? (
           <View style={styles.warningRow}>
-            <AlertTriangle size={13} color={theme.colors.warning} strokeWidth={2} />
+            <AlertTriangle size={13} color={theme.colors.textMuted} strokeWidth={2} />
             <Text style={styles.warningText}>
               Reassign keysets before deactivating.
             </Text>
@@ -324,6 +324,6 @@ const styles = StyleSheet.create({
   },
   warningText: {
     fontSize: 12,
-    color: theme.colors.warning,
+    color: theme.colors.textMuted,
   },
 });

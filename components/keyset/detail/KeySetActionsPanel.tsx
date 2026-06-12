@@ -87,13 +87,13 @@ export function KeySetActionsPanel() {
   return (
     <View style={styles.section}>
       {showDueSummary && dueBackAt && (
-        <View style={[styles.dueRow, overdue && styles.dueRowOverdue]}>
+        <View style={styles.dueRow}>
           <CalendarClock
             size={14}
-            color={overdue ? theme.colors.danger : theme.colors.warning}
+            color={theme.colors.textMuted}
             strokeWidth={2}
           />
-          <Text style={[styles.dueText, overdue && styles.dueTextOverdue]}>
+          <Text style={styles.dueText}>
             {overdue ? "Was due" : "Due"}{" "}
             <Text style={styles.dueDate}>{formatDueAt(dueBackAt)}</Text>
           </Text>
@@ -103,7 +103,7 @@ export function KeySetActionsPanel() {
       {showAdminReturn && (
         <Button
           title="Mark as Returned"
-          variant="danger"
+          variant="accent"
           disabled={isBusy}
           onPress={() => openModal({ kind: "return" })}
         />
@@ -169,7 +169,7 @@ export function KeySetActionsPanel() {
       {showAgentCheckout && (
         <Button
           title="Checkout Keyset"
-          variant="success"
+          variant="accent"
           disabled={isBusy}
           onPress={() => openModal({ kind: "checkout", days: 1 })}
         />
@@ -178,7 +178,7 @@ export function KeySetActionsPanel() {
       {showAgentReserve && (
         <Button
           title="Reserve"
-          variant="successOutline"
+          variant="accentOutline"
           disabled={isBusy}
           onPress={() => openModal({ kind: "reserve" })}
         />
@@ -196,7 +196,7 @@ export function KeySetActionsPanel() {
       {showAgentReportLost && (
         <Button
           title="Report Lost"
-          variant="dangerOutline"
+          variant="accentOutline"
           disabled={isBusy}
           onPress={() => openModal({ kind: "reportLost" })}
         />
@@ -214,7 +214,7 @@ export function KeySetActionsPanel() {
       {showUndoLost && (
         <Button
           title={actions.isUndoLostPending ? "Undoing…" : "Undo Lost Report"}
-          variant="successOutline"
+          variant="accentOutline"
           disabled={isBusy}
           onPress={actions.undoLost}
         />
@@ -299,15 +299,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     alignSelf: "center",
     gap: 7,
-    backgroundColor: theme.colors.warningSoft,
+    backgroundColor: theme.colors.neutralSoft,
     borderRadius: theme.radius.md,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  dueRowOverdue: { backgroundColor: theme.colors.dangerSoft },
   dueRowNeutral: { backgroundColor: theme.colors.neutralSoft },
-  dueText: { fontSize: 13, color: theme.colors.warning },
-  dueTextOverdue: { color: theme.colors.danger },
+  dueText: { fontSize: 13, color: theme.colors.textMuted },
+  dueTextOverdue: { color: theme.colors.textMuted },
   dueTextNeutral: { color: theme.colors.textMuted },
   dueDate: { fontWeight: "700" },
   reservationRow: {

@@ -1,6 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Platform,
   Pressable,
   StyleSheet,
@@ -10,32 +8,13 @@ import {
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { KeyRound, Plus, X } from "lucide-react-native";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { KeyRound } from "lucide-react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { Button, ErrorState, LoadingState, PhotoPicker } from "@/components/ui";
+import { useKeySetEditForm } from "@/components/keyset";
 import { KEY_TYPE_ICON, theme } from "@/constants";
-import { getKeyName, getKeySignature } from "@/lib/utils";
-import {
-  useCreateKeys,
-  useDeleteKey,
-  useKeySet,
-  useUnassignedKeys,
-  useUpdateKey,
-  useUpdateKeySet,
-} from "@/lib/hooks";
-import {
-  fetchKeySetById,
-  fetchSignedKeySetImageUrl,
-  fetchUnassignedKeysForProperty,
-  getVisibleKeySetImages,
-  updateKeySetImages,
-  uploadKeySetImages,
-} from "@/lib/services";
-import { QUERY_KEYS } from "@/lib/query";
-import type { StoredImage } from "@/types";
-import type { KeyInSet, UnassignedKey } from "@/lib/services";
+import { getKeyName } from "@/lib/utils";
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -43,229 +22,20 @@ export default function EditKeySetScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const queryClient = useQueryClient();
 
-  const { data: keySet, isPending: keySetLoading, isError, refetch } = useKeySet(id);
-  const propertyId = keySet?.property_id ?? "";
-
-  const { data: unassignedKeys = [] } = useUnassignedKeys(propertyId);
-
-  const updateKeySetMut = useUpdateKeySet(propertyId, id);
-  const createKeysMut = useCreateKeys(propertyId);
-  const updateKeyMut = useUpdateKey(propertyId);
-  const deleteKeyMut = useDeleteKey(propertyId);
-
-  const imageUpdateMut = useMutation({
-    mutationFn: async ({
-      newUris,
-      kept,
-    }: {
-      newUris: string[];
-      kept: StoredImage[];
-    }) => {
-      let allImages = [...kept];
-      if (newUris.length > 0) {
-        const uploaded = await uploadKeySetImages(propertyId, id, newUris);
-        allImages = [...allImages, ...uploaded];
-      }
-      await updateKeySetImages(id, allImages);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.keySets.detail(id) });
-      queryClient.invalidateQueries({
-        queryKey: QUERY_KEYS.keySets.byProperty(propertyId),
-      });
-    },
-  });
-
-  // ── Name state ────────────────────────────────────────────────────────────
-  const [pendingName, setPendingName] = useState(keySet?.name ?? "");
-  const nameSyncedRef = useRef(false);
-  useEffect(() => {
-    if (keySet && !nameSyncedRef.current) {
-      setPendingName(keySet.name ?? "");
-      nameSyncedRef.current = true;
-    }
-  }, [keySet]);
-
-  // ── Photo state ───────────────────────────────────────────────────────────
-  // Single `photoUris` list fed to PhotoPicker.
-  // Existing stored images are pre-seeded as signed URLs; new picks are local
-  // file:// URIs. The ref map lets us tell them apart at save time.
-  const existingImages = useMemo(
-    () => getVisibleKeySetImages(keySet?.images ?? []),
-    // Intentionally stable after first load — only read once
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [keySet?.id],
-  );
-
-  const existingUrlMapRef = useRef<Map<string, StoredImage>>(new Map());
-  const [photoUris, setPhotoUris] = useState<string[]>([]);
-  const photosSyncedRef = useRef(false);
-
-  const { data: loadedSignedUrls } = useQuery({
-    queryKey: ["storage", "keySet", "allSignedUrls", id],
-    queryFn: async () => {
-      const pairs = await Promise.all(
-        existingImages.map(async (img) => ({
-          url: await fetchSignedKeySetImageUrl(img.path),
-          image: img,
-        })),
-      );
-      return pairs.filter((p) => p.url !== null) as {
-        url: string;
-        image: StoredImage;
-      }[];
-    },
-    enabled: existingImages.length > 0,
-    staleTime: 1000 * 60 * 55,
-  });
-
-  useEffect(() => {
-    if (photosSyncedRef.current) return;
-    if (existingImages.length === 0) {
-      photosSyncedRef.current = true;
-    } else if (loadedSignedUrls) {
-      const map = new Map<string, StoredImage>();
-      const urls: string[] = [];
-      loadedSignedUrls.forEach(({ url, image }) => {
-        map.set(url, image);
-        urls.push(url);
-      });
-      existingUrlMapRef.current = map;
-      setPhotoUris(urls);
-      photosSyncedRef.current = true;
-    }
-  }, [loadedSignedUrls, existingImages.length]);
-
-  // ── Key assign / unassign (immediate) ────────────────────────────────────
-  const actingRef = useRef(false);
-  const [acting, setActing] = useState(false);
-
-  async function freshUnassigned(): Promise<UnassignedKey[]> {
-    return queryClient.fetchQuery({
-      queryKey: QUERY_KEYS.keySets.unassigned(propertyId),
-      queryFn: () => fetchUnassignedKeysForProperty(propertyId),
-    });
-  }
-  async function freshAssigned(): Promise<KeyInSet[]> {
-    const ks = await queryClient.fetchQuery({
-      queryKey: QUERY_KEYS.keySets.detail(id),
-      queryFn: () => fetchKeySetById(id),
-    });
-    return (ks?.keys ?? []) as KeyInSet[];
-  }
-  function matchBySig<
-    T extends { key_type: string; label?: string | null; code?: string | null },
-  >(
-    list: T[],
-    target: { key_type: string; label?: string | null; code?: string | null },
-  ): T | undefined {
-    const sig = getKeySignature(target);
-    return list.find((x) => getKeySignature(x) === sig);
-  }
-
-  async function moveOne(
-    source: KeyInSet | UnassignedKey,
-    destList: (KeyInSet | UnassignedKey)[],
-    destKeySetId: string | null,
-  ) {
-    const dest = matchBySig(destList, source);
-    const srcQty = source.quantity ?? 1;
-    if (srcQty > 1) {
-      await updateKeyMut.mutateAsync({ keyId: source.id, patch: { quantity: srcQty - 1 } });
-      if (dest) {
-        await updateKeyMut.mutateAsync({ keyId: dest.id, patch: { quantity: (dest.quantity ?? 1) + 1 } });
-      } else {
-        await createKeysMut.mutateAsync([
-          {
-            property_id: propertyId,
-            key_set_id: destKeySetId,
-            key_type: source.key_type,
-            label: source.label,
-            code: source.code ?? null,
-            quantity: 1,
-            notes: null,
-          },
-        ]);
-      }
-      return;
-    }
-    if (dest) {
-      await updateKeyMut.mutateAsync({ keyId: dest.id, patch: { quantity: (dest.quantity ?? 1) + 1 } });
-      await deleteKeyMut.mutateAsync(source.id);
-    } else {
-      await updateKeyMut.mutateAsync({ keyId: source.id, patch: { key_set_id: destKeySetId } });
-    }
-  }
-
-  async function runLocked(fn: () => Promise<void>) {
-    if (actingRef.current) return;
-    actingRef.current = true;
-    setActing(true);
-    try { await fn(); } finally { actingRef.current = false; setActing(false); }
-  }
-
-  function handleAssign(initial: UnassignedKey) {
-    void runLocked(async () => {
-      const pool = await freshUnassigned();
-      const src = matchBySig(pool, initial);
-      if (!src) return;
-      const assigned = await freshAssigned();
-      await moveOne(src, assigned, id);
-    });
-  }
-
-  function handleUnassign(initial: KeyInSet) {
-    void runLocked(async () => {
-      const assigned = await freshAssigned();
-      const src = assigned.find((x) => x.id === initial.id);
-      if (!src) return;
-      const pool = await freshUnassigned();
-      await moveOne(src, pool, null);
-    });
-  }
-
-  const keysBusy =
-    acting ||
-    createKeysMut.isPending ||
-    updateKeyMut.isPending ||
-    deleteKeyMut.isPending;
-
-  // ── Save ──────────────────────────────────────────────────────────────────
-  const isSaving = updateKeySetMut.isPending || imageUpdateMut.isPending;
-
-  async function handleSave() {
-    if (isSaving || !keySet) return;
-    try {
-      const trimmedName = pendingName.trim();
-      if (trimmedName && trimmedName !== keySet.name) {
-        await updateKeySetMut.mutateAsync({ name: trimmedName });
-      }
-
-      // Separate existing signed URLs (kept) from new local URIs (to upload)
-      const urlMap = existingUrlMapRef.current;
-      const keptImages: StoredImage[] = [];
-      const newLocalUris: string[] = [];
-      for (const uri of photoUris) {
-        if (urlMap.has(uri)) {
-          keptImages.push(urlMap.get(uri)!);
-        } else {
-          newLocalUris.push(uri);
-        }
-      }
-      const imagesDirty =
-        newLocalUris.length > 0 ||
-        keptImages.length !== getVisibleKeySetImages(keySet.images ?? []).length;
-      if (imagesDirty) {
-        await imageUpdateMut.mutateAsync({ newUris: newLocalUris, kept: keptImages });
-      }
-
-      router.back();
-    } catch {
-      // stay on screen on error
-    }
-  }
+  const {
+    keySet,
+    keySetLoading,
+    isError,
+    refetch,
+    keyAssignment,
+    pendingName,
+    setPendingName,
+    photoUris,
+    setPhotoUris,
+    isSaving,
+    save,
+  } = useKeySetEditForm(id);
 
   // ── Render ────────────────────────────────────────────────────────────────
   if (keySetLoading) return <LoadingState message="Loading keyset…" />;
@@ -278,8 +48,6 @@ export default function EditKeySetScreen() {
       />
     );
   }
-
-  const assignedKeys = (keySet.keys ?? []) as KeyInSet[];
 
   return (
     <View style={styles.screen}>
@@ -314,16 +82,25 @@ export default function EditKeySetScreen() {
         {/* Assigned keys */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Assigned keys</Text>
-          {assignedKeys.length === 0 ? (
+          {keyAssignment.assigned.length === 0 ? (
             <Text style={styles.emptyText}>No keys assigned yet.</Text>
           ) : (
             <View style={styles.keyList}>
-              {assignedKeys.map((k) => {
+              {keyAssignment.assigned.map((k) => {
                 const Icon = KEY_TYPE_ICON[k.key_type] ?? KeyRound;
                 return (
-                  <View key={k.id} style={styles.keyRow}>
-                    <View style={styles.keyIconCircle}>
-                      <Icon size={13} color={theme.colors.accent} strokeWidth={1.8} />
+                  <Pressable
+                    key={k.id}
+                    onPress={() => keyAssignment.unassign(k)}
+                    disabled={isSaving}
+                    style={({ pressed }) => [
+                      styles.keyRow,
+                      styles.assignedKeyRow,
+                      pressed && { opacity: 0.65 },
+                    ]}
+                  >
+                    <View style={[styles.keyIconCircle, styles.assignedKeyIconCircle]}>
+                      <Icon size={14} color={theme.colors.surface} strokeWidth={1.8} />
                     </View>
                     <View style={styles.keyInfo}>
                       <Text style={styles.keyLabel} numberOfLines={1}>
@@ -340,18 +117,7 @@ export default function EditKeySetScreen() {
                         <Text style={styles.qtyChipText}>{k.quantity}</Text>
                       </View>
                     )}
-                    <Pressable
-                      onPress={() => handleUnassign(k)}
-                      disabled={keysBusy}
-                      hitSlop={8}
-                      style={({ pressed }) => [
-                        styles.removeBtn,
-                        pressed && { opacity: 0.65 },
-                      ]}
-                    >
-                      <X size={14} color={theme.colors.danger} strokeWidth={2.5} />
-                    </Pressable>
-                  </View>
+                  </Pressable>
                 );
               })}
             </View>
@@ -359,16 +125,24 @@ export default function EditKeySetScreen() {
         </View>
 
         {/* Available to assign */}
-        {unassignedKeys.length > 0 && (
+        {keyAssignment.unassigned.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Available to assign</Text>
             <View style={styles.keyList}>
-              {unassignedKeys.map((k) => {
+              {keyAssignment.unassigned.map((k) => {
                 const Icon = KEY_TYPE_ICON[k.key_type] ?? KeyRound;
                 return (
-                  <View key={k.id} style={styles.keyRow}>
+                  <Pressable
+                    key={k.id}
+                    onPress={() => keyAssignment.assign(k)}
+                    disabled={isSaving}
+                    style={({ pressed }) => [
+                      styles.keyRow,
+                      pressed && { opacity: 0.65 },
+                    ]}
+                  >
                     <View style={styles.keyIconCircle}>
-                      <Icon size={13} color={theme.colors.accent} strokeWidth={1.8} />
+                      <Icon size={14} color={theme.colors.accent} strokeWidth={1.8} />
                     </View>
                     <View style={styles.keyInfo}>
                       <Text style={styles.keyLabel} numberOfLines={1}>
@@ -385,29 +159,14 @@ export default function EditKeySetScreen() {
                         <Text style={styles.qtyChipText}>{k.quantity}</Text>
                       </View>
                     )}
-                    <Pressable
-                      onPress={() => handleAssign(k)}
-                      disabled={keysBusy}
-                      hitSlop={8}
-                      style={({ pressed }) => [
-                        styles.addBtn,
-                        pressed && { opacity: 0.65 },
-                      ]}
-                    >
-                      {keysBusy ? (
-                        <ActivityIndicator size={13} color={theme.colors.success} />
-                      ) : (
-                        <Plus size={14} color={theme.colors.success} strokeWidth={2.5} />
-                      )}
-                    </Pressable>
-                  </View>
+                  </Pressable>
                 );
               })}
             </View>
           </View>
         )}
 
-        {/* Photos — bottom of scroll, same pattern as KeySetsStep */}
+        {/* Photos */}
         <View style={styles.photoSection}>
           <PhotoPicker
             uris={photoUris}
@@ -434,7 +193,7 @@ export default function EditKeySetScreen() {
           variant="primary"
           loading={isSaving}
           disabled={isSaving}
-          onPress={handleSave}
+          onPress={() => save(() => router.back())}
           style={styles.saveBtn}
         />
       </View>
@@ -473,7 +232,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: theme.colors.text,
   },
-  // keys
   keyList: { gap: 6 },
   keyRow: {
     flexDirection: "row",
@@ -481,19 +239,30 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
     paddingVertical: 8,
     paddingHorizontal: 10,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.background,
     borderRadius: theme.radius.md,
     borderWidth: 1,
     borderColor: theme.colors.border,
+  },
+  assignedKeyRow: {
+    backgroundColor: theme.colors.accentSoft,
+    borderWidth: 1,
+    borderColor: theme.colors.accentLight,
   },
   keyIconCircle: {
     width: 30,
     height: 30,
     borderRadius: theme.radius.sm,
     backgroundColor: theme.colors.accentSoft,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
+  },
+  assignedKeyIconCircle: {
+    backgroundColor: theme.colors.accent,
+    borderColor: theme.colors.accent,
   },
   keyInfo: {
     flex: 1,
@@ -523,24 +292,6 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   qtyChipText: { fontSize: 11, fontWeight: "700", color: theme.colors.textMuted },
-  removeBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: theme.radius.sm,
-    backgroundColor: theme.colors.dangerSoft,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  addBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: theme.radius.sm,
-    backgroundColor: theme.colors.successSoft,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
   emptyText: {
     fontSize: 13,
     color: theme.colors.textLight,
@@ -548,13 +299,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingVertical: theme.spacing.sm,
   },
-  // Photos section — matches KeySetsStep's photoSection
   photoSection: {
     paddingTop: theme.spacing.sm,
     borderTopWidth: 1,
     borderTopColor: theme.colors.border,
   },
-  // Footer
   footer: {
     flexDirection: "row",
     gap: theme.spacing.sm,

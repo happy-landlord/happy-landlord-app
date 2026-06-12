@@ -23,10 +23,8 @@ export function EmptyState({
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <View style={styles.iconOuter}>
-          <View style={styles.iconInner}>
-            <Icon size={30} color={theme.colors.primary} strokeWidth={1.7} />
-          </View>
+        <View style={styles.iconWrap}>
+          <Icon size={28} color={theme.colors.accent} strokeWidth={1.8} />
         </View>
 
         <Text style={styles.title}>{title}</Text>
@@ -59,38 +57,23 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.card,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surfaceWarm,
+    backgroundColor: theme.colors.surface,
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.xl,
-    shadowColor: theme.colors.accent,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.06,
-    shadowRadius: 24,
-    elevation: 2,
   },
-  iconOuter: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: theme.colors.primarySoft,
+  iconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.primary,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: theme.spacing.lg,
   },
-  iconInner: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: theme.colors.surface,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
   title: {
-    fontSize: 19,
+    fontSize: 18,
     fontWeight: "800",
-    color: theme.colors.text,
+    color: theme.colors.accent,
     textAlign: "center",
     marginBottom: theme.spacing.sm,
   },

@@ -210,11 +210,11 @@ export function LockScreen({ userName, userEmail }: LockScreenProps) {
               accessibilityLabel={`Unlock with ${biometricLabel}`}
             >
               {isAuthenticating ? (
-                <ActivityIndicator size="large" color={theme.colors.primary} />
+                <ActivityIndicator size="large" color={theme.colors.accent} />
               ) : (
                 <Fingerprint
                   size={52}
-                  color={theme.colors.primary}
+                  color={theme.colors.accent}
                   strokeWidth={1.4}
                 />
               )}
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
     width: 300,
     height: 300,
     borderRadius: 150,
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.accentSoft,
   },
   logoWrap: {
     alignSelf: "center",
@@ -389,12 +389,12 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.accentSoft,
     alignItems: "center",
     justifyContent: "center",
     marginVertical: theme.spacing.sm,
     // subtle shadow
-    shadowColor: theme.colors.primary,
+    shadowColor: theme.colors.accent,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.18,
     shadowRadius: 12,
@@ -415,10 +415,10 @@ const styles = StyleSheet.create({
   },
   altLinkText: {
     fontSize: 14,
-    color: theme.colors.primary,
+    color: theme.colors.accent,
     fontWeight: "600",
     textDecorationLine: "underline",
-    textDecorationColor: theme.colors.primarySoft,
+    textDecorationColor: theme.colors.accentLight,
   },
 
   // Password
@@ -447,7 +447,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: theme.spacing.sm,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.accentSoft,
+    borderWidth: 1,
+    borderColor: theme.colors.accentLight,
     borderRadius: theme.radius.pill,
     paddingVertical: 14,
     marginTop: theme.spacing.xs,

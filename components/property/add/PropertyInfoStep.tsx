@@ -1,11 +1,11 @@
 import { useState } from "react";
 import {
-  Platform,
+  Keyboard,
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
-  Keyboard,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { ChevronDown, KeyRound, X } from "lucide-react-native";
@@ -18,8 +18,9 @@ import {
 } from "@/constants";
 import {
   AddressSearch,
+  BottomSheet,
+  Button,
   Input,
-  OutlinedField,
   OutlinedSelect,
   OutlinedDateField,
   PickerModal,
@@ -119,22 +120,24 @@ export function PropertyInfoStep({
   return (
     <View style={styles.container}>
       {/* Address */}
-      <OutlinedField label="Address" required style={styles.addressField}>
-        <AddressSearch
-          placeholder="Search address…"
-          mode="full"
-          onSelect={(place) => {
-            onChange({ selectedPlace: place });
-            onAddressSelect(place);
-          }}
-          borderless
-        />
-      </OutlinedField>
+      <AddressSearch
+        label="Address"
+        required
+        placeholder="Search address…"
+        mode="full"
+        labelBackground={theme.colors.background}
+        containerStyle={styles.addressField}
+        onSelect={(place) => {
+          onChange({ selectedPlace: place });
+          onAddressSelect(place);
+        }}
+      />
 
       <OutlinedSelect
         label="Property Type"
         required
         value={selectedTypeLabel}
+        focused={showTypePicker}
         onPress={() => setShowTypePicker(true)}
       />
       <PickerModal
@@ -153,6 +156,7 @@ export function PropertyInfoStep({
         onChangeText={(landlordName) => onChange({ landlordName })}
         autoCapitalize="words"
         labelBackground={theme.colors.background}
+        onFocus={() => setShowDatePicker(false)}
       />
 
       {/* Landlord Contact + Date Received */}
@@ -165,38 +169,60 @@ export function PropertyInfoStep({
           keyboardType="phone-pad"
           containerStyle={styles.phoneField}
           labelBackground={theme.colors.background}
+          onFocus={() => setShowDatePicker(false)}
         />
         <OutlinedDateField
           label="Date Received"
           value={formatLongDate(data.dateReceived)}
-          onPress={() => setShowDatePicker(true)}
+          focused={showDatePicker}
+          onPress={() => {
+            Keyboard.dismiss();
+            setShowDatePicker(true);
+          }}
           style={styles.dateField}
         />
       </View>
-      {showDatePicker && (
+
+      <BottomSheet
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+      >
         <DateTimePicker
           value={data.dateReceived}
           mode="date"
-          display={Platform.OS === "ios" ? "spinner" : "default"}
+          display="spinner"
+          textColor={theme.colors.text}
+          themeVariant="light"
           maximumDate={new Date()}
           onChange={(_, selected) => {
-            setShowDatePicker(Platform.OS === "ios");
             if (selected) onChange({ dateReceived: selected });
           }}
+          style={styles.datePicker}
         />
-      )}
+        <View style={styles.datePickerActions}>
+          <Button
+            title="Cancel"
+            variant="outline"
+            onPress={() => setShowDatePicker(false)}
+            style={styles.datePickerBtn}
+          />
+          <Button
+            title="Done"
+            variant="primary"
+            onPress={() => setShowDatePicker(false)}
+            style={styles.datePickerBtn}
+          />
+        </View>
+      </BottomSheet>
 
       {/* ── Keys received ───────────────────────────────────────────────────── */}
       <View style={styles.keysCard}>
         {/* Header */}
         <View style={styles.keysCardHeader}>
           <Text style={styles.keysCardTitle}>Keys Received</Text>
-          <View style={styles.totalBadge}>
-            <KeyRound size={12} color={theme.colors.accent} strokeWidth={2.2} />
-            <Text style={styles.totalBadgeText}>
-              {totalKeys} {totalKeys === 1 ? "Key" : "Keys"}
-            </Text>
-          </View>
+          <Text style={styles.totalCount}>
+            {totalKeys} {totalKeys === 1 ? "key" : "keys"}
+          </Text>
         </View>
 
         {/* Added entries */}
@@ -293,29 +319,33 @@ export function PropertyInfoStep({
           {/* Name + code inputs inline */}
           <View style={styles.codeRow}>
             {pendingType === "other" && (
-              <Input
+              <TextInput
                 placeholder="Key label"
                 value={pendingOtherLabel}
                 onChangeText={setPendingOtherLabel}
+                placeholderTextColor={theme.colors.textLight}
+                selectionColor={theme.colors.text}
                 returnKeyType="next"
                 maxLength={40}
-                containerStyle={styles.codeInputFlex}
-                style={styles.codeInputText}
+                style={styles.codeInputFlex}
+                onFocus={() => setShowDatePicker(false)}
               />
             )}
-            <Input
+            <TextInput
               placeholder="Code / tag #"
               value={pendingCode}
               onChangeText={setPendingCode}
+              placeholderTextColor={theme.colors.textLight}
+              selectionColor={theme.colors.text}
               returnKeyType="done"
               maxLength={30}
               onSubmitEditing={() => Keyboard.dismiss()}
-              containerStyle={
+              style={
                 pendingType === "other"
                   ? styles.codeInputFixed
                   : styles.codeInputFlex
               }
-              style={styles.codeInputText}
+              onFocus={() => setShowDatePicker(false)}
             />
           </View>
         </>
@@ -343,7 +373,6 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing.xl,
   },
   addressField: {
-    paddingHorizontal: theme.spacing.sm,
     zIndex: 1000,
     elevation: 24,
   },
@@ -354,6 +383,13 @@ const styles = StyleSheet.create({
   },
   phoneField: { flex: 1, marginTop: 10 },
   dateField: { width: 155 },
+  datePicker: { width: "100%" },
+  datePickerActions: {
+    flexDirection: "row",
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.md,
+  },
+  datePickerBtn: { flex: 1 },
 
   // ── Keys card ─────────────────────────────────────────────────────────────
   keysCard: {
@@ -376,19 +412,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: theme.colors.accent,
   },
-  totalBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.accentSoft,
-  },
-  totalBadgeText: {
+  totalCount: {
     fontSize: 13,
-    fontWeight: "700",
-    color: theme.colors.accent,
+    fontWeight: "600",
+    color: theme.colors.textMuted,
   },
   keyList: { gap: 6 },
   keyEntry: {
@@ -478,12 +505,12 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.accent,
   },
   addKeyBtnText: {
     fontSize: 14,
     fontWeight: "700",
-    color: theme.colors.accent,
+    color: theme.colors.textInverse,
   },
   codeRow: {
     flexDirection: "row",
@@ -492,18 +519,26 @@ const styles = StyleSheet.create({
   },
   codeInputFlex: {
     flex: 1,
-    marginTop: 0,
     height: 40,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.background,
     paddingHorizontal: theme.spacing.sm,
+    fontSize: 13,
+    color: theme.colors.text,
+    paddingVertical: 0,
   },
   codeInputFixed: {
     width: 130,
-    marginTop: 0,
     height: 40,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.background,
     paddingHorizontal: theme.spacing.sm,
-  },
-  codeInputText: {
-    height: 38,
     fontSize: 13,
+    color: theme.colors.text,
+    paddingVertical: 0,
   },
 });

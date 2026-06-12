@@ -34,7 +34,7 @@ export function CollectFromTenantSheet({
       title="Collect from Tenant"
       subtitle="Confirm you have received the following keysets back from the tenant. The property will be set back to active."
       confirmLabel="Confirm"
-      confirmTone="success"
+      confirmTone="primary"
       isPending={collectMut.isPending}
       onCancel={onClose}
       onConfirm={handleConfirm}

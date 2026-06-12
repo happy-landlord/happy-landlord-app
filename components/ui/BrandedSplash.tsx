@@ -24,14 +24,18 @@ export function BrandedSplash({
 }: Props) {
   return (
     <View style={styles.screen} accessibilityLiveRegion="polite">
-      <View style={styles.logoWrap}>
-        <Logo size={logoSize} />
+      <View style={styles.logoHalo}>
+        <View style={styles.logoWrap}>
+          <Logo size={logoSize} />
+        </View>
       </View>
-      <ActivityIndicator
-        color={theme.colors.primary}
-        size="large"
-        style={styles.spinner}
-      />
+      <View style={styles.spinnerWrap}>
+        <ActivityIndicator
+          color={theme.colors.accent}
+          size="large"
+          style={styles.spinner}
+        />
+      </View>
       {message ? <Text style={styles.label}>{message}</Text> : null}
     </View>
   );
@@ -43,14 +47,32 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     alignItems: "center",
     justifyContent: "center",
-    gap: theme.spacing.lg,
+    gap: theme.spacing.md,
+  },
+  logoHalo: {
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.card,
+    backgroundColor: theme.colors.accentSoft,
+    borderWidth: 1,
+    borderColor: theme.colors.accentLight,
   },
   logoWrap: {
     borderRadius: theme.radius.lg,
     overflow: "hidden",
   },
-  spinner: {
+  spinnerWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: theme.radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.accentLight,
     marginTop: theme.spacing.sm,
+  },
+  spinner: {
+    transform: [{ scale: 0.95 }],
   },
   label: {
     fontSize: 15,

@@ -39,7 +39,7 @@ export function RoleGate({ allow, children, fallback = null }: RoleGateProps) {
   if (isLoading) {
     return (
       <View style={{ padding: theme.spacing.md }}>
-        <ActivityIndicator size="small" color={theme.colors.primary} />
+        <ActivityIndicator size="small" color={theme.colors.accent} />
       </View>
     );
   }

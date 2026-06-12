@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: theme.radius.pill,
-    backgroundColor: "rgba(0,0,0,0.52)",
+    backgroundColor: theme.colors.accentDark + "85",
   },
   overlayBtnText: {
     fontSize: 13,

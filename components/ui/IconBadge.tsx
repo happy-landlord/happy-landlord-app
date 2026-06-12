@@ -41,7 +41,7 @@ const TONE_BG: Record<IconBadgeTone, string> = {
 };
 
 const TONE_FG: Record<IconBadgeTone, string> = {
-  primary: theme.colors.primary,
+  primary: theme.colors.primaryDark,
   accent: theme.colors.accent,
   success: theme.colors.success,
   warning: theme.colors.warning,

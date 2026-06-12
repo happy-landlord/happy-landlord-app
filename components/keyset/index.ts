@@ -42,6 +42,9 @@ export { KeySetDetailsCard } from "./detail/KeySetDetailsCard";
 export { KeySetLastActivity } from "./detail/KeySetLastActivity";
 export { KeySetScreenProvider } from "./detail/KeySetScreenContext";
 
+// ── Edit screen ──────────────────────────────────────────────────────────────
+export { useKeySetEditForm } from "./edit/useKeySetEditForm";
+
 // ── Modals ───────────────────────────────────────────────────────────────────
 export { KeySetModals } from "./modals/KeySetModals";
 export { TransferConfirmModal } from "./modals/TransferConfirmModal";

@@ -106,7 +106,7 @@ export function BiometricEnablePrompt({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(38, 38, 38, 0.5)",
+    backgroundColor: theme.colors.accentDark + "80",
     justifyContent: "flex-end",
   },
   sheet: {

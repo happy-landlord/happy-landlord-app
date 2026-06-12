@@ -51,7 +51,7 @@ export function HandoverLandlordSheet({ visible, onClose, propertyId }: Props) {
           style={styles.cancelBtn}
         />
         <Button
-          title="Confirm Handover"
+          title="Confirm"
           variant="warning"
           loading={handoverMut.isPending}
           disabled={handoverMut.isPending}

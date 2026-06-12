@@ -19,10 +19,7 @@ export type KeySetModalState =
   | { kind: "return" }
   | { kind: "transfer" }
   | { kind: "reportLost" }
-  | { kind: "reserve" }
-  | { kind: "editKeys" };
-
-export type KeySetModalKind = KeySetModalState["kind"];
+  | { kind: "reserve" };
 
 type Action =
   | { type: "open"; state: KeySetModalState }

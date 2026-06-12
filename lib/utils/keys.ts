@@ -53,6 +53,43 @@ export function getDraftKeyLabel(entry: DraftKeyLike): string {
   return KEY_TYPE_LABEL[entry.type] ?? entry.type;
 }
 
+// ── Key allocation helpers (add-property wizard) ─────────────────────────────
+
+/** Minimal shape needed to allocate keys across keysets. */
+export type AllocatableKey = { id: string; count: number };
+
+/**
+ * Counts how many copies of each key id are allocated across all keysets.
+ * A key id appears once in `keyIds` per assigned copy.
+ */
+export function countAllocatedKeys(
+  keySets: { keyIds: string[] }[],
+): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const ks of keySets) {
+    for (const id of ks.keyIds) {
+      counts[id] = (counts[id] ?? 0) + 1;
+    }
+  }
+  return counts;
+}
+
+/**
+ * Returns each key together with how many copies remain unallocated,
+ * filtered to only those with a positive remaining quantity.
+ */
+export function getUnallocatedKeys<T extends AllocatableKey>(
+  keys: T[],
+  allocated: Record<string, number>,
+): { key: T; quantity: number }[] {
+  return keys
+    .map((key) => ({
+      key,
+      quantity: Math.max(0, key.count - (allocated[key.id] ?? 0)),
+    }))
+    .filter(({ quantity }) => quantity > 0);
+}
+
 // ── Keyset-level helpers ─────────────────────────────────────────────────────
 
 /** Minimum keyset shape needed to compute total key count. */

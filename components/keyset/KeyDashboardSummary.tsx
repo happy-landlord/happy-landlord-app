@@ -93,22 +93,10 @@ function DonutChart({
 
 function buildSegments(d: AdminDashboardSummary): Segment[] {
   return [
-    {
-      label: "Available",
-      value: d.available_keysets,
-      color: theme.colors.success,
-    },
-    {
-      label: "Checked out",
-      value: d.checked_out_keysets,
-      color: theme.colors.warning,
-    },
-    { label: "Overdue", value: d.overdue_keysets, color: theme.colors.danger },
-    {
-      label: "Lost/Damaged",
-      value: d.lost_keysets,
-      color: theme.colors.textLight,
-    },
+    { label: "Available", value: d.available_keysets, color: theme.colors.keyAvailable },
+    { label: "Checked out", value: d.checked_out_keysets, color: theme.colors.keyCheckedOut },
+    { label: "Overdue", value: d.overdue_keysets, color: theme.colors.keyOverdue },
+    { label: "Lost/Damaged", value: d.lost_keysets, color: theme.colors.keyLost },
   ];
 }
 

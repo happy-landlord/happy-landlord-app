@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
     paddingTop: theme.spacing.sm,
     paddingHorizontal: theme.spacing.screen,
     gap: theme.spacing.md,
-    shadowColor: "#000",
+    shadowColor: theme.colors.accent,
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.15,
     shadowRadius: 16,

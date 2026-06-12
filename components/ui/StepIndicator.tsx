@@ -120,10 +120,10 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   labelActive: {
-    color: theme.colors.primary,
+    color: theme.colors.primaryText,
     fontWeight: "700",
   },
   labelDone: {
-    color: theme.colors.primary,
+    color: theme.colors.primaryText,
   },
 });

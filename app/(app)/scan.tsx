@@ -255,10 +255,10 @@ export default function ScanScreen() {
 const FINDER_SIZE = 240;
 const CORNER_SIZE = 24;
 const CORNER_THICKNESS = 3;
-const MASK_COLOR = "rgba(0,0,0,0.55)";
+const MASK_COLOR = theme.colors.accentDark + "8C";
 
 const styles = StyleSheet.create({
-  fill: { flex: 1, backgroundColor: "#000" },
+  fill: { flex: 1, backgroundColor: theme.colors.accentDark },
   center: {
     alignItems: "center",
     justifyContent: "center",
@@ -344,11 +344,12 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontSize: 15,
-    color: "rgba(255,255,255,0.85)",
+    color: theme.colors.textInverse,
     textAlign: "center",
     fontWeight: "500",
+    opacity: 0.85,
   },
-  hintError: { color: "#FF7B7B" },
+  hintError: { color: theme.colors.dangerSoft, opacity: 1 },
 
   retryRow: { position: "absolute", left: 0, right: 0, alignItems: "center" },
   retryBtn: {
@@ -372,7 +373,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: theme.colors.accentDark + "66",
     alignItems: "center",
     justifyContent: "center",
   },

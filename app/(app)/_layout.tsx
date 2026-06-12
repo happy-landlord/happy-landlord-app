@@ -1,13 +1,13 @@
 import { useEffect } from "react";
-import { ActivityIndicator, View } from "react-native";
 import { Redirect, Stack, useRouter, useSegments } from "expo-router";
 import * as Sentry from "@sentry/react-native";
 
 import { AppHeader } from "@/components/AppHeader";
 import { BiometricEnablePrompt } from "@/components/BiometricEnablePrompt";
 import { LockScreen } from "@/components/LockScreen";
+import { BrandedSplash } from "@/components/ui";
 import { useSession, useProfile, useNotificationsLifecycle, useBiometricEnrolmentPrompt } from "@/lib/hooks";
-import { FEATURES, theme } from "@/constants";
+import { FEATURES } from "@/constants";
 import { useLockStore } from "@/lib/state";
 import { isBiometricEnabled } from "@/lib/services";
 
@@ -98,18 +98,7 @@ export default function AppLayout() {
   }, [isLoading, isAuthenticated, profile, isOnStatusScreen, router]);
 
   if (isLoading) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: theme.colors.background,
-        }}
-      >
-        <ActivityIndicator color={theme.colors.primary} />
-      </View>
-    );
+    return <BrandedSplash message="Preparing your workspace…" />;
   }
 
   if (!isAuthenticated) {

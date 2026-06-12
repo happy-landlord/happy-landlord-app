@@ -7,7 +7,7 @@ import {
 } from "lucide-react-native";
 
 import { KEY_TYPE_ICON, PROPERTY_TYPES, theme } from "@/constants";
-import { getDraftKeyLabel } from "@/lib/utils";
+import { countAllocatedKeys, getDraftKeyLabel, getUnallocatedKeys } from "@/lib/utils";
 import type { KeyEntry, KeySetDraft, PropertyStep } from "./useAddPropertyWizard";
 
 
@@ -54,19 +54,8 @@ export function ReviewStep({ propertyData, keys, keySets }: Props) {
         .join(", ") || descriptionParts.slice(1).join(", ")
     : "";
 
-  const allocatedCounts: Record<string, number> = {};
-  for (const ks of keySets) {
-    for (const keyId of ks.keyIds) {
-      allocatedCounts[keyId] = (allocatedCounts[keyId] ?? 0) + 1;
-    }
-  }
-
-  const unassignedKeys = keys
-    .map((key) => ({
-      key,
-      quantity: Math.max(0, key.count - (allocatedCounts[key.id] ?? 0)),
-    }))
-    .filter(({ quantity }) => quantity > 0);
+  const allocatedCounts = countAllocatedKeys(keySets);
+  const unassignedKeys = getUnallocatedKeys(keys, allocatedCounts);
 
   return (
     <View style={styles.container}>
@@ -80,7 +69,7 @@ export function ReviewStep({ propertyData, keys, keySets }: Props) {
           <View style={styles.propertyIconTile}>
             <Building2
               size={28}
-              color={theme.colors.primary}
+              color={theme.colors.textMuted}
               strokeWidth={1.7}
             />
           </View>
@@ -232,7 +221,7 @@ function InfoSection({
       <View style={styles.sectionHeader}>
         <View style={styles.sectionTitleWrap}>
           <View style={styles.sectionIconWrap}>
-            <Icon size={17} color={theme.colors.primary} strokeWidth={1.9} />
+            <Icon size={17} color={theme.colors.textMuted} strokeWidth={1.9} />
           </View>
           <Text style={styles.sectionTitle}>{title}</Text>
         </View>
@@ -261,7 +250,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
     borderRadius: theme.radius.card,
     borderWidth: 1,
-    borderColor: theme.colors.primarySoft,
+    borderColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
     gap: theme.spacing.md,
   },
@@ -274,7 +263,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: theme.radius.lg,
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.neutralSoft,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -285,7 +274,7 @@ const styles = StyleSheet.create({
   overviewLabel: {
     fontSize: 11,
     fontWeight: "800",
-    color: theme.colors.primary,
+    color: theme.colors.textMuted,
     letterSpacing: 0.7,
     textTransform: "uppercase",
   },
@@ -361,7 +350,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.neutralSoft,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -415,12 +404,12 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.neutralSoft,
     textAlign: "center",
     lineHeight: 20,
     fontSize: 11,
     fontWeight: "800",
-    color: theme.colors.primary,
+    color: theme.colors.textMuted,
   },
   keySetName: {
     flex: 1,
@@ -447,7 +436,7 @@ const styles = StyleSheet.create({
   keyRowIconCircle: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: theme.radius.sm,
     backgroundColor: theme.colors.neutralSoft,
     alignItems: "center",
     justifyContent: "center",
@@ -485,7 +474,7 @@ const styles = StyleSheet.create({
   unassignedIconCircle: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: theme.radius.sm,
     backgroundColor: theme.colors.neutralSoft,
     alignItems: "center",
     justifyContent: "center",

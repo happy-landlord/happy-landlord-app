@@ -1,6 +1,5 @@
 import { useCallback, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { ArrowRightCircle } from "lucide-react-native";
 
 import { theme } from "@/constants";
 import { KeySetCard, TransferConfirmModal } from "@/components/keyset";
@@ -71,16 +70,10 @@ function AgentKeySetCard({ keySet }: { keySet: KeySetWithDetails }) {
         footer={
           <Button
             title={transferMut.isPending ? "Transferring…" : "Transfer to Me"}
-            variant="primary"
+            variant="accent"
+            size="md"
             loading={transferMut.isPending}
             disabled={transferMut.isPending}
-            icon={
-              <ArrowRightCircle
-                size={16}
-                color={theme.colors.accent}
-                strokeWidth={2}
-              />
-            }
             onPress={() => setShowTransferModal(true)}
             accessibilityLabel={`Transfer ${keySet.name} to me`}
           />

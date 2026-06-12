@@ -60,7 +60,7 @@ export function BottomSheet({
   children,
   containerStyle,
   hideHandle = false,
-  backdropColor = "rgba(0,0,0,0.4)",
+  backdropColor = theme.colors.accentDark + "66",
   statusBarTranslucent = true,
   keyboardBehavior = "position",
   overlayChildren,

@@ -36,10 +36,12 @@ export function Input({
   style,
   onFocus,
   onBlur,
+  editable = true,
   ...props
 }: InputProps) {
   const [focused, setFocused] = useState(false);
   const hasError = Boolean(error);
+  const isDisabled = !editable;
 
   return (
     <View style={[styles.outer, containerStyle]}>
@@ -47,17 +49,21 @@ export function Input({
         style={[
           styles.wrap,
           multiline ? styles.wrapMultiline : styles.wrapSingle,
-          focused && styles.wrapFocused,
+          !isDisabled && focused && styles.wrapFocused,
           hasError && styles.wrapError,
+          isDisabled && styles.wrapDisabled,
         ]}
       >
         {label ? (
           <Text
             style={[
               styles.label,
-              labelBackground ? { backgroundColor: labelBackground } : undefined,
-              focused && styles.labelFocused,
+              labelBackground
+                ? { backgroundColor: labelBackground }
+                : undefined,
+              !isDisabled && focused && styles.labelFocused,
               hasError && styles.labelError,
+              isDisabled && styles.labelDisabled,
             ]}
             numberOfLines={1}
           >
@@ -68,11 +74,19 @@ export function Input({
 
         <View style={styles.row}>
           <TextInput
-            style={[styles.input, multiline && styles.inputMultiline, style]}
-            placeholderTextColor={theme.colors.textLight}
-            selectionColor={theme.colors.primary}
+            style={[
+              styles.input,
+              multiline && styles.inputMultiline,
+              isDisabled && styles.inputDisabled,
+              style,
+            ]}
+            placeholderTextColor={
+              isDisabled ? theme.colors.textDisabled : theme.colors.textLight
+            }
+            selectionColor={theme.colors.text}
             multiline={multiline}
             textAlignVertical={multiline ? "top" : undefined}
+            editable={editable}
             onFocus={(e) => {
               setFocused(true);
               onFocus?.(e);
@@ -112,7 +126,7 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   wrapFocused: {
-    borderColor: theme.colors.primary,
+    borderColor: theme.colors.accent,
   },
   wrapError: {
     borderColor: theme.colors.danger,
@@ -131,7 +145,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   labelFocused: {
-    color: theme.colors.primary,
+    color: theme.colors.accent,
   },
   labelError: {
     color: theme.colors.danger,
@@ -161,6 +175,17 @@ const styles = StyleSheet.create({
   },
   iconWrap: {
     marginLeft: theme.spacing.sm,
+  },
+
+  wrapDisabled: {
+    backgroundColor: theme.colors.accentSoft,
+    borderColor: theme.colors.border,
+  },
+  labelDisabled: {
+    color: theme.colors.textDisabled,
+  },
+  inputDisabled: {
+    color: theme.colors.textDisabled,
   },
 
   error: {

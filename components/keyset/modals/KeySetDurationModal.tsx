@@ -52,7 +52,7 @@ export function KeySetDurationModal({
   onCancel,
   onConfirm,
   confirmLabel,
-  confirmTone = "success",
+  confirmTone = "primary",
   keys = [],
   allowedDays,
 }: Props) {
@@ -107,7 +107,7 @@ export function KeySetDurationModal({
       </View>
 
       <View style={styles.dueRow}>
-        <CalendarClock size={14} color={theme.colors.primary} strokeWidth={2} />
+        <CalendarClock size={14} color={theme.colors.accent} strokeWidth={2} />
         <Text style={styles.dueText}>
           {baseIso ? "New due date:" : "Return by"}{" "}
           <Text style={styles.dueDate}>{formatDueAt(newDueIso)}</Text>

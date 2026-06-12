@@ -11,7 +11,7 @@ export function LoadingState({ message = "Loading..." }: LoadingStateProps) {
     <View style={styles.container}>
       <View style={styles.card}>
         <View style={styles.spinnerWrap}>
-          <ActivityIndicator color={theme.colors.primary} size="small" />
+          <ActivityIndicator color={theme.colors.accent} size="small" />
         </View>
         <Text style={styles.message}>{message}</Text>
         <View style={styles.skeletonStack}>
@@ -40,22 +40,24 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.card,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surfaceWarm,
+    backgroundColor: theme.colors.surface,
     padding: theme.spacing.lg,
   },
   spinnerWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: theme.radius.pill,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.accentSoft,
+    borderWidth: 1,
+    borderColor: theme.colors.accentLight,
     marginBottom: theme.spacing.md,
   },
   message: {
     fontSize: 15,
     fontWeight: "600",
-    color: theme.colors.textMuted,
+    color: theme.colors.accent,
     textAlign: "center",
   },
   skeletonStack: {
@@ -67,16 +69,9 @@ const styles = StyleSheet.create({
   skeletonLine: {
     height: 10,
     borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.neutralSoft,
+    backgroundColor: theme.colors.accentSoft,
   },
-  skeletonLineLong: {
-    width: "78%",
-  },
-  skeletonLineMedium: {
-    width: "58%",
-  },
-  skeletonLineShort: {
-    width: "38%",
-  },
+  skeletonLineLong: { width: "78%" },
+  skeletonLineMedium: { width: "58%" },
+  skeletonLineShort: { width: "38%" },
 });
-

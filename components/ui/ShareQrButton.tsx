@@ -133,10 +133,10 @@ export function ShareQrButton({
           {...pressableProps}
         >
           {busy ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={theme.colors.textInverse} />
           ) : (
             <>
-              <Share2 size={13} color="#fff" strokeWidth={2} />
+              <Share2 size={13} color={theme.colors.textInverse} strokeWidth={2} />
               <Text style={styles.overlayBtnText}>Share</Text>
             </>
           )}
@@ -197,11 +197,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: theme.radius.pill,
-    backgroundColor: "rgba(0,0,0,0.52)",
+    backgroundColor: theme.colors.accentDark + "85",
   },
   overlayBtnText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#fff",
+    color: theme.colors.textInverse,
   },
 });

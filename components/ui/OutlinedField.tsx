@@ -9,6 +9,7 @@ type OutlinedFieldProps = {
   label: string;
   required?: boolean;
   focused?: boolean;
+  disabled?: boolean;
   style?: ViewStyle;
   /** Override the floating label background (default: page background). Pass theme.colors.surface on white sheet surfaces. */
   labelBackground?: string;
@@ -23,16 +24,25 @@ export function OutlinedField({
   label,
   required,
   focused,
+  disabled,
   style,
   labelBackground,
   children,
 }: OutlinedFieldProps) {
   return (
-    <View style={[styles.wrap, focused && styles.wrapFocused, style]}>
+    <View
+      style={[
+        styles.wrap,
+        !disabled && focused && styles.wrapFocused,
+        disabled && styles.wrapDisabled,
+        style,
+      ]}
+    >
       <Text
         style={[
           styles.label,
-          focused && styles.labelFocused,
+          !disabled && focused && styles.labelFocused,
+          disabled && styles.labelDisabled,
           labelBackground ? { backgroundColor: labelBackground } : undefined,
         ]}
         numberOfLines={1}
@@ -52,6 +62,8 @@ type OutlinedSelectProps = {
   required?: boolean;
   value: string;
   onPress: () => void;
+  focused?: boolean;
+  disabled?: boolean;
   style?: ViewStyle;
 };
 
@@ -61,15 +73,35 @@ export function OutlinedSelect({
   required,
   value,
   onPress,
+  focused,
+  disabled,
   style,
 }: OutlinedSelectProps) {
   return (
-    <OutlinedField label={label} required={required} style={style}>
-      <Pressable style={styles.select} onPress={onPress} accessibilityRole="button">
-        <Text style={styles.selectText} numberOfLines={1}>
+    <OutlinedField
+      label={label}
+      required={required}
+      focused={focused}
+      disabled={disabled}
+      style={style}
+    >
+      <Pressable
+        style={styles.select}
+        onPress={disabled ? undefined : onPress}
+        accessibilityRole="button"
+        disabled={disabled}
+      >
+        <Text
+          style={[styles.selectText, disabled && styles.selectTextDisabled]}
+          numberOfLines={1}
+        >
           {value}
         </Text>
-        <ChevronDown size={16} color={theme.colors.textMuted} strokeWidth={2} />
+        <ChevronDown
+          size={16}
+          color={disabled ? theme.colors.textDisabled : theme.colors.textMuted}
+          strokeWidth={2}
+        />
       </Pressable>
     </OutlinedField>
   );
@@ -82,6 +114,8 @@ type OutlinedDateFieldProps = {
   required?: boolean;
   value: string;
   onPress: () => void;
+  focused?: boolean;
+  disabled?: boolean;
   style?: ViewStyle;
 };
 
@@ -91,13 +125,32 @@ export function OutlinedDateField({
   required,
   value,
   onPress,
+  focused,
+  disabled,
   style,
 }: OutlinedDateFieldProps) {
   return (
-    <OutlinedField label={label} required={required} style={style}>
-      <Pressable style={styles.select} onPress={onPress} accessibilityRole="button">
-        <Text style={styles.selectText}>{value}</Text>
-        <CalendarDays size={16} color={theme.colors.textMuted} strokeWidth={2} />
+    <OutlinedField
+      label={label}
+      required={required}
+      focused={focused}
+      disabled={disabled}
+      style={style}
+    >
+      <Pressable
+        style={styles.select}
+        onPress={disabled ? undefined : onPress}
+        accessibilityRole="button"
+        disabled={disabled}
+      >
+        <Text style={[styles.selectText, disabled && styles.selectTextDisabled]}>
+          {value}
+        </Text>
+        <CalendarDays
+          size={16}
+          color={disabled ? theme.colors.textDisabled : theme.colors.textMuted}
+          strokeWidth={2}
+        />
       </Pressable>
     </OutlinedField>
   );
@@ -116,7 +169,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   wrapFocused: {
-    borderColor: theme.colors.primary,
+    borderColor: theme.colors.accent,
+  },
+  wrapDisabled: {
+    backgroundColor: theme.colors.accentSoft,
+    borderColor: theme.colors.border,
   },
   label: {
     position: "absolute",
@@ -131,7 +188,10 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   labelFocused: {
-    color: theme.colors.primary,
+    color: theme.colors.accent,
+  },
+  labelDisabled: {
+    color: theme.colors.textDisabled,
   },
   asterisk: {
     color: theme.colors.danger,
@@ -147,5 +207,8 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     flex: 1,
     marginRight: theme.spacing.sm,
+  },
+  selectTextDisabled: {
+    color: theme.colors.textDisabled,
   },
 });

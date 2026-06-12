@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(38, 38, 38, 0.46)",
+    backgroundColor: theme.colors.accentDark + "75",
   },
   card: {
     width: "100%",
