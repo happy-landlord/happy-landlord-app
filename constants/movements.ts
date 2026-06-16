@@ -11,6 +11,7 @@ import {
   Plus,
   Share,
   Undo2,
+  UnlockKeyhole,
   User,
 } from "lucide-react-native";
 import { theme } from "@/constants/theme";
@@ -59,6 +60,13 @@ export const MOVEMENT_CONFIG: Record<KeyTransactionType, MovementConfig> = {
     Icon: LockKeyhole,
     color: theme.colors.danger,
     bg: theme.colors.dangerSoft,
+  },
+  resolved_missing_damaged: {
+    label: "Loss Report Resolved",
+    youLabel: "You resolved loss report",
+    Icon: UnlockKeyhole,
+    color: theme.colors.success,
+    bg: theme.colors.successSoft,
   },
   handover_tenant: {
     label: "Handed to Tenant",

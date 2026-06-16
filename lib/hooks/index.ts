@@ -7,6 +7,7 @@
 export * from "./useAgentRequests";
 export * from "./useBiometric";
 export * from "./useCheckout";
+export * from "./useDeveloperSuggestions";
 export * from "./useKeySetAssignment";
 export * from "./useKeySetImages";
 export * from "./useKeySets";

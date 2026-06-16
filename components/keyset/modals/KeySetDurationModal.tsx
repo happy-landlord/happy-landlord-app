@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { CalendarClock } from "lucide-react-native";
+import { CalendarClock, TriangleAlert } from "lucide-react-native";
 
 import { ConfirmSheet, type ConfirmSheetTone } from "@/components/ui";
 import { DURATION_DAYS, theme } from "@/constants";
@@ -113,6 +113,19 @@ export function KeySetDurationModal({
           <Text style={styles.dueDate}>{formatDueAt(newDueIso)}</Text>
         </Text>
       </View>
+
+      {/* Liability declaration — only shown for checkout (no baseIso) */}
+      {!baseIso && (
+        <View style={styles.declaration}>
+          <TriangleAlert size={14} color={theme.colors.warning} strokeWidth={2} />
+          <Text style={styles.declarationText}>
+            By confirming, you accept full responsibility for this keyset while
+            it is in your custody. A fee of{" "}
+            <Text style={styles.declarationBold}>$300</Text> will be charged if
+            the keyset is lost or damaged.
+          </Text>
+        </View>
+      )}
     </ConfirmSheet>
   );
 }
@@ -167,4 +180,25 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   dueDate: { fontWeight: "700", color: theme.colors.text },
+  declaration: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    backgroundColor: theme.colors.warningSoft,
+    borderWidth: 1,
+    borderColor: theme.colors.warning + "55",
+    borderRadius: theme.radius.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 10,
+  },
+  declarationText: {
+    flex: 1,
+    fontSize: 12,
+    color: theme.colors.text,
+    lineHeight: 18,
+  },
+  declarationBold: {
+    fontWeight: "700",
+    color: theme.colors.text,
+  },
 });

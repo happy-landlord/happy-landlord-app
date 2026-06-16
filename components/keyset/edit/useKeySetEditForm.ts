@@ -75,6 +75,11 @@ export function useKeySetEditForm(keySetId: string) {
       queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.keySets.byProperty(propertyId),
       });
+      // Bust ALL keyset signed-URL caches so the detail page and edit form
+      // don't serve the old image from expo-image's memory-disk cache
+      // (images are upserted to the same storage path, so only invalidating
+      // the signed-URL entries forces a new token → new cache key for expo-image).
+      queryClient.invalidateQueries({ queryKey: ["storage", "keySet"] });
     },
   });
 
@@ -85,16 +90,26 @@ export function useKeySetEditForm(keySetId: string) {
   // ── Photo state ───────────────────────────────────────────────────────────
   const existingImages = useMemo(
     () => getVisibleKeySetImages(keySet?.images ?? []),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [keySet?.id],
+    [keySet?.images],
   );
 
   const existingUrlMapRef = useRef<Map<string, StoredImage>>(new Map());
   const [photoUris, setPhotoUris] = useState<string[]>([]);
   const photosSyncedRef = useRef(false);
 
+  // Track which image paths we last synced from so we re-sync when the
+  // server returns different images (e.g. after a successful save).
+  const lastSyncedPathsRef = useRef<string>("");
+
   const { data: loadedSignedUrls } = useQuery({
-    queryKey: ["storage", "keySet", "allSignedUrls", keySetId],
+    queryKey: [
+      "storage",
+      "keySet",
+      "allSignedUrls",
+      keySetId,
+      // Include paths so the query re-runs when images change after a save
+      ...existingImages.map((img) => img.path),
+    ],
     queryFn: async () => {
       const pairs = await Promise.all(
         existingImages.map(async (img) => ({
@@ -112,9 +127,17 @@ export function useKeySetEditForm(keySetId: string) {
   });
 
   useEffect(() => {
-    if (photosSyncedRef.current) return;
+    // Compute a fingerprint of the current server image paths so we can
+    // detect when the server has returned a genuinely different set (e.g.
+    // after a save that upserts to the same storage path — the DB images
+    // array is the same, but the signed URLs need refreshing).
+    const pathKey = existingImages.map((i) => i.path).join("|");
+    const pathsChanged = pathKey !== lastSyncedPathsRef.current;
+
+    if (photosSyncedRef.current && !pathsChanged) return;
     if (existingImages.length === 0) {
       photosSyncedRef.current = true;
+      lastSyncedPathsRef.current = pathKey;
     } else if (loadedSignedUrls) {
       const map = new Map<string, StoredImage>();
       const urls: string[] = [];
@@ -125,8 +148,9 @@ export function useKeySetEditForm(keySetId: string) {
       existingUrlMapRef.current = map;
       setPhotoUris(urls);
       photosSyncedRef.current = true;
+      lastSyncedPathsRef.current = pathKey;
     }
-  }, [loadedSignedUrls, existingImages.length]);
+  }, [loadedSignedUrls, existingImages]);
 
   // ── Save ──────────────────────────────────────────────────────────────────
   const isSaving =

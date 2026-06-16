@@ -18,13 +18,15 @@ import {
 import { Share2 } from "lucide-react-native";
 
 import { theme } from "@/constants";
-import { keySetQrUrl } from "@/lib/utils";
 import { PillButton } from "./PillButton";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export type ShareQrButtonProps = Omit<PressableProps, "onPress"> & {
-  /** The value encoded in the QR (e.g. keyset code) */
+  /**
+   * Value encoded directly in the QR image — pass `keySet.qr_code` (the stored
+   * deep-link URL) or `keySetQrUrl(code)` for wizard previews before DB save.
+   */
   code: string;
   /** Used as the share dialog title */
   title?: string;
@@ -91,10 +93,10 @@ export function ShareQrButton({
 
   return (
     <>
-      {/* Hidden QR rendered off-screen for PNG capture — encodes deep-link URL */}
+      {/* Hidden QR rendered off-screen for PNG capture */}
       <View style={styles.hidden} pointerEvents="none">
         <QRCode
-          value={keySetQrUrl(code || " ")}
+          value={code || " "}
           size={512}
           getRef={(ref) => {
             svgRef.current = ref as typeof svgRef.current;

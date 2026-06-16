@@ -13,8 +13,8 @@ export type ReturnConfirmModalProps = {
   visible: boolean;
   /** Name of the keyset being returned — shown in the sheet title. */
   keySetName: string;
-  /** Property code to direct the agent to the correct cabinet slot. */
-  propertyCode?: string | null;
+  /** Cabinet code from the property — tells the agent which slot to use. */
+  cabinetCode?: string | null;
   /** Name of the person returning the keys. */
   holderName?: string | null;
   /** Keys being returned — shown as a summary in the modal. */
@@ -29,7 +29,7 @@ export type ReturnConfirmModalProps = {
 export const ReturnConfirmModal = memo(function ReturnConfirmModal({
   visible,
   keySetName,
-  propertyCode,
+  cabinetCode,
   holderName,
   returningKeys = [],
   dueBackAt,
@@ -75,8 +75,8 @@ export const ReturnConfirmModal = memo(function ReturnConfirmModal({
         <SummaryRow
           icon={Archive}
           label="Cabinet slot"
-          value={propertyCode ?? "Property code unavailable"}
-          valueTone={propertyCode ? "primary" : undefined}
+          value={cabinetCode ?? "No cabinet code set"}
+          valueTone={cabinetCode ? "primary" : undefined}
         />
       </View>
     </ConfirmSheet>

@@ -58,12 +58,16 @@ export function usePropertyEditForm(propertyId: string) {
   const [landlordContact, setLandlordContact] = useState("");
   const [tenantName, setTenantName] = useState("");
   const [tenantPhone, setTenantPhone] = useState("");
+  const [developerName, setDeveloperName] = useState("");
+  const [cabinetCode, setCabinetCode] = useState("");
 
   // Sync once when server data arrives
   useSyncOnce(property, (p) => {
     setPropertyType(p.property_type);
     setLandlordName(p.landlord?.full_name ?? "");
     setLandlordContact(p.landlord?.phone ?? "");
+    setDeveloperName(p.developer_name ?? "");
+    setCabinetCode(p.cabinet_code ?? "");
   });
 
   useSyncOnce(tenant, (t) => {
@@ -189,7 +193,11 @@ export function usePropertyEditForm(propertyId: string) {
     setIsSaving(true);
     try {
       await updateDetailsMut.mutateAsync({
-        patch: { property_type: propertyType },
+        patch: {
+          property_type: propertyType,
+          developer_name: developerName.trim() || null,
+          cabinet_code: cabinetCode.trim() || null,
+        },
         landlord: {
           holderId: property.landlord?.id ?? null,
           name: landlordName,
@@ -238,6 +246,10 @@ export function usePropertyEditForm(propertyId: string) {
     setTenantName,
     tenantPhone,
     setTenantPhone,
+    developerName,
+    setDeveloperName,
+    cabinetCode,
+    setCabinetCode,
     displayKeys,
     totalKeys,
     addKey,

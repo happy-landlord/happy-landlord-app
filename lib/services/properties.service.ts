@@ -7,11 +7,10 @@ import type {
   DbProperty,
   DbPropertyInsert,
   DbPropertyUpdate,
-  PropertyType,
   PropertyStatus,
   StoredImage,
 } from "@/types";
-import { COUNCIL_CODES } from "@/constants";
+
 
 /** Signed-URL expiry — 1 hour matches the Supabase default. */
 const SIGNED_URL_TTL_SECONDS = 3600;
@@ -208,7 +207,7 @@ export async function fetchPropertyByIdForAgent(
 // ── Property code generation ───────────────────────────────────────────────
 
 /** Single-letter type codes for each property type. */
-export const PROPERTY_TYPE_LETTERS: Record<PropertyType, string> = {
+export const PROPERTY_TYPE_LETTERS: Record<string, string> = {
   house: "H",
   townhouse: "T",
   apartment: "A",
@@ -218,80 +217,59 @@ export const PROPERTY_TYPE_LETTERS: Record<PropertyType, string> = {
   other: "O",
 };
 
-/**
- * Converts a raw Google Places council/LGA string to a fixed 3-letter code.
- *
- * Resolution order:
- *   1. Strip common council-type words and prefixes to get the "core" name.
- *   2. Look that core name up in COUNCIL_CODES (stable, human-assigned codes).
- *   3. Fall back to the first 3 chars of the core name for unknown councils.
- *
- * Handles the many forms Google Places returns for NSW LGAs, e.g.:
- *   "The Council of the City of Sydney" → core "sydney"          → SYD
- *   "City of Sydney"                    → core "sydney"          → SYD
- *   "Blacktown City Council"            → core "blacktown"       → BLK
- *   "Sutherland Shire"                  → core "sutherland"      → SUT
- *   "Canterbury-Bankstown"              → core "canterbury-bankstown" → CBK
- *   "The Blue Mountains City Council"   → core "blue mountains"  → BLM
- *   "The Hills Shire"                   → core "hills"           → HLS
- */
-function councilTo3(council: string): string {
-  const core = council
-    // 1. Strip "[City|Shire|Municipal|…] Council" at the end
-    .replace(/\s*(city|shire|municipal|community|regional)?\s*council\s*$/i, "")
-    // 2. Strip standalone "Shire", "City", "Municipal" at the end (no "Council")
-    .replace(/\s+(shire|city|municipal|regional)\s*$/i, "")
-    // 3. Strip leading "The " — handles "The Council of…", "The Blue Mountains…", etc.
-    .replace(/^the\s+/i, "")
-    // 4. Strip "Council of the " — handles "Council of the City of Sydney"
-    .replace(/^council\s+of\s+the\s+/i, "")
-    // 5. Strip "City of …" / "Shire of …" / "Council of …" prefix
-    .replace(/^(city|shire|municipality|council)\s+of\s+/i, "")
-    .trim()
-    .toLowerCase();
-
-  // Fixed lookup table wins over dynamic fallback
-  if (COUNCIL_CODES[core]) return COUNCIL_CODES[core];
-
-  // Fallback: first 3 chars (spaces removed) for councils not in the table
-  return core.replace(/\s+/g, "").substring(0, 3).toUpperCase();
-}
-
 /** Converts a suburb name to a 3-letter uppercase code. */
 function suburbTo3(suburb: string): string {
   return suburb.replace(/\s+/g, "").substring(0, 3).toUpperCase();
 }
 
 /**
- * Builds a property code from council + suburb + type + sequence.
- * Format: `{COUNCIL3}-{SUBURB3}-{TYPE}{SEQ3}`
- * e.g.  `SYD-CBD-A001`  (Sydney CBD, Apartment, 1st in that suburb)
- *        `RAN-KIN-H003`  (Randwick, Kingsford, House, 3rd)
+ * Derives a short developer code from a raw developer name.
+ *   - Takes up to 3 leading alphanumeric chars (spaces stripped, uppercased).
+ *   - Falls back to `fallback` when the name is blank.
+ *
+ * Examples:  "Lendlease" → "LEN" | "Crown Group" → "CRO" | "" + "A" → "A"
  */
-export function makePropertyCode(
-  council: string,
-  suburb: string,
-  propertyType: PropertyType,
-  seq: number,
-): string {
-  const councilCode = councilTo3(council || suburb);
-  const subCode = suburbTo3(suburb);
-  const typeCode = PROPERTY_TYPE_LETTERS[propertyType] ?? "O";
-  const seqPad = String(seq).padStart(3, "0");
-  return `${councilCode}-${subCode}-${typeCode}${seqPad}`;
+export function developerNameToCode(name: string, fallback: string): string {
+  const cleaned = name.trim().replace(/\s+/g, "").toUpperCase();
+  return cleaned.substring(0, 3) || fallback;
 }
 
 /**
- * Queries the DB for how many properties already share the same
- * council+suburb prefix and returns the next available sequence number.
+ * Builds a property code from suburb + developer name + property type + sequence.
+ *
+ * Format: `{SUBURB3}-{DEV_CODE}{SEQ2}`
+ *
+ * The developer code is derived from `developerName` (up to 3 chars).
+ * When blank, it falls back to the property-type letter (e.g. "A" for apartment).
+ *
+ * Examples:
+ *   suburb "Parramatta", developer "Lendlease", type "apartment", seq 1 → `PAR-LEN01`
+ *   suburb "CBD",        no developer,          type "apartment", seq 3 → `CBD-A03`
+ *   suburb "CBD",        no developer,          type "house",     seq 2 → `CBD-H02`
  */
-export async function fetchNextPropertyCodeSeq(
-  council: string,
+export function makePropertyCode(
   suburb: string,
-): Promise<number> {
-  const councilCode = councilTo3(council || suburb);
+  developerName: string,
+  propertyType: string,
+  seq: number,
+): string {
   const subCode = suburbTo3(suburb);
-  const prefix = `${councilCode}-${subCode}-`;
+  const typeFallback = PROPERTY_TYPE_LETTERS[propertyType] ?? "O";
+  const devCode = developerNameToCode(developerName, typeFallback);
+  const seqPad = String(seq).padStart(2, "0");
+  return `${subCode}-${devCode}${seqPad}`;
+}
+
+/**
+ * Queries the DB for how many properties already share the same suburb prefix
+ * and returns the next available sequence number.
+ *
+ * The sequence is scoped to the suburb only (not the developer) so that
+ * changing the developer name after address selection never requires a re-fetch.
+ */
+export async function fetchNextPropertyCodeSeq(suburb: string): Promise<number> {
+  const subCode = suburbTo3(suburb);
+  const prefix = `${subCode}-`;
 
   const { count, error } = await supabase
     .from("properties")
@@ -300,6 +278,39 @@ export async function fetchNextPropertyCodeSeq(
 
   if (error) return 1;
   return (count ?? 0) + 1;
+}
+
+/**
+ * Returns distinct non-null developer names that contain `query` (case-insensitive).
+ * Used to drive autocomplete suggestions in the add/edit property forms.
+ * Returns at most 10 results ordered alphabetically.
+ */
+export async function fetchDistinctDeveloperNames(
+  query: string,
+): Promise<string[]> {
+  const trimmed = query.trim();
+  const { data, error } = await supabase
+    .from("properties")
+    .select("developer_name")
+    .not("developer_name", "is", null)
+    .ilike("developer_name", `%${trimmed}%`)
+    .order("developer_name", { ascending: true })
+    .limit(20);
+
+  if (error || !data) return [];
+
+  // Deduplicate client-side (Supabase doesn't support DISTINCT in PostgREST select)
+  const seen = new Set<string>();
+  const results: string[] = [];
+  for (const row of data) {
+    const name = row.developer_name as string;
+    if (!seen.has(name)) {
+      seen.add(name);
+      results.push(name);
+      if (results.length === 10) break;
+    }
+  }
+  return results;
 }
 
 /** Creates a new key_holder row and returns the inserted record. */

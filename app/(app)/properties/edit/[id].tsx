@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -7,6 +7,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Button, ErrorState, Input, LoadingState, OutlinedSelect, PickerModal } from "@/components/ui";
 import { PropertyKeysSection, usePropertyEditForm } from "@/components/property/edit";
 import { PROPERTY_TYPES, theme } from "@/constants";
+import { useDeveloperSuggestions } from "@/lib/hooks";
 
 
 // ── Screen ────────────────────────────────────────────────────────────────────
@@ -16,8 +17,12 @@ export default function EditPropertyScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [showTypePicker, setShowTypePicker] = useState(false);
+  const [devFocused, setDevFocused] = useState(false);
 
   const form = usePropertyEditForm(id);
+
+  const { suggestions: devSuggestions, clear: clearDevSuggestions } =
+    useDeveloperSuggestions(devFocused ? form.developerName : "");
 
   if (form.propertyLoading) return <LoadingState message="Loading property…" />;
   if (form.isError || !form.property) {
@@ -70,6 +75,58 @@ export default function EditPropertyScreen() {
             textContentType="telephoneNumber"
             labelBackground={theme.colors.background}
           />
+
+          {/* Developer Name + Cabinet Slot */}
+          <View style={styles.inlineRow}>
+            <View style={{ flex: 1 }}>
+              <Input
+                label="Developer Name"
+                placeholder="Optional"
+                value={form.developerName}
+                onChangeText={form.setDeveloperName}
+                autoCapitalize="words"
+                autoCorrect={false}
+                labelBackground={theme.colors.background}
+                onFocus={() => setDevFocused(true)}
+                onBlur={() => setDevFocused(false)}
+              />
+              {devFocused && devSuggestions.length > 0 && (
+                <ScrollView
+                  style={styles.suggestionsDropdown}
+                  keyboardShouldPersistTaps="handled"
+                  nestedScrollEnabled
+                >
+                  {devSuggestions.map((name) => (
+                    <Pressable
+                      key={name}
+                      style={({ pressed }) => [
+                        styles.suggestionRow,
+                        pressed && styles.suggestionRowPressed,
+                      ]}
+                      onPress={() => {
+                        form.setDeveloperName(name);
+                        clearDevSuggestions();
+                        setDevFocused(false);
+                        Keyboard.dismiss();
+                      }}
+                    >
+                      <Text style={styles.suggestionText} numberOfLines={1}>{name}</Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+            <Input
+              label="Cabinet Slot"
+              placeholder="Optional"
+              value={form.cabinetCode}
+              onChangeText={form.setCabinetCode}
+              autoCapitalize="characters"
+              containerStyle={{ width: 130 }}
+              labelBackground={theme.colors.background}
+              onFocus={() => setDevFocused(false)}
+            />
+          </View>
 
           {form.isLeased && (
             <>
@@ -154,5 +211,40 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.screen,
     paddingTop: theme.spacing.md,
     gap: theme.spacing.sm,
+  },
+  inlineRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: theme.spacing.sm,
+  },
+  suggestionsDropdown: {
+    position: "absolute",
+    bottom: "100%",
+    left: 0,
+    right: 0,
+    maxHeight: 180,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+    marginBottom: 4,
+    zIndex: 999,
+    elevation: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+  },
+  suggestionRow: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  suggestionRowPressed: { backgroundColor: theme.colors.neutralSoft },
+  suggestionText: {
+    fontSize: 14,
+    color: theme.colors.text,
+    fontWeight: "500",
   },
 });

@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   Keyboard,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -27,6 +28,7 @@ import {
   type PlaceResult,
 } from "@/components/ui";
 import { formatLongDate } from "@/lib/utils";
+import { useDeveloperSuggestions } from "@/lib/hooks";
 import type { KeyType } from "@/types";
 
 import type { KeyEntry, PropertyStep } from "./useAddPropertyWizard";
@@ -69,6 +71,10 @@ export function PropertyInfoStep({
   const [pendingCode, setPendingCode] = useState("");
   const [pendingOtherLabel, setPendingOtherLabel] = useState("");
   const [keyPickerOpen, setKeyPickerOpen] = useState(false);
+  const [devFocused, setDevFocused] = useState(false);
+
+  const { suggestions: devSuggestions, clear: clearDevSuggestions } =
+    useDeveloperSuggestions(devFocused ? data.developerName : "");
 
   const selectedTypeLabel =
     PROPERTY_TYPES.find((t) => t.value === data.propertyType)?.label ??
@@ -214,6 +220,55 @@ export function PropertyInfoStep({
           />
         </View>
       </BottomSheet>
+
+      {/* Developer Name (with autocomplete) + Cabinet Slot */}
+      <View style={styles.inlineRow}>
+        <View style={{ flex: 1 }}>
+          <Input
+            label="Developer Name"
+            value={data.developerName}
+            onChangeText={(developerName) => onChange({ developerName })}
+            autoCapitalize="words"
+            labelBackground={theme.colors.background}
+            onFocus={() => { setShowDatePicker(false); setDevFocused(true); }}
+            onBlur={() => setDevFocused(false)}
+          />
+          {devFocused && devSuggestions.length > 0 && (
+            <ScrollView
+              style={styles.suggestionsDropdown}
+              keyboardShouldPersistTaps="handled"
+              nestedScrollEnabled
+            >
+              {devSuggestions.map((name) => (
+                <Pressable
+                  key={name}
+                  style={({ pressed }) => [
+                    styles.suggestionRow,
+                    pressed && styles.suggestionRowPressed,
+                  ]}
+                  onPress={() => {
+                    onChange({ developerName: name });
+                    clearDevSuggestions();
+                    setDevFocused(false);
+                    Keyboard.dismiss();
+                  }}
+                >
+                  <Text style={styles.suggestionText} numberOfLines={1}>{name}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+        <Input
+          label="Cabinet Slot"
+          value={data.cabinetCode}
+          onChangeText={(cabinetCode) => onChange({ cabinetCode })}
+          autoCapitalize="characters"
+          containerStyle={{ width: 130 }}
+          labelBackground={theme.colors.background}
+          onFocus={() => { setShowDatePicker(false); setDevFocused(false); }}
+        />
+      </View>
 
       {/* ── Keys received ───────────────────────────────────────────────────── */}
       <View style={styles.keysCard}>
@@ -380,6 +435,38 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     gap: theme.spacing.sm,
+  },
+  suggestionsDropdown: {
+    position: "absolute",
+    bottom: "100%",
+    left: 0,
+    right: 0,
+    maxHeight: 180,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+    marginBottom: 4,
+    zIndex: 999,
+    elevation: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+  },
+  suggestionRow: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  suggestionRowPressed: {
+    backgroundColor: theme.colors.neutralSoft,
+  },
+  suggestionText: {
+    fontSize: 14,
+    color: theme.colors.text,
+    fontWeight: "500",
   },
   phoneField: { flex: 1, marginTop: 10 },
   dateField: { width: 155 },

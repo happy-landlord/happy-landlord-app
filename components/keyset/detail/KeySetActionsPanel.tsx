@@ -216,7 +216,7 @@ export function KeySetActionsPanel() {
           title={actions.isUndoLostPending ? "Undoing…" : "Undo Lost Report"}
           variant="accentOutline"
           disabled={isBusy}
-          onPress={actions.undoLost}
+          onPress={() => openModal({ kind: "undoLost" })}
         />
       )}
     </View>

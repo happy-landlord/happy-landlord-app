@@ -184,8 +184,9 @@ export function useReportKeySetLost(propertyId: string) {
 export function useUndoReportKeySetLost(propertyId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (keySetId: string) => undoReportKeySetLost(keySetId),
-    onSuccess: (_, keySetId) =>
+    mutationFn: ({ keySetId, notes }: { keySetId: string; notes?: string | null }) =>
+      undoReportKeySetLost(keySetId, notes),
+    onSuccess: (_, { keySetId }) =>
       invalidateKeySets(queryClient, propertyId, keySetId),
   });
 }

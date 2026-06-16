@@ -4,6 +4,7 @@ import {
   Building2,
   KeyRound,
   User,
+  HardHat,
 } from "lucide-react-native";
 
 import { KEY_TYPE_ICON, PROPERTY_TYPES, theme } from "@/constants";
@@ -104,6 +105,36 @@ export function ReviewStep({ propertyData, keys, keySets }: Props) {
                   <Text style={styles.overviewMetaLabel}>Contact</Text>
                   <Text style={styles.overviewMetaValue} numberOfLines={1}>
                     {propertyData.landlordContact}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </>
+        ) : null}
+
+        {(propertyData.developerName || propertyData.cabinetCode) ? (
+          <>
+            <View style={styles.overviewDivider} />
+            <View style={styles.overviewMetaRow}>
+              {propertyData.developerName ? (
+                <>
+                  <HardHat size={13} color={theme.colors.textLight} strokeWidth={1.8} />
+                  <View style={styles.overviewMetaItem}>
+                    <Text style={styles.overviewMetaLabel}>Developer</Text>
+                    <Text style={styles.overviewMetaValue} numberOfLines={1}>
+                      {propertyData.developerName}
+                    </Text>
+                  </View>
+                </>
+              ) : null}
+              {propertyData.cabinetCode ? (
+                <View style={[
+                  styles.overviewMetaItem,
+                  propertyData.developerName ? styles.overviewMetaItemBorder : undefined,
+                ]}>
+                  <Text style={styles.overviewMetaLabel}>Cabinet Slot</Text>
+                  <Text style={styles.overviewMetaValue} numberOfLines={1}>
+                    {propertyData.cabinetCode}
                   </Text>
                 </View>
               ) : null}

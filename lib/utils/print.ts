@@ -97,7 +97,10 @@ export function buildQrSvg(data: string): string {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type StickerEntry = {
-  /** Code encoded in the QR and printed as text */
+  /**
+   * Value encoded in the QR and shown as code text on the sticker.
+   * Pass `keySet.qr_code` (deep-link URL) so a camera opens the app directly.
+   */
   code: string;
   /** Key type label shown on the sticker (e.g. "Door", "Mailbox") */
   label: string;

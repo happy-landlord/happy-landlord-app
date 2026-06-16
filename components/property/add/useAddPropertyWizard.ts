@@ -18,6 +18,8 @@ export type PropertyStep = {
   landlordName: string;
   landlordContact: string;
   dateReceived: Date;
+  developerName: string;
+  cabinetCode: string;
 };
 
 /** A single key line-item in the wizard draft. Maps to one row in `keys`. */
@@ -48,6 +50,8 @@ export const DEFAULT_PROPERTY: PropertyStep = {
   landlordName: "",
   landlordContact: "",
   dateReceived: new Date(),
+  developerName: "",
+  cabinetCode: "",
 };
 
 export const STEP_LABELS = ["Property", "Keysets", "Review"] as const;
@@ -78,9 +82,11 @@ export function useAddPropertyWizard() {
   const [submitting, setSubmitting] = useState(false);
   const [submitLabel, setSubmitLabel] = useState<string | null>(null);
 
-  // Derived: property code is generated from the selected address.
+  // Derived: property code is generated from the selected address + developer name.
+  // When developerName is blank, the property-type letter is used as fallback.
   const propertyCode = usePropertyCode(
     property.selectedPlace,
+    property.developerName,
     property.propertyType,
   );
 
@@ -102,9 +108,9 @@ export function useAddPropertyWizard() {
 
   const onAddressSelect = useCallback(
     (place: PlaceResult) => {
-      propertyCode.generate(place, property.propertyType);
+      propertyCode.generate(place);
     },
-    [propertyCode, property.propertyType],
+    [propertyCode],
   );
 
   // ── Navigation ─────────────────────────────────────────────────────────

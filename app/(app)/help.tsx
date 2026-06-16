@@ -206,13 +206,19 @@ const BROWSE_SECTIONS: BrowseSection[] = [
         id: "k1",
         question: "How do I check out a keyset?",
         answer:
-          "Scan the QR or NFC tag on the keyset, then confirm checkout. The keyset will be assigned to you.",
+          "Scan the QR or NFC tag on the keyset, then select your checkout duration and confirm. The keyset will be assigned to you for the chosen period.",
+      },
+      {
+        id: "k1b",
+        question: "Am I responsible for the keyset once checked out?",
+        answer:
+          "Yes. By confirming checkout or transfer you accept full responsibility for the keyset while it is in your custody. A fee of $300 will be charged if the keyset is lost or damaged.",
       },
       {
         id: "k2",
         question: "How do I return a keyset?",
         answer:
-          "Scan the keyset tag again while it is checked out to you. Confirm the return to complete the handover.",
+          "Scan the keyset tag again while it is checked out to you. Confirm the return to complete the handover. Place the keys back on the correct cabinet hook before confirming.",
       },
       {
         id: "k3",
@@ -224,7 +230,7 @@ const BROWSE_SECTIONS: BrowseSection[] = [
         id: "k4",
         question: "How do I report a lost keyset?",
         answer:
-          "Open the keyset detail screen, tap the options menu, and select 'Report Lost'. Support will be notified.",
+          "Open the keyset detail screen, tap the options menu, and select 'Report Lost'. Support will be notified immediately.",
       },
     ],
   },
@@ -341,7 +347,19 @@ const BROWSE_SECTIONS: BrowseSection[] = [
         id: "ad1",
         question: "How do I add a new property?",
         answer:
-          "Admins can add properties from the Properties tab by tapping the '+' button and completing the property details form.",
+          "Admins can add properties from the Properties tab by tapping the '+' button. Fill in the address, property type, landlord details, developer name and cabinet slot, then add keysets.",
+      },
+      {
+        id: "ad1b",
+        question: "What is the Cabinet Slot field?",
+        answer:
+          "Cabinet Slot is a short code (e.g. 'A3', 'B12') that identifies which hook or slot in your physical key cabinet holds this property's keysets. It is shown to agents in the Return and Resolve modals so they always put keys back in the right place.",
+      },
+      {
+        id: "ad1c",
+        question: "What is the Developer Name field?",
+        answer:
+          "Developer Name records the property developer (e.g. 'Meriton', 'Crown Group'). It is also used to generate the property code — the first 3 letters of the developer name form the middle segment of the code (e.g. PAR-MER01).",
       },
       {
         id: "ad2",
@@ -353,7 +371,7 @@ const BROWSE_SECTIONS: BrowseSection[] = [
         id: "ad3",
         question: "How do I generate and print key tags?",
         answer:
-          "Open the Key detail screen, tap More Options, and select 'Print Tag'. PDF generation requires a PDF-capable printer.",
+          "Open the Keyset detail screen, tap More Options, and select 'Share QR'. You can save or print the QR sticker from the share sheet.",
       },
     ],
   },

@@ -12,6 +12,7 @@ import { ReportLostSheet } from "./ReportLostSheet";
 import { ReserveKeySetModal } from "./ReserveKeySetModal";
 import { ReturnConfirmModal } from "./ReturnConfirmModal";
 import { TransferConfirmModal } from "@/components/keyset/modals/TransferConfirmModal";
+import { UndoReportLostSheet } from "./UndoReportLostSheet";
 
 // ── KeySetModals ─────────────────────────────────────────────────────────────
 // Single home for every keyset-action modal mounted on the detail screen.
@@ -105,7 +106,7 @@ export function KeySetModals() {
       <ReturnConfirmModal
         visible={modal.kind === "return"}
         keySetName={keySet.name}
-        propertyCode={property?.property_code ?? null}
+        cabinetCode={property?.cabinet_code ?? null}
         holderName={keySet.current_holder?.full_name ?? null}
         returningKeys={keySet.keys ?? []}
         dueBackAt={keySet.due_back_at ?? null}
@@ -132,6 +133,18 @@ export function KeySetModals() {
         isPending={actions.isReportLostPending}
         onCancel={closeModal}
         onConfirm={() => actions.reportLost(closeModal)}
+      />
+
+      {/* Admin / agent: undo missing-damaged */}
+      <UndoReportLostSheet
+        visible={modal.kind === "undoLost"}
+        keySetName={keySet.name}
+        keys={keySet.keys ?? []}
+        markedByName={keySet.current_holder?.full_name ?? null}
+        cabinetCode={property?.cabinet_code ?? null}
+        isPending={actions.isUndoLostPending}
+        onCancel={closeModal}
+        onConfirm={(notes) => actions.undoLost(notes, closeModal)}
       />
     </>
   );

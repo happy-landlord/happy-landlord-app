@@ -3,7 +3,7 @@ import { KeyRound, Plus, Trash2 } from "lucide-react-native";
 
 import { KEY_TYPE_ICON, theme } from "@/constants";
 import { PhotoPicker, ShareQrButton } from "@/components/ui";
-import { buildKeySetCode, countAllocatedKeys, getDraftKeyLabel } from "@/lib/utils";
+import { buildKeySetCode, countAllocatedKeys, getDraftKeyLabel, keySetQrUrl } from "@/lib/utils";
 import type { KeyEntry, KeySetDraft } from "./useAddPropertyWizard";
 
 // ── KeySetsStep ──────────────────────────────────────────────────────────────
@@ -77,7 +77,10 @@ export function KeySetsStep({
               key={draft.id}
               draft={draft}
               keys={keys}
-              code={buildKeySetCode(propertyCode, index, keySets.length)}
+              code={(() => {
+                const c = buildKeySetCode(propertyCode, index, keySets.length);
+                return c ? keySetQrUrl(c) : null;
+              })()}
               codeLoading={codeLoading}
               remaining={remaining}
               onUpdate={(patch) => updateKeySet(draft.id, patch)}

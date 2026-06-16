@@ -19,6 +19,7 @@ export type KeySetModalState =
   | { kind: "return" }
   | { kind: "transfer" }
   | { kind: "reportLost" }
+  | { kind: "undoLost" }
   | { kind: "reserve" };
 
 type Action =

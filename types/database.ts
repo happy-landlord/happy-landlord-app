@@ -195,6 +195,8 @@ export type Database = {
           created_at: string;
           updated_at: string;
           images: { path: string; sort_order: number; is_hidden: boolean }[];
+          developer_name: string | null;
+          cabinet_code: string | null;
         };
         Insert: {
           id?: string;
@@ -222,6 +224,8 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           images?: { path: string; sort_order: number; is_hidden: boolean }[];
+          developer_name?: string | null;
+          cabinet_code?: string | null;
         };
         Update: {
           id?: string;
@@ -249,6 +253,8 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           images?: { path: string; sort_order: number; is_hidden: boolean }[];
+          developer_name?: string | null;
+          cabinet_code?: string | null;
         };
         Relationships: [];
       };
@@ -387,6 +393,7 @@ export type Database = {
           created_at: string;
           updated_at: string;
           images: { path: string; sort_order: number; is_hidden: boolean }[];
+          qr_code: string | null;
         };
         Insert: {
           id?: string;
@@ -408,6 +415,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           images?: { path: string; sort_order: number; is_hidden: boolean }[];
+          qr_code?: string | null;
         };
         Update: {
           id?: string;
@@ -429,6 +437,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           images?: { path: string; sort_order: number; is_hidden: boolean }[];
+          qr_code?: string | null;
         };
         Relationships: [];
       };
@@ -487,6 +496,7 @@ export type Database = {
             | "returned"
             | "marked_overdue"
             | "marked_missing_damaged"
+            | "resolved_missing_damaged"
             | "handover_tenant"
             | "handover_landlord"
             | "notes_updated";
@@ -507,6 +517,7 @@ export type Database = {
             | "returned"
             | "marked_overdue"
             | "marked_missing_damaged"
+            | "resolved_missing_damaged"
             | "handover_tenant"
             | "handover_landlord"
             | "notes_updated";
@@ -527,6 +538,7 @@ export type Database = {
             | "returned"
             | "marked_overdue"
             | "marked_missing_damaged"
+            | "resolved_missing_damaged"
             | "handover_tenant"
             | "handover_landlord"
             | "notes_updated";

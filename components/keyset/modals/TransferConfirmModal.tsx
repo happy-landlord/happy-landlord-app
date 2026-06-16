@@ -1,12 +1,13 @@
 import { memo } from "react";
-import { View } from "react-native";
-import { Calendar, UserCheck } from "lucide-react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { Calendar, TriangleAlert, UserCheck } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
 import { ConfirmSheet } from "@/components/ui";
 import { SelectedKeysSummary } from "./SelectedKeysSummary";
 import { SummaryRow, summaryStyles } from "./KeySetSummaryRow";
 import { formatDateTime, isPastDue } from "@/lib/utils";
+import { theme } from "@/constants";
 import type { KeyInSet } from "@/lib/services";
 
 export type TransferConfirmModalProps = {
@@ -71,6 +72,41 @@ export const TransferConfirmModal = memo(function TransferConfirmModal({
           valueTone={isOverdue ? "danger" : undefined}
         />
       </View>
+
+      <View style={styles.declaration}>
+        <TriangleAlert size={14} color={theme.colors.warning} strokeWidth={2} />
+        <Text style={styles.declarationText}>
+          By confirming, you accept full responsibility for this keyset while it
+          is in your custody. A fee of{" "}
+          <Text style={styles.declarationBold}>$300</Text> will be charged if
+          the keyset is lost or damaged.
+        </Text>
+      </View>
     </ConfirmSheet>
   );
 });
+
+const styles = StyleSheet.create({
+  declaration: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    backgroundColor: theme.colors.warningSoft,
+    borderWidth: 1,
+    borderColor: theme.colors.warning + "55",
+    borderRadius: theme.radius.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 10,
+  },
+  declarationText: {
+    flex: 1,
+    fontSize: 12,
+    color: theme.colors.text,
+    lineHeight: 18,
+  },
+  declarationBold: {
+    fontWeight: "700",
+    color: theme.colors.text,
+  },
+});
+

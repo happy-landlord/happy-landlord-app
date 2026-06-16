@@ -11,7 +11,11 @@ import { buildStickerPage, printHtml, type StickerEntry } from "@/lib/utils";
 export type CodeStickerCardProps = {
   /** Used as the sticker sheet label and accessible name — not shown on card */
   title: string;
-  /** The code string to display and encode in the QR. Null shows loading state. */
+  /**
+   * Value encoded in the QR and shown as the code label.
+   * Pass `keySet.qr_code` (deep-link URL) so a camera opens the app directly.
+   * Null shows loading state.
+   */
   code: string | null;
   /** Shows a loading spinner instead of the code/QR while true */
   loading?: boolean;

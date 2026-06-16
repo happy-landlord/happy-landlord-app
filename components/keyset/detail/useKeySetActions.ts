@@ -53,7 +53,7 @@ export type KeySetActions = {
   extend: (days: number, onClose: () => void) => void;
   adminReturn: (onClose: () => void) => void;
   reportLost: (onClose: () => void) => void;
-  undoLost: () => void;
+  undoLost: (notes: string | null, onClose: () => void) => void;
   reserve: (
     startsAt: string,
     endsAt: string,
@@ -224,10 +224,13 @@ export function useKeySetActions({
     [keySet, reportLostMut],
   );
 
-  const undoLost = useCallback(() => {
-    if (!keySet) return;
-    undoLostMut.mutate(keySet.id);
-  }, [keySet, undoLostMut]);
+  const undoLost = useCallback(
+    (notes: string | null, onClose: () => void) => {
+      if (!keySet) return;
+      undoLostMut.mutate({ keySetId: keySet.id, notes }, { onSuccess: onClose });
+    },
+    [keySet, undoLostMut],
+  );
 
   const reserve = useCallback(
     (

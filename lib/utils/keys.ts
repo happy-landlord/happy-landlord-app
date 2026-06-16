@@ -126,21 +126,20 @@ export function getKeySetTone(keySet: KeySetWithStatus): KeySetCardTone {
 }
 
 /**
- * Returns the per-keyset code derived from the property code.
- *  - Single keyset → the property code itself.
- *  - Multiple keysets → `${propertyCode}-${i+1}`.
- *  - Returns `null` when no property code has been generated yet.
+ * Returns the per-keyset code derived from the creation order.
+ * Format: `S{n}` where n is 1-based (S1, S2, S3, …).
  *
- * Lives here (rather than the wizard) because the same convention is
- * needed at submit time and could be reused elsewhere (e.g. re-printing
- * a QR for an existing keyset).
+ * Returns `null` when no property code has been generated yet (used by the
+ * wizard UI to show a loading state for QR buttons).
+ *
+ * The `propertyCode` and `total` params are kept for API compatibility but
+ * are no longer used in code construction — keyset codes are always S1, S2, etc.
  */
 export function buildKeySetCode(
   propertyCode: string | null,
   index: number,
-  total: number,
+  _total: number,
 ): string | null {
   if (!propertyCode) return null;
-  const upper = propertyCode.toUpperCase();
-  return total === 1 ? upper : `${upper}-${index + 1}`;
+  return `S${index + 1}`;
 }

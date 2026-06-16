@@ -289,7 +289,6 @@ export async function fetchKeySetsNeedingAttentionPaged({
   return (data ?? []) as unknown as KeySetNeedingAttention[];
 }
 
-
 // ── Mutation param types ──────────────────────────────────────────────────────
 
 export type CheckoutKeySetParams = {
@@ -407,12 +406,20 @@ export async function reportKeySetLost(
 }
 
 /**
- * Undoes a "report lost" action, restoring the key set to checked_out status.
+ * Undoes a "report lost / missing-damaged" action, restoring the keyset to
+ * its previous status. Accepts an optional notes string for the audit log.
  */
-export async function undoReportKeySetLost(keySetId: string): Promise<void> {
-  const { error } = await supabase.rpc("undo_report_key_set_missing", {
-    p_key_set_id: keySetId,
-  });
+export async function undoReportKeySetLost(
+  keySetId: string,
+  notes?: string | null,
+): Promise<void> {
+  const { error } = await (supabase.rpc as any)(
+    "undo_key_set_missing_damaged",
+    {
+      p_key_set_id: keySetId,
+      p_notes: notes || null,
+    },
+  );
 
   if (error) throw error;
 }

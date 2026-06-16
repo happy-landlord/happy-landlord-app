@@ -169,7 +169,7 @@ export function KeySetDetailsCard() {
             <View style={styles.sep} />
             <ShareQrButton
               variant="menuRow"
-              code={keySet.code}
+              code={keySet.qr_code!}
               title={keySet.name}
             />
           </View>

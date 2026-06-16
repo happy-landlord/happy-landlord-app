@@ -5,7 +5,7 @@ import {
   uploadKeySetImages,
   updateKeySetImages,
 } from "@/lib/services";
-import { buildKeySetCode, countAllocatedKeys, formatLongDate, getUnallocatedKeys } from "@/lib/utils";
+import { buildKeySetCode, countAllocatedKeys, formatLongDate, getUnallocatedKeys, keySetQrUrl } from "@/lib/utils";
 import type { DbKeyInsert, DbProperty, DbPropertyInsert } from "@/types";
 import { KEY_TYPE_LABEL } from "@/constants";
 import type {
@@ -60,6 +60,8 @@ export async function submitProperty({
     landlord_holder_id: landlordHolderId,
     status: "active",
     images: [],
+    developer_name: property.developerName.trim() || null,
+    cabinet_code: property.cabinetCode.trim() || null,
   });
 
   // 3. Create each keyset with its selected keys. A key can appear only once
@@ -77,6 +79,7 @@ export async function submitProperty({
       code,
       name: draft.name,
       status: "available",
+      qr_code: keySetQrUrl(code),
     });
 
     if (draft.photoUris.length > 0) {
