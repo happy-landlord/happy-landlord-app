@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
+import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Bell } from "lucide-react-native";
 
@@ -64,6 +64,9 @@ export default function NotificationsScreen() {
 
   return (
     <View style={styles.screen}>
+      <View style={styles.pageHeader}>
+        <Text style={styles.pageTitle}>Notifications</Text>
+      </View>
       <FlatList
         data={data ?? []}
         keyExtractor={(item) => item.id}
@@ -95,6 +98,17 @@ export default function NotificationsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.background },
+  pageHeader: {
+    paddingHorizontal: theme.spacing.screen,
+    paddingTop: theme.spacing.lg,
+    paddingBottom: theme.spacing.sm,
+  },
+  pageTitle: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: theme.colors.text,
+    letterSpacing: -0.3,
+  },
   list: {
     padding: theme.spacing.screen,
     paddingBottom: theme.spacing.xl,
