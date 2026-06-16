@@ -127,6 +127,13 @@ function UnassignedKeyChip({ keyItem }: { keyItem: UnassignedKey }) {
       <Text style={styles.unassignedLabel} numberOfLines={1}>
         {label}
       </Text>
+      {keyItem.code ? (
+        <View style={styles.codeBadge}>
+          <Text style={styles.codeBadgeText} numberOfLines={1}>
+            {keyItem.code}
+          </Text>
+        </View>
+      ) : null}
       {keyItem.quantity > 1 && (
         <View style={styles.qtyBadge}>
           <Text style={styles.qtyBadgeText}>×{keyItem.quantity}</Text>
@@ -182,6 +189,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: theme.colors.text,
+  },
+  codeBadge: {
+    borderRadius: theme.radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    backgroundColor: theme.colors.neutralSoft,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  codeBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: theme.colors.textMuted,
+    letterSpacing: 0.2,
   },
   qtyBadge: {
     borderRadius: theme.radius.pill,

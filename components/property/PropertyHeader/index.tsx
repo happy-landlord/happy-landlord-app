@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { useRole } from "@/hooks";
 import type { TenantHolder } from "@/lib/services";
 import {
+  CollectFromLandlordSheet,
   CollectFromTenantSheet,
   HandoverLandlordSheet,
   HandoverTenantSheet,
@@ -31,6 +32,7 @@ export function PropertyHeader({
   const [tenantSheetOpen, setTenantSheetOpen] = useState(false);
   const [collectSheetOpen, setCollectSheetOpen] = useState(false);
   const [landlordSheetOpen, setLandlordSheetOpen] = useState(false);
+  const [collectLandlordSheetOpen, setCollectLandlordSheetOpen] = useState(false);
 
   return (
     <>
@@ -44,6 +46,7 @@ export function PropertyHeader({
                 onHandoverTenant: () => setTenantSheetOpen(true),
                 onHandoverLandlord: () => setLandlordSheetOpen(true),
                 onCollect: () => setCollectSheetOpen(true),
+                onCollectFromLandlord: () => setCollectLandlordSheetOpen(true),
               }
             : undefined
         }
@@ -64,6 +67,11 @@ export function PropertyHeader({
           <HandoverLandlordSheet
             visible={landlordSheetOpen}
             onClose={() => setLandlordSheetOpen(false)}
+            propertyId={propertyId}
+          />
+          <CollectFromLandlordSheet
+            visible={collectLandlordSheetOpen}
+            onClose={() => setCollectLandlordSheetOpen(false)}
             propertyId={propertyId}
           />
         </>

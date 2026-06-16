@@ -6,6 +6,7 @@ import {
   Pencil,
   Users,
   ArrowDownToLine,
+  PackageOpen,
 } from "lucide-react-native";
 
 import { useRole } from "@/hooks";
@@ -22,6 +23,7 @@ export type PropertyHeaderCardActions = {
   onHandoverTenant: () => void;
   onHandoverLandlord: () => void;
   onCollect: () => void;
+  onCollectFromLandlord: () => void;
 };
 
 export type PropertyHeaderCardProps = {
@@ -85,6 +87,7 @@ export const PropertyHeaderCard = memo<PropertyHeaderCardProps>(
         : [];
 
     const isLeased = property.status === "leased";
+    const isInactive = property.status === "inactive";
 
     function pick(action: () => void) {
       setMenuOpen(false);
@@ -160,6 +163,12 @@ export const PropertyHeaderCard = memo<PropertyHeaderCardProps>(
                   icon={<ArrowDownToLine size={18} color={theme.colors.text} strokeWidth={1.8} />}
                   label="Collect from Tenant"
                   onPress={() => pick(actions.onCollect)}
+                />
+              ) : isInactive ? (
+                <MenuItem
+                  icon={<PackageOpen size={18} color={theme.colors.text} strokeWidth={1.8} />}
+                  label="Collect from Landlord"
+                  onPress={() => pick(actions.onCollectFromLandlord)}
                 />
               ) : (
                 <>

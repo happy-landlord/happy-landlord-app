@@ -5,6 +5,7 @@
  * `./add` has its own barrel and is kept separate so the wizard's
  * local draft types stay scoped to the add-property flow.
  */
+export { CollectFromLandlordSheet } from "./CollectFromLandlordSheet";
 export { CollectFromTenantSheet } from "./CollectFromTenantSheet";
 export { HandoverLandlordSheet } from "./HandoverLandlordSheet";
 export { HandoverTenantSheet } from "./HandoverTenantSheet";

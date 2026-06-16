@@ -1,11 +1,15 @@
 import { StyleSheet, Text, View } from "react-native";
-import { KeyRound } from "lucide-react-native";
+import { KeyRound, Package } from "lucide-react-native";
 
 import { ConfirmSheet, IconBadge } from "@/components/ui";
-import { theme, KEY_TYPE_ICON } from "@/constants";
-import { useCollectFromTenant, useKeySets } from "@/lib/hooks";
+import {
+  useCollectFromLandlord,
+  useKeySets,
+  useUnassignedKeys,
+} from "@/lib/hooks";
 import { getTotalKeyQuantity, getKeyName } from "@/lib/utils";
 import { summaryStyles } from "@/components/keyset/modals/KeySetSummaryRow";
+import { theme, KEY_TYPE_ICON } from "@/constants";
 
 type Props = {
   visible: boolean;
@@ -13,15 +17,25 @@ type Props = {
   propertyId: string;
 };
 
-export function CollectFromTenantSheet({
+export function CollectFromLandlordSheet({
   visible,
   onClose,
   propertyId,
 }: Props) {
   const { data: keySets = [] } = useKeySets(propertyId);
-  const collectMut = useCollectFromTenant(propertyId);
+  const { data: unassignedKeys = [] } = useUnassignedKeys(propertyId);
+  const collectMut = useCollectFromLandlord(propertyId);
 
-  const tenantKeySets = keySets.filter((ks) => ks.status === "handover_tenant");
+  const landlordKeySets = keySets.filter(
+    (ks) => ks.status === "handover_landlord",
+  );
+
+  const totalUnassigned = unassignedKeys.reduce(
+    (sum, k) => sum + (k.quantity ?? 1),
+    0,
+  );
+
+  const hasContent = landlordKeySets.length > 0 || totalUnassigned > 0;
 
   function handleConfirm() {
     collectMut.mutate(undefined, { onSuccess: onClose });
@@ -30,20 +44,23 @@ export function CollectFromTenantSheet({
   return (
     <ConfirmSheet
       visible={visible}
-      title="Collect from Tenant"
-      subtitle="Confirm you have received the following keysets back from the tenant. The property will be set back to active."
-      confirmLabel="Confirm"
+      title="Collect from Landlord"
+      subtitle="Confirm you have received all keysets and keys back from the landlord. The property will be set back to active."
+      confirmLabel={collectMut.isPending ? "Collecting…" : "Confirm collection"}
       confirmTone="primary"
       isPending={collectMut.isPending}
       onCancel={onClose}
       onConfirm={handleConfirm}
       scrollMaxHeight={420}
     >
-      {tenantKeySets.length === 0 ? (
-        <Text style={styles.emptyText}>No keysets currently with tenant.</Text>
+      {!hasContent ? (
+        <Text style={styles.emptyText}>
+          No keysets currently with landlord.
+        </Text>
       ) : (
-        <View style={styles.list}>
-          {tenantKeySets.map((ks) => {
+        <View style={styles.outerList}>
+          {/* ── Keyset cards with individual keys ─────────────────────── */}
+          {landlordKeySets.map((ks) => {
             const keyCount = getTotalKeyQuantity(ks);
             return (
               <View key={ks.id} style={summaryStyles.card}>
@@ -94,6 +111,59 @@ export function CollectFromTenantSheet({
               </View>
             );
           })}
+
+          {/* ── Unassigned keys section ────────────────────────────────── */}
+          {unassignedKeys.length > 0 && (
+            <View style={summaryStyles.card}>
+              {/* Section header */}
+              <View style={styles.ksHeader}>
+                <IconBadge icon={Package} tone="neutral" size="md" />
+                <View style={styles.ksHeaderInfo}>
+                  <Text style={styles.ksEyebrow}>Unassigned</Text>
+                  <Text style={styles.ksName} numberOfLines={1}>
+                    Loose keys — not in any keyset
+                  </Text>
+                </View>
+                <View style={styles.keyCountBadge}>
+                  <Text style={styles.keyCountText}>
+                    {totalUnassigned} {totalUnassigned === 1 ? "key" : "keys"}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={summaryStyles.dividerFull} />
+
+              {/* Individual unassigned key rows */}
+              <View style={styles.ksKeysPadded}>
+                {unassignedKeys.map((k) => {
+                  const Icon = KEY_TYPE_ICON[k.key_type] ?? KeyRound;
+                  const label = getKeyName(k);
+                  return (
+                    <View key={k.id} style={styles.keyRow}>
+                      <View style={styles.keyIconCircle}>
+                        <Icon
+                          size={12}
+                          color={theme.colors.textMuted}
+                          strokeWidth={1.8}
+                        />
+                      </View>
+                      <Text style={styles.keyLabel} numberOfLines={1}>
+                        {label}
+                      </Text>
+                      {k.code ? (
+                        <View style={styles.codeBadge}>
+                          <Text style={styles.codeText} numberOfLines={1}>
+                            {k.code}
+                          </Text>
+                        </View>
+                      ) : null}
+                      <Text style={styles.qtyText}>x{k.quantity ?? 1}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
         </View>
       )}
     </ConfirmSheet>
@@ -108,7 +178,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingVertical: theme.spacing.sm,
   },
-  list: { gap: theme.spacing.sm },
+  outerList: { gap: theme.spacing.sm },
 
   // ── Keyset card header ────────────────────────────────────────────────────
   ksHeader: {
@@ -152,6 +222,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     gap: 6,
   },
+
+  // ── Individual unassigned key row (mirrors SelectedKeysSummary full) ──────
   keyRow: {
     minHeight: 36,
     flexDirection: "row",
@@ -168,7 +240,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: theme.colors.accentSoft,
+    backgroundColor: theme.colors.neutralSoft,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,

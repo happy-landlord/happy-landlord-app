@@ -20,6 +20,7 @@ import {
   handoverKeysetsToTenant,
   handoverPropertyToLandlord,
   collectKeysetsFromTenant,
+  collectKeysetsFromLandlord,
   type CheckoutKeySetParams,
   type ReturnKeySetParams,
   type TransferKeySetParams,
@@ -222,6 +223,17 @@ export function useCollectFromTenant(propertyId: string) {
       invalidateKeySets(queryClient, propertyId);
       queryClient.invalidateQueries({ queryKey: ["properties"] });
       queryClient.invalidateQueries({ queryKey: ["propertyTenant", propertyId] });
+    },
+  });
+}
+
+export function useCollectFromLandlord(propertyId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => collectKeysetsFromLandlord(propertyId),
+    onSuccess: () => {
+      invalidateKeySets(queryClient, propertyId);
+      queryClient.invalidateQueries({ queryKey: ["properties"] });
     },
   });
 }

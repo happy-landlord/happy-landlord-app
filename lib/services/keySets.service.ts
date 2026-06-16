@@ -607,6 +607,36 @@ export async function collectKeysetsFromTenant(
 }
 
 /**
+ * Collects keysets back from the landlord: clears holder, sets keysets to
+ * "available", and sets the property back to "active".
+ */
+export async function collectKeysetsFromLandlord(
+  propertyId: string,
+): Promise<void> {
+  const { data: keySets, error: fetchErr } = await supabase
+    .from("key_sets")
+    .select("id")
+    .eq("property_id", propertyId)
+    .eq("status", "handover_landlord");
+  if (fetchErr) throw fetchErr;
+
+  if (keySets && keySets.length > 0) {
+    const ids = keySets.map((ks) => ks.id);
+    const { error: ksErr } = await supabase
+      .from("key_sets")
+      .update({ status: "available", current_holder_id: null })
+      .in("id", ids);
+    if (ksErr) throw ksErr;
+  }
+
+  const { error: propErr } = await supabase
+    .from("properties")
+    .update({ status: "active" })
+    .eq("id", propertyId);
+  if (propErr) throw propErr;
+}
+
+/**
  * Handover to landlord: marks all active keysets as `handover_landlord`
  * and sets the property status to `inactive`.
  */
