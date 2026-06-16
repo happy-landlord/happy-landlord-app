@@ -11,14 +11,27 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
+
     "eas:configure": "npx eas build:configure",
+
     "build:preview:android": "npx eas build --platform android --profile preview",
     "build:preview:ios": "npx eas build --platform ios --profile preview",
+
     "build:production": "npx eas build --platform all --profile production",
-    "submit:android": "npx eas submit --platform android --latest",
-    "submit:ios": "npx eas submit --platform ios --latest",
+    "build:production:ios": "npx eas build --platform ios --profile production",
+    "build:production:android": "npx eas build --platform android --profile production",
+
+    "submit:ios": "npx eas submit --platform ios --profile production --latest",
+    "submit:android": "npx eas submit --platform android --profile production --latest",
+
+    "release:ios": "npx eas build --platform ios --profile production --auto-submit",
+    "release:android": "npx eas build --platform android --profile production --auto-submit",
+    "release": "npx eas build --platform all --profile production --auto-submit",
+
     "publish:preview": "npx eas update --branch preview --message \"Preview update\"",
-    "publish:production": "npx eas update --branch production --message \"Production update\""
+    "publish:production": "npx eas update --branch production --message \"Production update\"",
+    "publish:production:ios": "npx eas update --branch production --platform ios --message \"Production update (iOS)\"",
+    "publish:production:android": "npx eas update --branch production --platform android --message \"Production update (Android)\""
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
