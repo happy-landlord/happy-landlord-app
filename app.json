@@ -2,7 +2,7 @@
   "expo": {
     "name": "HLApp",
     "slug": "happy-landlord-app",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
     "scheme": "hlapp",
@@ -27,6 +27,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "au.com.happylandlord.app",
+      "googleServicesFile": "./credentials/google-services.json",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.USE_BIOMETRIC",
