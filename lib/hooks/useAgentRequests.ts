@@ -7,7 +7,6 @@ import {
   fetchRegistrationRequests,
   fetchMyLatestRequest,
   rejectRequest,
-  resubmitRequest,
 } from "@/lib/services";
 
 /** Returns all registration requests for the admin view. */
@@ -51,11 +50,6 @@ type ApproveVars = {
   adminNote?: string | null;
 };
 type RejectVars = { requestId: string; adminNote?: string | null };
-type ResubmitVars = {
-  message?: string | null;
-  fullName?: string | null;
-  phone?: string | null;
-};
 
 /** Approve / reject mutations (admin). */
 export function useReviewRequest() {
@@ -63,6 +57,7 @@ export function useReviewRequest() {
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: QUERY_KEYS.requests.all });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.agents.all });
   };
 
   const approve = useMutation<void, Error, ApproveVars>({
@@ -80,17 +75,4 @@ export function useReviewRequest() {
   return { approve, reject };
 }
 
-/** Resubmit after rejection (agent). */
-export function useResubmitRequest() {
-  const queryClient = useQueryClient();
 
-  return useMutation<string, Error, ResubmitVars>({
-    mutationFn: ({ message, fullName, phone }) =>
-      resubmitRequest(message, fullName, phone),
-    onSuccess: () => {
-      // Profile status flipped to pending — refetch profile so layout redirects
-      queryClient.invalidateQueries({ queryKey: ["auth", "profile"] });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.requests.mine });
-    },
-  });
-}

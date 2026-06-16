@@ -10,13 +10,69 @@ export type AgentProfile = DbProfile & {
   key_holder_phone: string | null;
 };
 
+/**
+ * Returns the profile status for a given email, or null if no profile exists.
+ * Used on the login screen to distinguish "email not confirmed" from
+ * "account deactivated by admin" without requiring an authenticated session.
+ *
+ * Requires a public (anon-accessible) Supabase RPC:
+ * ```sql
+ * CREATE OR REPLACE FUNCTION get_account_status_by_email(p_email text)
+ * RETURNS text LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
+ *   SELECT status::text FROM profiles WHERE email = lower(trim(p_email)) LIMIT 1;
+ * $$;
+ * GRANT EXECUTE ON FUNCTION get_account_status_by_email(text) TO anon, authenticated;
+ * ```
+ */
+export async function fetchAccountStatusByEmail(
+  email: string,
+): Promise<string | null> {
+  const { data, error } = await supabase.rpc(
+    "get_account_status_by_email" as never,
+    { p_email: email.trim().toLowerCase() } as never,
+  );
+  if (error) return null;
+  return (data as string | null) ?? null;
+}
+
+/**
+ * Submits a reactivation request for a deactivated account without requiring
+ * an active session. Sets the profile status back to 'pending' and creates
+ * a new registration_request row for the admin to review.
+ *
+ * Requires a public RPC:
+ * ```sql
+ * CREATE OR REPLACE FUNCTION public.request_reactivation(p_email text)
+ * RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+ * DECLARE v_profile_id uuid;
+ * BEGIN
+ *   SELECT id INTO v_profile_id FROM public.profiles
+ *   WHERE email = lower(trim(p_email)) AND status = 'inactive' LIMIT 1;
+ *   IF v_profile_id IS NULL THEN
+ *     RAISE EXCEPTION 'No inactive account found for this email';
+ *   END IF;
+ *   INSERT INTO public.registration_requests (profile_id, status, message)
+ *   VALUES (v_profile_id, 'pending', 'Reactivation request');
+ *   UPDATE public.profiles SET status = 'pending' WHERE id = v_profile_id;
+ * END; $$;
+ * GRANT EXECUTE ON FUNCTION public.request_reactivation(text) TO anon, authenticated;
+ * ```
+ */
+export async function requestReactivationByEmail(email: string): Promise<void> {
+  const { error } = await supabase.rpc(
+    "request_reactivation" as never,
+    { p_email: email.trim().toLowerCase() } as never,
+  );
+  if (error) throw error;
+}
+
 /** Fetch all agent profiles (role = 'agent'), ordered by created_at descending. */
 export async function fetchAgents(): Promise<AgentProfile[]> {
   const { data, error } = await supabase
     .from("profiles")
     .select("*")
     .eq("role", "agent")
-    .neq("status", "inactive")
+    .eq("status", "approved")
     .order("created_at", { ascending: false });
 
   if (error) throw error;

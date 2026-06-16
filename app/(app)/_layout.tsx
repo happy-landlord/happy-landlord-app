@@ -1,12 +1,18 @@
 import { useEffect } from "react";
-import { Redirect, Stack, useRouter, useSegments } from "expo-router";
+import { Redirect, Stack, useSegments } from "expo-router";
 import * as Sentry from "@sentry/react-native";
 
 import { AppHeader } from "@/components/AppHeader";
 import { BiometricEnablePrompt } from "@/components/BiometricEnablePrompt";
 import { LockScreen } from "@/components/LockScreen";
 import { BrandedSplash } from "@/components/ui";
-import { useSession, useProfile, useNotificationsLifecycle, useBiometricEnrolmentPrompt } from "@/lib/hooks";
+import {
+  useSession,
+  useProfile,
+  useNotificationsLifecycle,
+  useBiometricEnrolmentPrompt,
+  useSignOut,
+} from "@/lib/hooks";
 import { FEATURES } from "@/constants";
 import { useLockStore } from "@/lib/state";
 import { isBiometricEnabled } from "@/lib/services";
@@ -15,7 +21,6 @@ export default function AppLayout() {
   const { isLoading: sessionLoading, isAuthenticated, session } = useSession();
   const { data: profile, isLoading: profileLoading } = useProfile();
   const userId = profile?.id;
-  const router = useRouter();
   const segments = useSegments();
 
   // ── Identify user in Sentry ─────────────────────────────────────────────
@@ -72,30 +77,24 @@ export default function AppLayout() {
   const isLoading =
     sessionLoading || (isAuthenticated && profileLoading) || isLockCheckPending;
 
+  // ── Status gate ─────────────────────────────────────────────────────────
+  // Admins always have access; everyone else is gated by profile.status.
+  const status = profile?.role === "admin" ? "approved" : profile?.status;
   const currentScreen = segments[segments.length - 1] as string | undefined;
-  const isOnStatusScreen =
-    currentScreen === "pending" || currentScreen === "rejected";
+  const onPending = currentScreen === "pending";
+  const isDenied = status === "rejected" || status === "inactive";
 
+  // Approved users deactivated/rejected mid-session: sign them out so they
+  // can't keep using a stale session (and so the auth layout doesn't bounce
+  // them straight back here, which would loop). Normal denied sign-ins never
+  // reach this layout — useLogin signs them out before a session is kept.
+  const signOut = useSignOut();
   useEffect(() => {
-    if (isLoading || !isAuthenticated || !profile) return;
-
-    const isAdmin = profile.role === "admin";
-    const needsStatusScreen =
-      !isAdmin &&
-      (profile.status === "pending" ||
-        profile.status === "rejected" ||
-        profile.status === "inactive");
-
-    if (isOnStatusScreen) {
-      if (!needsStatusScreen) router.replace("/(app)/(tabs)");
-      return;
+    if (!isLoading && isAuthenticated && isDenied && !signOut.isPending) {
+      signOut.mutate();
     }
-
-    if (needsStatusScreen) {
-      if (profile.status === "pending") router.replace("/(app)/pending");
-      else router.replace("/(app)/rejected");
-    }
-  }, [isLoading, isAuthenticated, profile, isOnStatusScreen, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, isAuthenticated, isDenied]);
 
   if (isLoading) {
     return <BrandedSplash message="Preparing your workspace…" />;
@@ -115,6 +114,18 @@ export default function AppLayout() {
     );
   }
 
+  // ── Status gate (declarative — no dashboard flash, no redirect races) ────
+  if (isDenied) {
+    // Signing out (effect above); hold on a splash until the session clears,
+    // then the !isAuthenticated branch redirects to login.
+    return <BrandedSplash message="Signing out…" />;
+  }
+  if (status === "pending") {
+    if (!onPending) return <Redirect href="/(app)/pending" />;
+  } else if (onPending) {
+    return <Redirect href="/(app)/(tabs)" />;
+  }
+
   return (
     <>
       <Stack screenOptions={{ header: () => <AppHeader /> }}>
@@ -126,7 +137,8 @@ export default function AppLayout() {
         <Stack.Screen name="properties/add" options={{ headerShown: false }} />
         <Stack.Screen name="properties/edit/[id]" />
         <Stack.Screen name="properties/[id]" />
-        <Stack.Screen name="properties/[id]/keysets/[keysetId]" />
+        <Stack.Screen name="properties/keyset/[id]" />
+        <Stack.Screen name="properties/keyset/edit/[id]" />
         <Stack.Screen name="checkouts/[id]" />
         <Stack.Screen name="agents" options={{ title: "Agents" }} />
         <Stack.Screen
@@ -136,7 +148,6 @@ export default function AppLayout() {
         <Stack.Screen name="settings" options={{ title: "Settings" }} />
         <Stack.Screen name="help" options={{ title: "Help" }} />
         <Stack.Screen name="pending" options={{ headerShown: false }} />
-        <Stack.Screen name="rejected" options={{ headerShown: false }} />
       </Stack>
 
       {/* First-login biometric enrolment prompt — only when feature is enabled */}

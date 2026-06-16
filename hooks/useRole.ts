@@ -1,4 +1,5 @@
-import { useCurrentUserId, useProfile } from "@/lib/hooks";
+import { useProfile } from "@/lib/hooks/useProfile";
+import { useCurrentUserId } from "@/lib/hooks/useSession";
 import { useDevOverridesStore } from "@/lib/state";
 import type { UserRole } from "@/types";
 

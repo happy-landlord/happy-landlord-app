@@ -1,15 +1,26 @@
 import { useEffect } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import type { Session } from "@supabase/supabase-js";
 
 import { QUERY_KEYS } from "@/lib/query";
 import { FEATURES } from "@/constants";
 import { useLockStore } from "@/lib/state";
 import { supabase } from "@/lib/supabase";
-import { deactivateCurrentDevicePushToken } from "@/lib/services";
+import { deactivateCurrentDevicePushToken, fetchProfile, requestReactivation } from "@/lib/services";
 import { logger } from "@/lib/utils/logger";
+import type { DbProfile } from "@/types";
 
 // ── Session query ────────────────────────────────────────────────────────────
+
+/**
+ * While a sign-in is being *verified* (status checked before we decide whether
+ * the user is allowed in), the transient Supabase session must NOT propagate to
+ * the query cache — otherwise the layouts would redirect a rejected/inactive
+ * user into the app for a frame before useLogin signs them back out. useLogin
+ * sets this flag around its sign-in + status check and writes the session
+ * itself only for allowed users.
+ */
+let authSyncPaused = false;
 
 const getSession = async (): Promise<Session | null> => {
   const { data, error } = await supabase.auth.getSession();
@@ -29,6 +40,7 @@ export function useSession() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (authSyncPaused) return;
       queryClient.setQueryData(QUERY_KEYS.auth.session, session);
     });
 
@@ -44,6 +56,121 @@ export function useSession() {
     isAuthenticated: Boolean(query.data),
     error: query.error,
   };
+}
+
+// ── Sign in ──────────────────────────────────────────────────────────────────
+
+export type LoginCredentials = { email: string; password: string };
+
+export type LoginResult = {
+  /** Resolved status after auth ("admin" substituted for approved admins). */
+  status: "approved" | "admin" | "pending" | "rejected" | "inactive";
+  /** Admin rejection note, present only for rejected accounts. */
+  adminNote?: string | null;
+};
+
+/**
+ * Writes the verified session + profile into the cache and arms the one-time
+ * biometric skip (the password already proved identity). Shared by useLogin
+ * and useRequestAccess so a granted sign-in renders without a refetch flash.
+ */
+function primeAuthCaches(
+  queryClient: QueryClient,
+  userId: string,
+  session: Session | null,
+  profile: DbProfile | null,
+) {
+  queryClient.setQueryData(QUERY_KEYS.auth.session, session);
+  queryClient.setQueryData(QUERY_KEYS.auth.profile(userId), profile);
+  if (FEATURES.BIOMETRIC_LOCK) {
+    useLockStore.getState().setSkipBiometricOnce(true);
+  }
+}
+
+/**
+ * Signs the user in and checks their status:
+ *  • approved / admin / pending → session kept, caches primed, caller navigates.
+ *  • rejected / inactive        → signed out immediately (no session left open);
+ *                                  returns status + any admin note so the login
+ *                                  screen can show the warning banner without a
+ *                                  session.
+ */
+export function useLogin() {
+  const queryClient = useQueryClient();
+
+  return useMutation<LoginResult, Error, LoginCredentials>({
+    meta: { silentError: true },
+    mutationFn: async ({ email, password }) => {
+      // Pause auth→cache sync so the transient session from signInWithPassword
+      // can't redirect a denied user into the app before we sign them out.
+      authSyncPaused = true;
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+        if (error) throw error;
+
+        const profile = await fetchProfile(data.user.id);
+        const status: LoginResult["status"] =
+          profile?.role === "admin" ? "admin" : (profile?.status as LoginResult["status"]) ?? "pending";
+
+        if (status === "rejected" || status === "inactive") {
+          // Fetch the admin note while we still have a valid session, then
+          // immediately sign out — no session is left open for denied users.
+          const { data: req } = await supabase
+            .from("registration_requests")
+            .select("admin_note")
+            .eq("profile_id", data.user.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          await supabase.auth.signOut();
+          queryClient.clear();
+          return { status, adminNote: req?.admin_note };
+        }
+
+        // Approved / admin / pending — keep session and prime caches.
+        primeAuthCaches(queryClient, data.user.id, data.session, profile);
+        return { status };
+      } finally {
+        authSyncPaused = false;
+      }
+    },
+  });
+}
+
+/**
+ * Request access for a rejected/inactive account (which has no live session):
+ * signs in with the supplied credentials, submits a fresh registration request
+ * (flips the profile status → pending), primes the caches, and leaves the user
+ * signed in so the layout routes them to the pending page.
+ */
+export function useRequestAccess() {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, LoginCredentials>({
+    meta: { silentError: true },
+    mutationFn: async ({ email, password }) => {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (error) throw error;
+
+      try {
+        await requestReactivation(null);
+      } catch (err) {
+        // Don't leave a session open if the request couldn't be submitted.
+        await supabase.auth.signOut();
+        throw err;
+      }
+
+      const profile = await fetchProfile(data.user.id);
+      primeAuthCaches(queryClient, data.user.id, data.session, profile);
+    },
+  });
 }
 
 // ── Convenience helpers ──────────────────────────────────────────────────────
@@ -108,15 +235,14 @@ export function useSignOut() {
  * Permanently deletes the authenticated user's account by calling the
  * `delete_account` SECURITY DEFINER RPC, which:
  *   1. Blocks deletion if the user has active checkouts (throws active_checkouts|...)
- *   2. Cancels active reservations
- *   3. Deletes push tokens
- *   4. Deletes notifications
- *   5. Anonymises key_holder records (preserves history)
- *   6. Deletes profile + auth user
+ *   2. Cancels active reservations held by this user
+ *   3. Anonymises key_holder rows (clears PII, preserves UUID + history)
+ *   4. Deletes the auth.users row — profiles + push tokens + notifications
+ *      cascade automatically via ON DELETE CASCADE
  *
- * Push-token deactivation is intentionally NOT done on the FE — the RPC
- * handles it after the checkout guard passes, so tokens stay active if the
- * RPC rejects (e.g. unreturned keys).
+ * Push-token deactivation is intentionally NOT done on the FE — cascades
+ * handle cleanup after the checkout guard passes, so tokens stay active if
+ * the RPC rejects (e.g. unreturned keys).
  */
 export function useDeleteAccount() {
   const queryClient = useQueryClient();

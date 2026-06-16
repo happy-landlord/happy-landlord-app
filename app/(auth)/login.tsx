@@ -6,12 +6,12 @@ import { useRouter } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Eye, EyeOff, MailCheck } from "lucide-react-native";
+import { Eye, EyeOff, MailCheck, PauseCircle, XCircle } from "lucide-react-native";
 
-import { Button, Input, Logo } from "@/components/ui";
-import { theme, FEATURES } from "@/constants";
+import { Button, Input, Logo, PillButton } from "@/components/ui";
+import { theme } from "@/constants";
 import { supabase } from "@/lib/supabase";
-import { useLockStore } from "@/lib/state";
+import { useLogin, useRequestAccess } from "@/lib/hooks";
 
 // ── Validation schema ─────────────────────────────────────────────────────────
 
@@ -29,7 +29,6 @@ export default function LoginScreen() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [resendSent, setResendSent] = useState(false);
-  const { setSkipBiometricOnce } = useLockStore();
 
   const {
     control,
@@ -45,25 +44,30 @@ export default function LoginScreen() {
     defaultValues: { email: "", password: "" },
   });
 
-  const loginMutation = useMutation({
-    meta: { silentError: true },
-    mutationFn: async ({ email, password }: LoginForm) => {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      if (FEATURES.BIOMETRIC_LOCK) setSkipBiometricOnce(true);
-      setResendSent(false);
-      // Navigate explicitly rather than relying on the (auth) layout's
-      // <Redirect/> reacting to onAuthStateChange — on iOS Expo Go the
-      // auth-state listener can fire *after* this callback, leaving the
-      // user stuck on the login screen even though the session is saved.
-      router.replace("/(app)/(tabs)" as never);
-    },
-  });
+  // Session is only established for approved/admin/pending users.
+  // Rejected/inactive are signed out inside useLogin; their status is returned
+  // as mutation data so the banners below render without a session.
+  const loginMutation = useLogin();
+  const deniedStatus = loginMutation.data?.status;
+  const adminNote = loginMutation.data?.adminNote;
+  const isInactive = deniedStatus === "inactive";
+  const isRejected = deniedStatus === "rejected";
+
+  // Reactivation / resubmit (denied accounts): signs in, submits a new request
+  // → status flips to pending, then navigates to the pending page.
+  const requestAccess = useRequestAccess();
+  const onRequestAccess = () =>
+    requestAccess.mutate(getValues(), {
+      onSuccess: () => router.replace("/(app)/(tabs)" as never),
+    });
+
+  // Clears the denied banner + transient request/resend state. Called when the
+  // user edits a field so a previous attempt never bleeds into the next one.
+  const resetAttempt = () => {
+    loginMutation.reset();
+    requestAccess.reset();
+    setResendSent(false);
+  };
 
   const resendMutation = useMutation({
     meta: { silentError: true },
@@ -77,11 +81,23 @@ export default function LoginScreen() {
     onSuccess: () => setResendSent(true),
   });
 
+  // Only genuinely unverified sign-ups (never confirmed their email) hit this
+  // path — every other account state is handled after sign-in by the gate.
   const isEmailNotConfirmed =
     loginMutation.error instanceof Error &&
     loginMutation.error.message.toLowerCase().includes("email not confirmed");
 
-  const onSubmit = handleSubmit((data) => loginMutation.mutate(data));
+  const onSubmit = handleSubmit((data) =>
+    loginMutation.mutate(data, {
+      onSuccess: (result) => {
+        // Rejected/inactive stay on this screen — their banner is now visible.
+        // Everyone else navigates; the layout gate handles pending vs dashboard.
+        if (result?.status !== "rejected" && result?.status !== "inactive") {
+          router.replace("/(app)/(tabs)" as never);
+        }
+      },
+    }),
+  );
 
   return (
     <View style={styles.screen}>
@@ -121,7 +137,10 @@ export default function LoginScreen() {
                   keyboardType="email-address"
                   placeholder="you@example.com"
                   value={value}
-                  onChangeText={onChange}
+                  onChangeText={(t) => {
+                    onChange(t);
+                    resetAttempt();
+                  }}
                   onChange={(e) => onChange(e.nativeEvent.text)}
                   onEndEditing={(e) => onChange(e.nativeEvent.text)}
                   onBlur={onBlur}
@@ -143,7 +162,10 @@ export default function LoginScreen() {
                   placeholder="Enter your password"
                   secureTextEntry={!showPassword}
                   value={value}
-                  onChangeText={onChange}
+                  onChangeText={(t) => {
+                    onChange(t);
+                    resetAttempt();
+                  }}
                   onChange={(e) => onChange(e.nativeEvent.text)}
                   onEndEditing={(e) => onChange(e.nativeEvent.text)}
                   onBlur={onBlur}
@@ -176,7 +198,94 @@ export default function LoginScreen() {
               )}
             />
 
-            {isEmailNotConfirmed ? (
+            {isInactive ? (
+              <View style={styles.inactiveBanner}>
+                <PauseCircle
+                  size={20}
+                  color={theme.colors.warning}
+                  strokeWidth={2}
+                />
+
+                <View style={styles.verifyTextWrap}>
+                  <Text style={styles.inactiveBannerTitle}>
+                    Account deactivated
+                  </Text>
+
+                  <Text style={styles.verifyBody}>
+                    Your account has been deactivated by an administrator.
+                    Submit a reactivation request and an admin will review it
+                    shortly.
+                  </Text>
+
+                  {requestAccess.isSuccess ? (
+                    <Text style={styles.resubmitSent}>
+                      Reactivation request sent ✓
+                    </Text>
+                  ) : (
+                    <PillButton
+                      label={
+                        requestAccess.isPending
+                          ? "Submitting..."
+                          : "Submit reactivation request"
+                      }
+                      variant="accent"
+                      loading={requestAccess.isPending}
+                      disabled={requestAccess.isPending}
+                      onPress={onRequestAccess}
+                      style={{ alignSelf: "flex-start", marginTop: 2 }}
+                    />
+                  )}
+
+                  {requestAccess.error && (
+                    <Text style={styles.resubmitError}>
+                      {requestAccess.error.message}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            ) : isRejected ? (
+              <View style={styles.rejectedBanner}>
+                <XCircle size={20} color={theme.colors.danger} strokeWidth={2} />
+
+                <View style={styles.verifyTextWrap}>
+                  <Text style={styles.rejectedBannerTitle}>
+                    Request not approved
+                  </Text>
+
+                  {adminNote ? (
+                    <Text style={styles.verifyBody}>{adminNote}</Text>
+                  ) : (
+                    <Text style={styles.verifyBody}>
+                      Your registration request was not approved. You can request
+                      access again below.
+                    </Text>
+                  )}
+
+                  {requestAccess.isSuccess ? (
+                    <Text style={styles.resubmitSent}>Request submitted ✓</Text>
+                  ) : (
+                    <PillButton
+                      label={
+                        requestAccess.isPending
+                          ? "Submitting..."
+                          : "Request access again"
+                      }
+                      variant="accent"
+                      loading={requestAccess.isPending}
+                      disabled={requestAccess.isPending}
+                      onPress={onRequestAccess}
+                      style={{ alignSelf: "flex-start", marginTop: 2 }}
+                    />
+                  )}
+
+                  {requestAccess.error && (
+                    <Text style={styles.resubmitError}>
+                      {requestAccess.error.message}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            ) : isEmailNotConfirmed ? (
               <View style={styles.verifyBanner}>
                 <MailCheck
                   size={20}
@@ -194,19 +303,18 @@ export default function LoginScreen() {
                       Verification email sent ✓
                     </Text>
                   ) : (
-                    <Pressable
-                      onPress={() => resendMutation.mutate()}
-                      disabled={resendMutation.isPending}
-                      style={({ pressed }) =>
-                        pressed ? { opacity: 0.6 } : null
-                      }
-                    >
-                      <Text style={styles.resendLink}>
-                        {resendMutation.isPending
+                    <PillButton
+                      label={
+                        resendMutation.isPending
                           ? "Sending…"
-                          : "Resend verification email"}
-                      </Text>
-                    </Pressable>
+                          : "Resend verification email"
+                      }
+                      variant="accent"
+                      loading={resendMutation.isPending}
+                      disabled={resendMutation.isPending}
+                      onPress={() => resendMutation.mutate()}
+                      style={{ alignSelf: "flex-start", marginTop: 2 }}
+                    />
                   )}
                 </View>
               </View>
@@ -319,12 +427,7 @@ const styles = StyleSheet.create({
     shadowRadius: 28,
     elevation: 6,
   },
-  fields: {
-    gap: 6,
-  },
-  formHeader: { gap: theme.spacing.xs, marginBottom: theme.spacing.xs },
-  formTitle: { color: theme.colors.text, fontSize: 20, fontWeight: "700" },
-  formSubtitle: { color: theme.colors.textMuted, fontSize: 13 },
+  fields: { gap: 6 },
   errorText: {
     color: theme.colors.danger,
     fontSize: 12,
@@ -364,25 +467,58 @@ const styles = StyleSheet.create({
   verifyBanner: {
     flexDirection: "row",
     gap: theme.spacing.sm,
-    backgroundColor: theme.colors.infoSoft,
     borderRadius: theme.radius.md,
     borderWidth: 1,
-    borderColor: theme.colors.info + "40",
     padding: theme.spacing.md,
+    backgroundColor: theme.colors.infoSoft,
+    borderColor: theme.colors.info + "40",
   },
   verifyTextWrap: { flex: 1, gap: theme.spacing.xs },
   verifyTitle: { fontSize: 14, fontWeight: "700", color: theme.colors.info },
   verifyBody: { fontSize: 13, color: theme.colors.text, lineHeight: 18 },
-  resendLink: {
-    fontSize: 13,
-    color: theme.colors.primary,
-    fontWeight: "600",
-    marginTop: 2,
-  },
   resendSent: {
     fontSize: 13,
     color: theme.colors.success,
     fontWeight: "600",
+    marginTop: 2,
+  },
+  inactiveBanner: {
+    flexDirection: "row",
+    gap: theme.spacing.sm,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    padding: theme.spacing.md,
+    backgroundColor: theme.colors.warningSoft,
+    borderColor: theme.colors.warning + "40",
+  },
+  inactiveBannerTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: theme.colors.warning,
+  },
+  rejectedBanner: {
+    flexDirection: "row",
+    gap: theme.spacing.sm,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    padding: theme.spacing.md,
+    backgroundColor: theme.colors.dangerSoft,
+    borderColor: theme.colors.danger + "40",
+  },
+  rejectedBannerTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: theme.colors.danger,
+  },
+  resubmitSent: {
+    fontSize: 13,
+    color: theme.colors.success,
+    fontWeight: "600",
+    marginTop: 2,
+  },
+  resubmitError: {
+    fontSize: 12,
+    color: theme.colors.danger,
     marginTop: 2,
   },
 });

@@ -3,12 +3,10 @@ import { useRouter } from "expo-router";
 
 import { useRole } from "@/hooks";
 import type { TenantHolder } from "@/lib/services";
-import {
-  CollectFromLandlordSheet,
-  CollectFromTenantSheet,
-  HandoverLandlordSheet,
-  HandoverTenantSheet,
-} from "@/components/property";
+import { CollectFromLandlordSheet } from "@/components/property/CollectFromLandlordSheet";
+import { CollectFromTenantSheet } from "@/components/property/CollectFromTenantSheet";
+import { HandoverLandlordSheet } from "@/components/property/HandoverLandlordSheet";
+import { HandoverTenantSheet } from "@/components/property/HandoverTenantSheet";
 
 import { PropertyHeaderCard } from "./PropertyHeaderCard";
 
@@ -32,7 +30,8 @@ export function PropertyHeader({
   const [tenantSheetOpen, setTenantSheetOpen] = useState(false);
   const [collectSheetOpen, setCollectSheetOpen] = useState(false);
   const [landlordSheetOpen, setLandlordSheetOpen] = useState(false);
-  const [collectLandlordSheetOpen, setCollectLandlordSheetOpen] = useState(false);
+  const [collectLandlordSheetOpen, setCollectLandlordSheetOpen] =
+    useState(false);
 
   return (
     <>

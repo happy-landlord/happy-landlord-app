@@ -664,7 +664,7 @@ export type Database = {
         };
         Returns: void;
       };
-      resubmit_registration_request: {
+      submit_registration_request: {
         Args: {
           p_full_name?: string | null;
           p_phone?: string | null;

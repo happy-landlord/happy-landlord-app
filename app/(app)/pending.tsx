@@ -3,11 +3,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { theme } from "@/constants";
 import { Logo } from "@/components/ui";
-import { useSignOut } from "@/lib/hooks";
+import { useMyLatestRequest, useSignOut } from "@/lib/hooks";
 
 export default function PendingApprovalScreen() {
   const insets = useSafeAreaInsets();
   const signOut = useSignOut();
+  const { data: latestRequest } = useMyLatestRequest();
+
+  // Reactivation requests don't supply a full_name (passed as null by the
+  // requestReactivation service), so they came from an inactive account.
+  const isReactivation = latestRequest != null && !latestRequest.full_name;
 
   return (
     <View
@@ -30,7 +35,7 @@ export default function PendingApprovalScreen() {
       </Text>
 
       <View style={styles.stepsCard}>
-        <Step number={1} label="Account created" done />
+        <Step number={1} label={isReactivation ? "Account reactivated" : "Account created"} done />
         <View style={styles.stepDivider} />
         <Step number={2} label="Admin review in progress" active />
         <View style={styles.stepDivider} />

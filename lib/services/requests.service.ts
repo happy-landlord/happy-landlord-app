@@ -66,18 +66,21 @@ export async function rejectRequest(
   if (error) throw error;
 }
 
-/** Resubmit after rejection — creates a new pending request via DB function. */
-export async function resubmitRequest(
+/**
+ * Submit a registration request for any non-approved account (rejected or
+ * inactive). Uses submit_registration_request which updates the profile to
+ * 'pending' and inserts a new pending request for admin review.
+ */
+export async function requestReactivation(
   message?: string | null,
-  fullName?: string | null,
-  phone?: string | null,
 ): Promise<string> {
-  const { data, error } = await supabase.rpc("resubmit_registration_request", {
-    p_full_name: fullName ?? null,
-    p_phone: phone ?? null,
+  const { data, error } = await supabase.rpc("submit_registration_request", {
+    p_full_name: null,
+    p_phone: null,
     p_message: message ?? null,
   } as never);
 
   if (error) throw error;
   return data as string;
 }
+
