@@ -98,7 +98,7 @@ export default function LoginScreen() {
           <View style={styles.logoWrap}>
             <Logo size={86} />
           </View>
-          <Text style={styles.eyebrow}>HAPPY LANDLORD</Text>
+          <Text style={styles.eyebrow}>HAPPY Landlord</Text>
           <Text style={styles.title}>Key Manager</Text>
           <Text style={styles.subtitle}>
             Sign in to manage properties, keysets, and handovers from one secure
@@ -233,7 +233,7 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.signUpRow}>
-            <Text style={styles.signUpPrompt}>New to Happy Landlord?</Text>
+            <Text style={styles.signUpPrompt}>New to HAPPY Landlord?</Text>
             <Pressable
               onPress={() => router.push("/(auth)/signup")}
               style={({ pressed }) => (pressed ? { opacity: 0.6 } : null)}

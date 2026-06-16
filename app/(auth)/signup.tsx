@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Linking,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -145,7 +152,7 @@ export default function SignUpScreen() {
           <View style={styles.logoWrap}>
             <Logo size={72} />
           </View>
-          <Text style={styles.eyebrow}>HAPPY LANDLORD</Text>
+          <Text style={styles.eyebrow}>HAPPY Landlord</Text>
         </View>
 
         <View style={styles.card}>
