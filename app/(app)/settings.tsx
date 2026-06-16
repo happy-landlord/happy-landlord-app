@@ -20,6 +20,7 @@ import {
   ExternalLink,
   Fingerprint,
   KeyRound,
+  Trash2,
   Wrench,
 } from "lucide-react-native";
 import * as Sentry from "@sentry/react-native";
@@ -35,7 +36,7 @@ import {
 } from "@/lib/hooks";
 import { getBiometricLabel } from "@/lib/services";
 import { useDevOverridesStore } from "@/lib/state";
-import { ChangePasswordSheet } from "@/components/settings";
+import { ChangePasswordSheet, DeleteAccountSheet } from "@/components/settings";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -119,6 +120,9 @@ export default function SettingsScreen() {
 
   // ── Change password ───────────────────────────────────────────────────
   const [changePasswordVisible, setChangePasswordVisible] = useState(false);
+
+  // ── Delete account ────────────────────────────────────────────────────
+  const [deleteAccountVisible, setDeleteAccountVisible] = useState(false);
 
   // ── Shared ────────────────────────────────────────────────────────────
   const permissionDenied = pushStatus?.permissionStatus === "denied";
@@ -332,6 +336,27 @@ export default function SettingsScreen() {
           />
         </SectionCard>
 
+        {/* ── Account section ───────────────────────────────────────────── */}
+        <SectionHeader title="Account" />
+
+        <SectionCard>
+          <SettingRow
+            Icon={Trash2}
+            iconBg={theme.colors.dangerSoft}
+            iconColor={theme.colors.danger}
+            title="Delete account"
+            subtitle="Permanently remove your account and all data"
+            onPress={() => setDeleteAccountVisible(true)}
+            right={
+              <ChevronRight
+                size={16}
+                color={theme.colors.textLight}
+                strokeWidth={2}
+              />
+            }
+          />
+        </SectionCard>
+
         {/* ── Developer section (dev builds only) ───────────────────────── */}
         {FEATURES.DEVELOPER_SECTION && <DeveloperSection />}
       </ScrollView>
@@ -339,6 +364,11 @@ export default function SettingsScreen() {
       <ChangePasswordSheet
         visible={changePasswordVisible}
         onClose={() => setChangePasswordVisible(false)}
+      />
+
+      <DeleteAccountSheet
+        visible={deleteAccountVisible}
+        onClose={() => setDeleteAccountVisible(false)}
       />
     </>
   );

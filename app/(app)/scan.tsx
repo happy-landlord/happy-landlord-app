@@ -154,7 +154,7 @@ export default function ScanScreen() {
           Allow camera access so you can scan Happy Landlord QR codes.
         </Text>
         <Pressable style={styles.btn} onPress={requestPermission}>
-          <Text style={styles.btnLabel}>Grant access</Text>
+          <Text style={styles.btnLabel}>Continue</Text>
         </Pressable>
       </View>
     );
