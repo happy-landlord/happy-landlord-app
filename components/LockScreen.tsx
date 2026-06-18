@@ -9,30 +9,34 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Eye, EyeOff, Fingerprint, ShieldCheck } from "lucide-react-native";
+import { Fingerprint, ShieldCheck } from "lucide-react-native";
 
 import { Input, Logo } from "@/components/ui";
 import { theme } from "@/constants";
-import { supabase } from "@/lib/supabase";
 import { useLockStore } from "@/lib/state";
 import {
   authenticateWithBiometrics,
   getBiometricCapability,
   getBiometricLabel,
+  sendPhoneOtp,
+  verifyPhoneOtp,
   type BiometricCapability,
 } from "@/lib/services";
-import { logger } from "@/lib/utils";
+import { formatAustralianPhoneForDisplay, logger } from "@/lib/utils";
 
-type LockMode = "biometric" | "password";
+type LockMode = "biometric" | "otp";
+
+const OTP_LENGTH = 6;
+const RESEND_COOLDOWN_SECONDS = 60;
 
 type LockScreenProps = {
   /** First name shown in the greeting. */
   userName: string | null | undefined;
-  /** Pre-filled email for password re-authentication. */
-  userEmail: string | null | undefined;
+  /** E.164 phone used for the OTP re-verification fallback. */
+  userPhone: string | null | undefined;
 };
 
-export function LockScreen({ userName, userEmail }: LockScreenProps) {
+export function LockScreen({ userName, userPhone }: LockScreenProps) {
   const insets = useSafeAreaInsets();
   const { setLocked } = useLockStore();
 
@@ -42,11 +46,13 @@ export function LockScreen({ userName, userEmail }: LockScreenProps) {
   const [mode, setMode] = useState<LockMode>("biometric");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
-  // Password mode state
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [passwordError, setPasswordError] = useState("");
+  // OTP fallback state
+  const [codeSent, setCodeSent] = useState(false);
+  const [code, setCode] = useState("");
+  const [otpError, setOtpError] = useState("");
+  const [isSending, setIsSending] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [resendCountdown, setResendCountdown] = useState(0);
 
   const didAutoPromptRef = useRef(false);
 
@@ -54,6 +60,15 @@ export function LockScreen({ userName, userEmail }: LockScreenProps) {
   useEffect(() => {
     getBiometricCapability().then(setCapability);
   }, []);
+
+  // Resend cooldown ticker
+  useEffect(() => {
+    if (resendCountdown <= 0) return;
+    const id = setInterval(() => {
+      setResendCountdown((s) => (s <= 1 ? 0 : s - 1));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [resendCountdown]);
 
   // Auto-trigger the biometric prompt only AFTER capability has loaded and
   // confirmed biometrics are available on this device/build.
@@ -63,13 +78,13 @@ export function LockScreen({ userName, userEmail }: LockScreenProps) {
   // because the NSFaceIDUsageDescription permission is not present in the
   // Expo Go host app.  When running in Expo Go the capability check will
   // return isAvailable=false and the screen will gracefully fall back to the
-  // password form.
+  // OTP form.
   useEffect(() => {
     if (!capability || didAutoPromptRef.current) return;
 
     if (!capability.isAvailable) {
-      // No biometrics on this device/build — skip straight to password.
-      setMode("password");
+      // No biometrics on this device/build — skip straight to OTP fallback.
+      setMode("otp");
       return;
     }
 
@@ -89,12 +104,15 @@ export function LockScreen({ userName, userEmail }: LockScreenProps) {
     ? getBiometricLabel(capability.type)
     : "Biometrics";
   const firstName = userName?.split(" ")[0] ?? null;
+  const maskedPhone = userPhone
+    ? formatAustralianPhoneForDisplay(userPhone)
+    : null;
 
   async function triggerBiometric() {
     // Guard: don't attempt auth if we know biometrics aren't available
     // (e.g. running in Expo Go where NSFaceIDUsageDescription is absent).
     if (!capability?.isAvailable) {
-      setMode("password");
+      setMode("otp");
       return;
     }
 
@@ -107,7 +125,7 @@ export function LockScreen({ userName, userEmail }: LockScreenProps) {
         return;
       }
 
-      // Determine whether to fall back to password mode.
+      // Determine whether to fall back to the OTP form.
       // Cast to string to safely cover runtime values the TS types may omit
       // (e.g. "user_cancel" on older SDK builds, iOS-specific error strings).
       const err = result.error as string;
@@ -123,7 +141,7 @@ export function LockScreen({ userName, userEmail }: LockScreenProps) {
         err === "biometry_lockout_permanent"; // iOS: permanently locked
 
       if (shouldFallback) {
-        setMode("password");
+        setMode("otp");
       }
       // authentication_failed / system_cancel / timeout → stay on biometric screen
     } catch (err) {
@@ -133,31 +151,44 @@ export function LockScreen({ userName, userEmail }: LockScreenProps) {
         "[LockScreen] biometric auth error",
         err instanceof Error ? err : new Error(String(err)),
       );
-      setMode("password");
+      setMode("otp");
     } finally {
       setIsAuthenticating(false);
     }
   }
 
-  async function handlePasswordUnlock() {
-    if (!userEmail || !password.trim() || isVerifying) return;
+  async function handleSendCode() {
+    if (!userPhone || isSending || resendCountdown > 0) return;
+
+    setIsSending(true);
+    setOtpError("");
+    try {
+      await sendPhoneOtp(userPhone);
+      setCodeSent(true);
+      setCode("");
+      setResendCountdown(RESEND_COOLDOWN_SECONDS);
+    } catch (err) {
+      logger.error(
+        "[LockScreen] failed to send OTP",
+        err instanceof Error ? err : new Error(String(err)),
+      );
+      setOtpError("Couldn't send the code. Please try again.");
+    } finally {
+      setIsSending(false);
+    }
+  }
+
+  async function handleVerifyCode() {
+    if (!userPhone || code.length < OTP_LENGTH || isVerifying) return;
 
     setIsVerifying(true);
-    setPasswordError("");
-
+    setOtpError("");
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: userEmail,
-        password: password.trim(),
-      });
-
-      if (error) {
-        setPasswordError(error.message);
-      } else {
-        setLocked(false);
-      }
+      await verifyPhoneOtp(userPhone, code);
+      // Re-verification succeeded — the Supabase session is refreshed.
+      setLocked(false);
     } catch {
-      setPasswordError("An unexpected error occurred. Please try again.");
+      setOtpError("That code is incorrect or has expired. Please try again.");
     } finally {
       setIsVerifying(false);
     }
@@ -165,8 +196,8 @@ export function LockScreen({ userName, userEmail }: LockScreenProps) {
 
   function backToBiometric() {
     setMode("biometric");
-    setPassword("");
-    setPasswordError("");
+    setCode("");
+    setOtpError("");
   }
 
   return (
@@ -227,91 +258,134 @@ export function LockScreen({ userName, userEmail }: LockScreenProps) {
             </Text>
 
             <Pressable
-              onPress={() => setMode("password")}
+              onPress={() => setMode("otp")}
               style={({ pressed }) => [
                 styles.altLink,
                 pressed && { opacity: 0.6 },
               ]}
             >
-              <Text style={styles.altLinkText}>Use password instead</Text>
+              <Text style={styles.altLinkText}>Use a verification code</Text>
             </Pressable>
           </>
         ) : (
-          /* ── Password mode ─────────────────────────────────────────── */
+          /* ── OTP fallback mode ─────────────────────────────────────── */
           <View style={styles.passwordForm}>
-            <Text style={styles.hint}>Enter your password to unlock.</Text>
+            {!userPhone ? (
+              <Text style={styles.hint}>
+                No phone number is linked to this account. Please sign out and
+                sign in again to unlock.
+              </Text>
+            ) : !codeSent ? (
+              <>
+                <Text style={styles.hint}>
+                  We&apos;ll text a verification code to your registered mobile
+                  number to unlock the app.
+                </Text>
 
-            {userEmail ? (
-              <Text style={styles.emailLabel}>{userEmail}</Text>
-            ) : null}
+                {maskedPhone ? (
+                  <Text style={styles.emailLabel}>{maskedPhone}</Text>
+                ) : null}
 
-            <Input
-              autoCapitalize="none"
-              autoComplete="current-password"
-              autoFocus
-              label="Password"
-              onChangeText={(v) => {
-                setPassword(v);
-                setPasswordError("");
-              }}
-              onSubmitEditing={handlePasswordUnlock}
-              placeholder="Enter your password"
-              secureTextEntry={!showPassword}
-              value={password}
-              error={passwordError || undefined}
-              rightIcon={
+                {otpError ? (
+                  <Text style={styles.otpError}>{otpError}</Text>
+                ) : null}
+
                 <Pressable
-                  onPress={() => setShowPassword((v) => !v)}
-                  hitSlop={8}
+                  onPress={handleSendCode}
+                  disabled={isSending}
+                  style={({ pressed }) => [
+                    styles.unlockBtn,
+                    isSending && styles.unlockBtnDisabled,
+                    pressed && !isSending && styles.unlockBtnPressed,
+                  ]}
                   accessibilityRole="button"
-                  accessibilityLabel={
-                    showPassword ? "Hide password" : "Show password"
-                  }
+                  accessibilityLabel="Send verification code"
                 >
-                  {showPassword ? (
-                    <EyeOff
-                      size={18}
-                      color={theme.colors.textLight}
-                      strokeWidth={2}
+                  {isSending ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={theme.colors.accent}
                     />
                   ) : (
-                    <Eye
-                      size={18}
-                      color={theme.colors.textLight}
-                      strokeWidth={2}
-                    />
+                    <>
+                      <ShieldCheck
+                        size={17}
+                        color={theme.colors.accent}
+                        strokeWidth={2}
+                      />
+                      <Text style={styles.unlockBtnText}>Send code</Text>
+                    </>
                   )}
                 </Pressable>
-              }
-            />
+              </>
+            ) : (
+              <>
+                <Text style={styles.hint}>
+                  Enter the 6-digit code we sent
+                  {maskedPhone ? ` to ${maskedPhone}` : ""}.
+                </Text>
 
-            <Pressable
-              onPress={handlePasswordUnlock}
-              disabled={!password.trim() || isVerifying}
-              style={({ pressed }) => [
-                styles.unlockBtn,
-                (!password.trim() || isVerifying) && styles.unlockBtnDisabled,
-                pressed && !isVerifying && styles.unlockBtnPressed,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="Unlock app"
-            >
-              {isVerifying ? (
-                <ActivityIndicator
-                  size="small"
-                  color={theme.colors.accent}
+                <Input
+                  autoFocus
+                  keyboardType="number-pad"
+                  textContentType="oneTimeCode"
+                  label="Verification code"
+                  maxLength={OTP_LENGTH}
+                  onChangeText={(v) => {
+                    setCode(v.replace(/\D/g, "").slice(0, OTP_LENGTH));
+                    setOtpError("");
+                  }}
+                  onSubmitEditing={handleVerifyCode}
+                  placeholder="123456"
+                  value={code}
+                  error={otpError || undefined}
                 />
-              ) : (
-                <>
-                  <ShieldCheck
-                    size={17}
-                    color={theme.colors.accent}
-                    strokeWidth={2}
-                  />
-                  <Text style={styles.unlockBtnText}>Unlock</Text>
-                </>
-              )}
-            </Pressable>
+
+                <Pressable
+                  onPress={handleVerifyCode}
+                  disabled={code.length < OTP_LENGTH || isVerifying}
+                  style={({ pressed }) => [
+                    styles.unlockBtn,
+                    (code.length < OTP_LENGTH || isVerifying) &&
+                      styles.unlockBtnDisabled,
+                    pressed && !isVerifying && styles.unlockBtnPressed,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Unlock app"
+                >
+                  {isVerifying ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={theme.colors.accent}
+                    />
+                  ) : (
+                    <>
+                      <ShieldCheck
+                        size={17}
+                        color={theme.colors.accent}
+                        strokeWidth={2}
+                      />
+                      <Text style={styles.unlockBtnText}>Unlock</Text>
+                    </>
+                  )}
+                </Pressable>
+
+                <Pressable
+                  onPress={handleSendCode}
+                  disabled={resendCountdown > 0 || isSending}
+                  style={({ pressed }) => [
+                    styles.altLink,
+                    pressed && { opacity: 0.6 },
+                  ]}
+                >
+                  <Text style={styles.altLinkText}>
+                    {resendCountdown > 0
+                      ? `Resend code in ${resendCountdown}s`
+                      : "Resend code"}
+                  </Text>
+                </Pressable>
+              </>
+            )}
 
             {capability?.isAvailable ? (
               <Pressable
@@ -434,6 +508,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textAlign: "center",
     marginBottom: theme.spacing.xs,
+  },
+  otpError: {
+    fontSize: 13,
+    color: theme.colors.danger,
+    textAlign: "center",
   },
   input: {
     backgroundColor: theme.colors.surface,

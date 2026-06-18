@@ -218,7 +218,7 @@ export function useSignOut() {
       queryClient.clear();
       const lockStore = useLockStore.getState();
       lockStore.reset();
-      if (!FEATURES.BIOMETRIC_LOCK) lockStore.initialize(false);
+      if (!FEATURES.BIOMETRIC_LOCK) lockStore.initialize(false, false);
     },
   });
 }
@@ -245,7 +245,7 @@ export function useDeleteAccount() {
       queryClient.clear();
       const lockStore = useLockStore.getState();
       lockStore.reset();
-      if (!FEATURES.BIOMETRIC_LOCK) lockStore.initialize(false);
+      if (!FEATURES.BIOMETRIC_LOCK) lockStore.initialize(false, false);
     },
   });
 }

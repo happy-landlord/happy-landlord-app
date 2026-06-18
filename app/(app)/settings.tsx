@@ -139,49 +139,51 @@ export default function SettingsScreen() {
         <View style={styles.pageHeader}>
           <Text style={styles.pageTitle}>Settings</Text>
         </View>
-        <SectionHeader title="Security" />
-        <SectionCard>
-          {FEATURES.BIOMETRIC_LOCK && (
-            <SettingRow
-              Icon={Fingerprint}
-              iconBg={theme.colors.accentSoft}
-              iconColor={theme.colors.accent}
-              title={`${biometricLabel} login`}
-              subtitle={
-                biometricCapability?.isAvailable
-                  ? `Unlock the app with ${biometricLabel}`
-                  : "Not available on this device"
-              }
-              disabled={
-                !biometricCapability?.isAvailable || toggleBiometric.isPending
-              }
-              right={
-                toggleBiometric.isPending ? (
-                  <ActivityIndicator
-                    size="small"
-                    color={theme.colors.accent}
-                    style={styles.rowSpinner}
-                  />
-                ) : (
-                  <Switch
-                    value={biometricEnabled}
-                    onValueChange={(v) => toggleBiometric.mutate(v)}
-                    disabled={
-                      !biometricCapability?.isAvailable ||
-                      toggleBiometric.isPending
-                    }
-                    trackColor={{
-                      false: theme.colors.neutralSoft,
-                      true: theme.colors.accent,
-                    }}
-                    thumbColor={theme.colors.surface}
-                    ios_backgroundColor={theme.colors.neutralSoft}
-                  />
-                )
-              }
-            />
-          )}
-        </SectionCard>
+        {FEATURES.BIOMETRIC_LOCK && (
+          <>
+            <SectionHeader title="Security" />
+            <SectionCard>
+              <SettingRow
+                Icon={Fingerprint}
+                iconBg={theme.colors.accentSoft}
+                iconColor={theme.colors.accent}
+                title={`${biometricLabel} login`}
+                subtitle={
+                  biometricCapability?.isAvailable
+                    ? `Unlock the app with ${biometricLabel}`
+                    : "Not available on this device"
+                }
+                disabled={
+                  !biometricCapability?.isAvailable || toggleBiometric.isPending
+                }
+                right={
+                  toggleBiometric.isPending ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={theme.colors.accent}
+                      style={styles.rowSpinner}
+                    />
+                  ) : (
+                    <Switch
+                      value={biometricEnabled}
+                      onValueChange={(v) => toggleBiometric.mutate(v)}
+                      disabled={
+                        !biometricCapability?.isAvailable ||
+                        toggleBiometric.isPending
+                      }
+                      trackColor={{
+                        false: theme.colors.neutralSoft,
+                        true: theme.colors.accent,
+                      }}
+                      thumbColor={theme.colors.surface}
+                      ios_backgroundColor={theme.colors.neutralSoft}
+                    />
+                  )
+                }
+              />
+            </SectionCard>
+          </>
+        )}
         <SectionHeader title="Notifications" />
         <SectionCard>
           {FEATURES.PUSH_NOTIFICATIONS && (

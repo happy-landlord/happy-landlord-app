@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { Alert } from "react-native";
+import { Alert, AppState } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { FEATURES } from "@/constants";
@@ -76,6 +76,7 @@ export function useToggleBiometric() {
         );
         if (!result.success) return false;
         await setBiometricEnabled(userId, true);
+        useLockStore.getState().setBiometricEnabled(true);
         return true;
       }
 
@@ -98,6 +99,7 @@ export function useToggleBiometric() {
       });
       if (!confirmed) return false;
       await setBiometricEnabled(userId, false);
+      useLockStore.getState().setBiometricEnabled(false);
       return true;
     },
     onSuccess: () => {
@@ -129,26 +131,43 @@ export function useBiometricLockGate(
   const initialized = useLockStore((s) => s.initialized);
   const isLocked = useLockStore((s) => s.isLocked);
 
+  // ── Startup: read the persisted preference and decide the initial lock ──
   useEffect(() => {
     if (!userId || initialized) return;
     const lock = useLockStore.getState();
 
     if (!FEATURES.BIOMETRIC_LOCK) {
-      lock.initialize(false);
-      return;
-    }
-
-    if (lock.skipBiometricOnce) {
-      // Fresh login — identity already proven; don't lock again this session.
-      lock.setSkipBiometricOnce(false);
-      lock.initialize(false);
+      lock.initialize(false, false);
       return;
     }
 
     isBiometricEnabled(userId).then((enabled) => {
-      useLockStore.getState().initialize(enabled);
+      const store = useLockStore.getState();
+      const justLoggedIn = store.skipBiometricOnce;
+      if (justLoggedIn) {
+        // Fresh login — identity already proven; don't lock again this session,
+        // but still remember the preference so background re-lock works.
+        store.setSkipBiometricOnce(false);
+      }
+      store.initialize(enabled && !justLoggedIn, enabled);
     });
   }, [userId, initialized]);
+
+  // ── Re-lock when the app returns from the background ─────────────────────
+  // Only react to the full "background" state — not "inactive" — because the
+  // OS biometric overlay briefly flips the app to "inactive" on iOS, which
+  // would otherwise re-lock during an unlock attempt.
+  useEffect(() => {
+    if (!FEATURES.BIOMETRIC_LOCK) return;
+
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state !== "background") return;
+      const lock = useLockStore.getState();
+      if (lock.biometricEnabled) lock.setLocked(true);
+    });
+
+    return () => subscription.remove();
+  }, []);
 
   const isInitializing =
     FEATURES.BIOMETRIC_LOCK &&
@@ -207,13 +226,28 @@ export function useBiometricEnrolmentPrompt(): EnrolmentPrompt {
   }, [userId, initialized, isLocked]);
 
   const onEnable = async () => {
-    if (userId) await setBiometricEnabled(userId, true);
+    if (!userId) {
+      setVisible(false);
+      return;
+    }
+    // Prove the biometric actually works on this device before persisting the
+    // preference — mirrors the Settings toggle behaviour.
+    const result = await authenticateWithBiometrics(
+      "Verify your identity to enable biometric login",
+    );
+    if (!result.success) {
+      // Keep the prompt open so the user can retry or choose "Maybe later".
+      return;
+    }
+    await setBiometricEnabled(userId, true);
+    useLockStore.getState().setBiometricEnabled(true);
     setVisible(false);
   };
 
   const onDismiss = async () => {
     // "Maybe later" — record the decision so we don't ask again.
     if (userId) await setBiometricEnabled(userId, false);
+    useLockStore.getState().setBiometricEnabled(false);
     setVisible(false);
   };
 

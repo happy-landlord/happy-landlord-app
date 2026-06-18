@@ -50,11 +50,12 @@ export async function getBiometricCapability(): Promise<BiometricCapability> {
 export function getBiometricLabel(type: BiometricType): string {
   switch (type) {
     case "faceid":
-      return "Face ID";
+      // "Face ID" is Apple branding; Android face unlock should not use it.
+      return Platform.OS === "ios" ? "Face ID" : "Face Unlock";
     case "iris":
       return "Iris scan";
     default:
-      return "Fingerprint";
+      return Platform.OS === "ios" ? "Touch ID" : "Fingerprint";
   }
 }
 

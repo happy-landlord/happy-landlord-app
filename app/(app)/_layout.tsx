@@ -67,7 +67,7 @@ export default function AppLayout() {
     return (
       <LockScreen
         userName={profile?.full_name}
-        userEmail={session?.user.email}
+        userPhone={profile?.phone ?? session?.user.phone}
       />
     );
   }
