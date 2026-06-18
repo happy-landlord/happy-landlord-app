@@ -785,7 +785,7 @@ export default function HelpScreen() {
           label="Terms of Use"
           onPress={() =>
             WebBrowser.openBrowserAsync(
-              "https://happylandlord.com.au/terms",
+              "https://happy-landlord.netlify.app/terms",
             ).catch(() =>
               Alert.alert("Unavailable", "Could not open Terms of Use."),
             )

@@ -332,7 +332,7 @@ export default function SignUpScreen() {
               <Text
                 style={styles.approvalLink}
                 onPress={() =>
-                  Linking.openURL("https://happylandlord.com.au/contact")
+                  Linking.openURL("https://happy-landlord.netlify.app/terms")
                 }
               >
                 Terms of Service
