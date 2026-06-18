@@ -106,6 +106,59 @@ export function useToggleBiometric() {
   });
 }
 
+// ── App-launch lock gate ─────────────────────────────────────────────────────
+
+type BiometricLockGate = {
+  /** True while the app is locked behind biometric/password. */
+  isLocked: boolean;
+  /** True until the biometric preference has been read on startup. */
+  isInitializing: boolean;
+};
+
+/**
+ * Initialises the biometric lock on app entry and exposes the gate state.
+ *
+ * Reads the user's SecureStore preference once per launch to decide whether to
+ * lock, skipping the gate when the user just authenticated (the one-time
+ * `skipBiometricOnce` flag) or when the feature flag is off.
+ */
+export function useBiometricLockGate(
+  userId: string | undefined,
+  isAuthenticated: boolean,
+): BiometricLockGate {
+  const initialized = useLockStore((s) => s.initialized);
+  const isLocked = useLockStore((s) => s.isLocked);
+
+  useEffect(() => {
+    if (!userId || initialized) return;
+    const lock = useLockStore.getState();
+
+    if (!FEATURES.BIOMETRIC_LOCK) {
+      lock.initialize(false);
+      return;
+    }
+
+    if (lock.skipBiometricOnce) {
+      // Fresh login — identity already proven; don't lock again this session.
+      lock.setSkipBiometricOnce(false);
+      lock.initialize(false);
+      return;
+    }
+
+    isBiometricEnabled(userId).then((enabled) => {
+      useLockStore.getState().initialize(enabled);
+    });
+  }, [userId, initialized]);
+
+  const isInitializing =
+    FEATURES.BIOMETRIC_LOCK &&
+    isAuthenticated &&
+    Boolean(userId) &&
+    !initialized;
+
+  return { isLocked, isInitializing };
+}
+
 // ── First-login enrolment prompt ─────────────────────────────────────────────
 
 type EnrolmentPrompt = {

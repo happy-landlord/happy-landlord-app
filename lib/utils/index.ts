@@ -4,12 +4,14 @@
  * Import via:
  *   import { formatDate, alertError, DAY_MS } from "@/lib/utils";
  */
+export * from "./authErrors";
 export * from "./availability";
 export * from "./errors";
 export * from "./format";
 export * from "./imageCompression";
 export * from "./keys";
 export * from "./logger";
+export * from "./phone";
 export * from "./places";
 export * from "./print";
 export * from "./time";

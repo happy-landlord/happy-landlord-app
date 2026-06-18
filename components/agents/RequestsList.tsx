@@ -136,9 +136,6 @@ const RequestCard = memo(function RequestCard({
           <Text style={styles.cardName} numberOfLines={1}>
             {request.full_name ?? "Unknown name"}
           </Text>
-          <Text style={styles.cardEmail} numberOfLines={1}>
-            {request.email ?? "—"}
-          </Text>
           {request.phone ? (
             <View style={styles.phoneRow}>
               <Phone size={11} color={theme.colors.textLight} strokeWidth={2} />

@@ -14,6 +14,7 @@ export * from "./Input";
 export * from "./LoadingState";
 export * from "./Logo";
 export * from "./MetaRow";
+export * from "./OtpInput";
 export * from "./PhoneLink";
 export * from "./OutlinedField";
 export * from "./PhotoPicker";

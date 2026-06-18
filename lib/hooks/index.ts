@@ -12,6 +12,7 @@ export * from "./useKeySetAssignment";
 export * from "./useKeySetImages";
 export * from "./useKeySets";
 export * from "./useNotifications";
+export * from "./usePhoneAuth";
 export * from "./useProfile";
 export * from "./useProperties";
 export * from "./usePropertyImages";

@@ -1,17 +1,15 @@
-import { Linking, Pressable, StyleSheet, Text } from "react-native";
+﻿import { Linking, Pressable, StyleSheet, Text } from "react-native";
 import type { StyleProp, TextStyle, ViewStyle } from "react-native";
 import { Phone } from "lucide-react-native";
-
 import { theme } from "@/constants";
-
+import { formatAustralianPhoneForDisplay } from "@/lib/utils/phone";
 // ── PhoneLink ─────────────────────────────────────────────────────────────────
 // A tappable phone number that opens the native dialler on press.
-// Drop-in replacement for any <Text> that shows a phone number.
+// Displays in friendly AU format (0410 382 251) when stored as E.164.
 //
 // Usage:
-//   <PhoneLink phone="+61 4xx xxx xxx" />
+//   <PhoneLink phone="+61410382251" />
 //   <PhoneLink phone={number} showIcon iconColor={theme.colors.textMuted} textStyle={styles.contactText} />
-
 export type PhoneLinkProps = {
   phone: string;
   /** Renders a Phone icon to the left of the number. Default: false */
@@ -23,7 +21,6 @@ export type PhoneLinkProps = {
   /** Style applied to the outer Pressable row. */
   style?: ViewStyle;
 };
-
 export function PhoneLink({
   phone,
   showIcon = false,
@@ -33,29 +30,30 @@ export function PhoneLink({
   style,
 }: PhoneLinkProps) {
   const handlePress = () => {
-    // Strip spaces so the dialler receives a clean number.
+    // Strip spaces so the dialler receives a clean E.164 number.
     const cleaned = phone.replace(/\s+/g, "");
     Linking.openURL(`tel:${cleaned}`).catch(() => {});
   };
-
+  // Display in friendly AU format (0410 382 251) if stored as E.164,
+  // otherwise fall back to the raw value.
+  const displayPhone = formatAustralianPhoneForDisplay(phone);
   return (
     <Pressable
       onPress={handlePress}
       style={({ pressed }) => [styles.row, style, pressed && styles.pressed]}
       accessibilityRole="link"
-      accessibilityLabel={`Call ${phone}`}
+      accessibilityLabel={`Call ${displayPhone}`}
       hitSlop={4}
     >
       {showIcon ? (
         <Phone size={iconSize} color={iconColor} strokeWidth={2} />
       ) : null}
       <Text style={[styles.text, textStyle]} numberOfLines={1}>
-        {phone}
+        {displayPhone}
       </Text>
     </Pressable>
   );
 }
-
 const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
@@ -69,4 +67,3 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
   },
 });
-

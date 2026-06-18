@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useState } from "react";
@@ -19,12 +20,12 @@ import {
   ChevronRight,
   ExternalLink,
   Fingerprint,
+  FlaskConical,
   KeyRound,
   Trash2,
   Wrench,
 } from "lucide-react-native";
 import * as Sentry from "@sentry/react-native";
-
 import { theme, FEATURES } from "@/constants";
 import {
   useMarkAllNotificationsRead,
@@ -34,24 +35,19 @@ import {
   useBiometricSettings,
   useToggleBiometric,
 } from "@/lib/hooks";
-import { getBiometricLabel } from "@/lib/services";
+import { getBiometricLabel, sendPhoneOtp, verifyPhoneOtp } from "@/lib/services";
 import { useDevOverridesStore } from "@/lib/state";
-import { ChangePasswordSheet, DeleteAccountSheet } from "@/components/settings";
-
-// ── helpers ──────────────────────────────────────────────────────────────────
-
+import { DeleteAccountSheet } from "@/components/settings";
+// -- helpers ------------------------------------------------------------------
 function SectionHeader({ title }: { title: string }) {
   return <Text style={styles.sectionHeader}>{title}</Text>;
 }
-
 function SectionCard({ children }: { children: React.ReactNode }) {
   return <View style={styles.sectionCard}>{children}</View>;
 }
-
 function RowDivider() {
   return <View style={styles.rowDivider} />;
 }
-
 type RowProps = {
   Icon: React.ComponentType<{
     size?: number;
@@ -66,7 +62,6 @@ type RowProps = {
   onPress?: () => void;
   disabled?: boolean;
 };
-
 function SettingRow({
   Icon,
   iconBg,
@@ -90,47 +85,32 @@ function SettingRow({
       <View style={[styles.rowIcon, { backgroundColor: iconBg }]}>
         <Icon size={18} color={iconColor} strokeWidth={2} />
       </View>
-
       <View style={styles.rowBody}>
         <Text style={[styles.rowTitle, disabled && styles.rowTitleDisabled]}>
           {title}
         </Text>
         {subtitle ? <Text style={styles.rowSubtitle}>{subtitle}</Text> : null}
       </View>
-
       {right ?? null}
     </Pressable>
   );
 }
-
-// ── main screen ───────────────────────────────────────────────────────────────
-
+// -- main screen ---------------------------------------------------------------
 export default function SettingsScreen() {
-  // ── Notifications ─────────────────────────────────────────────────────
   const { data: unreadCount = 0 } = useUnreadNotificationCount();
   const { data: pushStatus, isLoading: pushLoading } = usePushStatus();
   const togglePush = useTogglePush();
   const markAllRead = useMarkAllNotificationsRead();
-
-  // ── Biometrics ────────────────────────────────────────────────────────
   const { data: biometric } = useBiometricSettings();
   const toggleBiometric = useToggleBiometric();
   const biometricCapability = biometric?.capability ?? null;
   const biometricEnabled = biometric?.enabled ?? false;
-
-  // ── Change password ───────────────────────────────────────────────────
-  const [changePasswordVisible, setChangePasswordVisible] = useState(false);
-
-  // ── Delete account ────────────────────────────────────────────────────
   const [deleteAccountVisible, setDeleteAccountVisible] = useState(false);
-
-  // ── Shared ────────────────────────────────────────────────────────────
   const permissionDenied = pushStatus?.permissionStatus === "denied";
   const pushEnabled = pushStatus?.pushEnabled ?? false;
   const biometricLabel = biometricCapability
     ? getBiometricLabel(biometricCapability.type)
     : "Biometrics";
-
   function handlePushToggle(value: boolean) {
     if (value && permissionDenied) {
       Linking.openSettings();
@@ -138,7 +118,6 @@ export default function SettingsScreen() {
     }
     togglePush.mutate(value);
   }
-
   function handleMarkAllRead() {
     if (unreadCount === 0) return;
     Alert.alert(
@@ -150,7 +129,6 @@ export default function SettingsScreen() {
       ],
     );
   }
-
   return (
     <>
       <ScrollView
@@ -158,82 +136,54 @@ export default function SettingsScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* Page title */}
         <View style={styles.pageHeader}>
           <Text style={styles.pageTitle}>Settings</Text>
         </View>
-
-        {/* ── Security section ──────────────────────────────────────────── */}
         <SectionHeader title="Security" />
-
         <SectionCard>
-          {/* Biometric row — hidden when FEATURES.BIOMETRIC_LOCK is false */}
           {FEATURES.BIOMETRIC_LOCK && (
-            <>
-              <SettingRow
-                Icon={Fingerprint}
-                iconBg={theme.colors.accentSoft}
-                iconColor={theme.colors.accent}
-                title={`${biometricLabel} login`}
-                subtitle={
-                  biometricCapability?.isAvailable
-                    ? `Unlock the app with ${biometricLabel}`
-                    : "Not available on this device"
-                }
-                disabled={
-                  !biometricCapability?.isAvailable || toggleBiometric.isPending
-                }
-                right={
-                  toggleBiometric.isPending ? (
-                    <ActivityIndicator
-                      size="small"
-                      color={theme.colors.accent}
-                      style={styles.rowSpinner}
-                    />
-                  ) : (
-                    <Switch
-                      value={biometricEnabled}
-                      onValueChange={(v) => toggleBiometric.mutate(v)}
-                      disabled={
-                        !biometricCapability?.isAvailable ||
-                        toggleBiometric.isPending
-                      }
-                      trackColor={{
-                        false: theme.colors.neutralSoft,
-                        true: theme.colors.accent,
-                      }}
-                      thumbColor={theme.colors.surface}
-                      ios_backgroundColor={theme.colors.neutralSoft}
-                    />
-                  )
-                }
-              />
-              <RowDivider />
-            </>
+            <SettingRow
+              Icon={Fingerprint}
+              iconBg={theme.colors.accentSoft}
+              iconColor={theme.colors.accent}
+              title={`${biometricLabel} login`}
+              subtitle={
+                biometricCapability?.isAvailable
+                  ? `Unlock the app with ${biometricLabel}`
+                  : "Not available on this device"
+              }
+              disabled={
+                !biometricCapability?.isAvailable || toggleBiometric.isPending
+              }
+              right={
+                toggleBiometric.isPending ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={theme.colors.accent}
+                    style={styles.rowSpinner}
+                  />
+                ) : (
+                  <Switch
+                    value={biometricEnabled}
+                    onValueChange={(v) => toggleBiometric.mutate(v)}
+                    disabled={
+                      !biometricCapability?.isAvailable ||
+                      toggleBiometric.isPending
+                    }
+                    trackColor={{
+                      false: theme.colors.neutralSoft,
+                      true: theme.colors.accent,
+                    }}
+                    thumbColor={theme.colors.surface}
+                    ios_backgroundColor={theme.colors.neutralSoft}
+                  />
+                )
+              }
+            />
           )}
-
-          <SettingRow
-            Icon={KeyRound}
-            iconBg={theme.colors.accentSoft}
-            iconColor={theme.colors.accent}
-            title="Change password"
-            subtitle="Update your account password"
-            onPress={() => setChangePasswordVisible(true)}
-            right={
-              <ChevronRight
-                size={16}
-                color={theme.colors.textLight}
-                strokeWidth={2}
-              />
-            }
-          />
         </SectionCard>
-
-        {/* ── Notifications section ──────────────────────────────────────── */}
         <SectionHeader title="Notifications" />
-
         <SectionCard>
-          {/* Push toggle — hidden when FEATURES.PUSH_NOTIFICATIONS is false */}
           {FEATURES.PUSH_NOTIFICATIONS && (
             <>
               <SettingRow
@@ -265,7 +215,6 @@ export default function SettingsScreen() {
                   )
                 }
               />
-
               {permissionDenied ? (
                 <Pressable
                   onPress={() => Linking.openSettings()}
@@ -294,11 +243,9 @@ export default function SettingsScreen() {
                   </View>
                 </Pressable>
               ) : null}
-
               <RowDivider />
             </>
           )}
-
           <SettingRow
             Icon={CheckCheck}
             iconBg={theme.colors.accentSoft}
@@ -335,10 +282,7 @@ export default function SettingsScreen() {
             }
           />
         </SectionCard>
-
-        {/* ── Account section ───────────────────────────────────────────── */}
         <SectionHeader title="Account" />
-
         <SectionCard>
           <SettingRow
             Icon={Trash2}
@@ -356,16 +300,8 @@ export default function SettingsScreen() {
             }
           />
         </SectionCard>
-
-        {/* ── Developer section (dev builds only) ───────────────────────── */}
         {FEATURES.DEVELOPER_SECTION && <DeveloperSection />}
       </ScrollView>
-
-      <ChangePasswordSheet
-        visible={changePasswordVisible}
-        onClose={() => setChangePasswordVisible(false)}
-      />
-
       <DeleteAccountSheet
         visible={deleteAccountVisible}
         onClose={() => setDeleteAccountVisible(false)}
@@ -373,18 +309,12 @@ export default function SettingsScreen() {
     </>
   );
 }
-
-// ── Developer-only overrides ─────────────────────────────────────────────────
-// Rendered ONLY when `__DEV__` is true. Metro strips the entire branch — and
-// therefore this component — from production bundles, so neither the toggle UI
-// nor the store reference ship to end users.
-
+// -- Developer-only overrides -------------------------------------------------
 function DeveloperSection() {
   const adminOverride = useDevOverridesStore((s) => s.adminOverride);
   const toggleAdminOverride = useDevOverridesStore(
     (s) => s.toggleAdminOverride,
   );
-
   return (
     <>
       <SectionHeader title="Developer" />
@@ -427,32 +357,259 @@ function DeveloperSection() {
           }
         />
       </SectionCard>
+      <OtpTestPanel />
     </>
   );
 }
 
-// ── styles ────────────────────────────────────────────────────────────────────
+// -- OTP test panel -----------------------------------------------------------
+/** Default dev test number — change if your dev SIM changes. */
+const DEV_TEST_PHONE = "61410382251";
 
+type OtpStep =
+  | "idle"
+  | "sending"
+  | "sent"
+  | "verifying"
+  | "verified"
+  | "error";
+
+function OtpTestPanel() {
+  const [expanded, setExpanded] = useState(false);
+  const [phone, setPhone] = useState(DEV_TEST_PHONE);
+  const [token, setToken] = useState("");
+  const [step, setStep] = useState<OtpStep>("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [verifyResult, setVerifyResult] = useState<string | null>(null);
+
+  async function handleSendOtp() {
+    setStep("sending");
+    setErrorMsg(null);
+    setVerifyResult(null);
+    setToken("");
+    try {
+      // Calls: supabase.auth.signInWithOtp({ phone: "+61410382251" })
+      await sendPhoneOtp(phone.trim());
+      setStep("sent");
+    } catch (err) {
+      setErrorMsg((err as Error).message ?? "Failed to send OTP.");
+      setStep("error");
+    }
+  }
+
+  async function handleVerifyOtp() {
+    if (token.length < 6) return;
+    setStep("verifying");
+    setErrorMsg(null);
+    setVerifyResult(null);
+    try {
+      // Calls: supabase.auth.verifyOtp({ phone, token, type: "sms" })
+      await verifyPhoneOtp(phone.trim(), token.trim());
+      setVerifyResult("✅ OTP verified — Supabase session established.");
+      setStep("verified");
+    } catch (err) {
+      setErrorMsg((err as Error).message ?? "Verification failed.");
+      setStep("error");
+    }
+  }
+
+  function handleReset() {
+    setStep("idle");
+    setToken("");
+    setErrorMsg(null);
+    setVerifyResult(null);
+  }
+
+  const isSending = step === "sending";
+  const isVerifying = step === "verifying";
+  const smsSent =
+    step === "sent" ||
+    step === "verifying" ||
+    step === "verified" ||
+    step === "error";
+
+  return (
+    <View style={otpStyles.container}>
+      {/* ── Collapsible header ── */}
+      <Pressable
+        onPress={() => setExpanded((v) => !v)}
+        style={({ pressed }) => [
+          otpStyles.header,
+          pressed && { opacity: 0.7 },
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel={
+          expanded ? "Collapse OTP test panel" : "Expand OTP test panel"
+        }
+      >
+        <View style={otpStyles.headerLeft}>
+          <FlaskConical
+            size={16}
+            color={theme.colors.accent}
+            strokeWidth={2}
+          />
+          <Text style={otpStyles.headerTitle}>Dev — OTP / SMS Test</Text>
+        </View>
+        <Text style={otpStyles.toggle}>{expanded ? "▲" : "▼"}</Text>
+      </Pressable>
+
+      {expanded ? (
+        <View style={otpStyles.body}>
+          {/* ── Step 1: phone number ── */}
+          <Text style={otpStyles.stepLabel}>1. Phone number (E.164 without +)</Text>
+          <TextInput
+            style={otpStyles.input}
+            value={phone}
+            onChangeText={setPhone}
+            keyboardType="phone-pad"
+            autoCorrect={false}
+            placeholder="61410382251"
+            placeholderTextColor={theme.colors.textLight}
+            returnKeyType="done"
+            editable={!isSending && !isVerifying}
+          />
+
+          {/* Send OTP */}
+          <Pressable
+            onPress={handleSendOtp}
+            disabled={isSending || !phone.trim()}
+            style={({ pressed }) => [
+              otpStyles.btn,
+              otpStyles.btnSend,
+              (isSending || !phone.trim()) && otpStyles.btnDisabled,
+              pressed && otpStyles.btnPressed,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Send test OTP"
+          >
+            {isSending ? (
+              <ActivityIndicator
+                size="small"
+                color={theme.colors.textInverse}
+              />
+            ) : (
+              <Text style={otpStyles.btnText}>
+                {smsSent ? "Resend OTP" : "Send OTP →"}
+              </Text>
+            )}
+          </Pressable>
+
+          {step === "sent" ? (
+            <View style={otpStyles.infoBanner}>
+              <Text style={otpStyles.infoText}>
+                📱 SMS sent to +{phone.trim()} — check the device and paste the
+                code below.
+              </Text>
+            </View>
+          ) : null}
+
+          {/* ── Step 2: verify (shown once SMS is sent) ── */}
+          {smsSent ? (
+            <>
+              <View style={otpStyles.divider} />
+              <Text style={otpStyles.stepLabel}>
+                2. Enter the 6-digit code from the SMS
+              </Text>
+              <TextInput
+                style={otpStyles.input}
+                value={token}
+                onChangeText={(t) =>
+                  setToken(t.replace(/\D/g, "").slice(0, 6))
+                }
+                keyboardType="number-pad"
+                placeholder="123456"
+                placeholderTextColor={theme.colors.textLight}
+                maxLength={6}
+                editable={!isVerifying && step !== "verified"}
+              />
+
+              <Pressable
+                onPress={handleVerifyOtp}
+                disabled={
+                  isVerifying || token.length < 6 || step === "verified"
+                }
+                style={({ pressed }) => [
+                  otpStyles.btn,
+                  otpStyles.btnVerify,
+                  (isVerifying ||
+                    token.length < 6 ||
+                    step === "verified") &&
+                    otpStyles.btnDisabled,
+                  pressed && otpStyles.btnPressed,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Verify test OTP"
+              >
+                {isVerifying ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={theme.colors.textInverse}
+                  />
+                ) : (
+                  <View style={otpStyles.btnRow}>
+                    <KeyRound
+                      size={14}
+                      color={theme.colors.textInverse}
+                      strokeWidth={2.5}
+                    />
+                    <Text style={otpStyles.btnText}>Verify OTP</Text>
+                  </View>
+                )}
+              </Pressable>
+            </>
+          ) : null}
+
+          {/* ── Results ── */}
+          {verifyResult ? (
+            <View style={otpStyles.successBanner}>
+              <Text style={otpStyles.successText}>{verifyResult}</Text>
+            </View>
+          ) : null}
+          {errorMsg ? (
+            <View style={otpStyles.errorBanner}>
+              <Text style={otpStyles.errorText}>{errorMsg}</Text>
+            </View>
+          ) : null}
+
+          {/* Reset link */}
+          {step !== "idle" ? (
+            <Pressable
+              onPress={handleReset}
+              style={({ pressed }) => [
+                otpStyles.resetBtn,
+                pressed && { opacity: 0.6 },
+              ]}
+              accessibilityRole="button"
+            >
+              <Text style={otpStyles.resetText}>Reset</Text>
+            </Pressable>
+          ) : null}
+
+          <Text style={otpStyles.note}>
+            ⚠️ Sends a real SMS via ClickSend to the number above.{"\n"}
+            Step 1 → signInWithOtp(phone){"\n"}
+            Step 2 → verifyOtp(phone, token, type: &quot;sms&quot;){"\n"}
+            OTP is generated &amp; verified by Supabase only.
+          </Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+// -- styles --------------------------------------------------------------------
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
+  screen: { flex: 1, backgroundColor: theme.colors.background },
   content: {
     padding: theme.spacing.screen,
     paddingBottom: theme.spacing.xl * 2,
   },
-  pageHeader: {
-    paddingBottom: theme.spacing.sm,
-  },
+  pageHeader: { paddingBottom: theme.spacing.sm },
   pageTitle: {
     fontSize: 26,
     fontWeight: "800",
     color: theme.colors.text,
     letterSpacing: -0.3,
   },
-
-  // Section
   sectionHeader: {
     fontSize: 11,
     fontWeight: "700",
@@ -473,10 +630,8 @@ const styles = StyleSheet.create({
   rowDivider: {
     height: 1,
     backgroundColor: theme.colors.border,
-    marginLeft: 64, // visually aligns with text start (icon 36 + padding 16 + gap 12)
+    marginLeft: 64,
   },
-
-  // Row
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -485,9 +640,7 @@ const styles = StyleSheet.create({
     gap: 12,
     minHeight: 60,
   },
-  rowPressed: {
-    backgroundColor: theme.colors.neutralSoft,
-  },
+  rowPressed: { backgroundColor: theme.colors.neutralSoft },
   rowIcon: {
     width: 36,
     height: 36,
@@ -496,33 +649,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexShrink: 0,
   },
-  rowBody: {
-    flex: 1,
-    gap: 2,
-  },
-  rowTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: theme.colors.text,
-  },
-  rowTitleDisabled: {
-    color: theme.colors.textDisabled,
-  },
+  rowBody: { flex: 1, gap: 2 },
+  rowTitle: { fontSize: 15, fontWeight: "600", color: theme.colors.text },
+  rowTitleDisabled: { color: theme.colors.textDisabled },
   rowSubtitle: {
     fontSize: 12,
     color: theme.colors.textMuted,
     lineHeight: 17,
   },
-  rowSpinner: {
-    marginRight: 4,
-  },
+  rowSpinner: { marginRight: 4 },
   rowRight: {
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing.xs,
   },
-
-  // Permission-denied banner
   permissionBanner: {
     flexDirection: "row",
     alignItems: "center",
@@ -540,18 +680,12 @@ const styles = StyleSheet.create({
     color: theme.colors.warning,
     lineHeight: 17,
   },
-  permissionLink: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
+  permissionLink: { flexDirection: "row", alignItems: "center", gap: 4 },
   permissionLinkText: {
     fontSize: 12,
     fontWeight: "700",
     color: theme.colors.accentDark,
   },
-
-  // Unread badge
   unreadBadge: {
     minWidth: 22,
     height: 22,
@@ -565,5 +699,124 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "800",
     color: theme.colors.textInverse,
+  },
+});
+
+// -- OTP test panel styles ----------------------------------------------------
+const otpStyles = StyleSheet.create({
+  container: {
+    borderRadius: theme.radius.card,
+    borderWidth: 1.5,
+    borderColor: theme.colors.accentSoft,
+    backgroundColor: theme.colors.surface,
+    marginTop: theme.spacing.sm,
+    overflow: "hidden",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm + 2,
+    backgroundColor: theme.colors.accentSoft,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
+  headerTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: theme.colors.accent,
+    letterSpacing: 0.2,
+  },
+  toggle: { fontSize: 11, color: theme.colors.accent, fontWeight: "700" },
+  body: { padding: theme.spacing.md, gap: theme.spacing.sm },
+  stepLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: theme.colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    fontSize: 14,
+    color: theme.colors.text,
+    backgroundColor: theme.colors.background,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: theme.colors.border,
+    marginVertical: theme.spacing.xs,
+  },
+  btn: {
+    borderRadius: theme.radius.md,
+    paddingVertical: 11,
+    paddingHorizontal: theme.spacing.md,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 44,
+  },
+  btnRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  btnSend: { backgroundColor: theme.colors.accent },
+  btnVerify: { backgroundColor: theme.colors.success },
+  btnDisabled: { opacity: 0.45 },
+  btnPressed: { opacity: 0.8 },
+  btnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: theme.colors.textInverse,
+  },
+  successBanner: {
+    backgroundColor: theme.colors.successSoft,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.sm,
+  },
+  successText: {
+    fontSize: 13,
+    color: theme.colors.success,
+    fontWeight: "600",
+  },
+  errorBanner: {
+    backgroundColor: theme.colors.dangerSoft,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.sm,
+  },
+  errorText: { fontSize: 13, color: theme.colors.danger },
+  infoBanner: {
+    backgroundColor: theme.colors.neutralSoft,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.sm,
+  },
+  infoText: {
+    fontSize: 13,
+    color: theme.colors.textMuted,
+    lineHeight: 18,
+  },
+  resetBtn: {
+    alignSelf: "flex-start",
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+  },
+  resetText: {
+    fontSize: 13,
+    color: theme.colors.textLight,
+    textDecorationLine: "underline",
+  },
+  note: {
+    fontSize: 11,
+    color: theme.colors.textLight,
+    lineHeight: 16,
+    marginTop: theme.spacing.xs,
   },
 });

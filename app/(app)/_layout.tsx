@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+﻿import { useEffect } from "react";
 import { Redirect, Stack, useSegments } from "expo-router";
 import * as Sentry from "@sentry/react-native";
 
@@ -11,17 +11,14 @@ import {
   useProfile,
   useNotificationsLifecycle,
   useBiometricEnrolmentPrompt,
-  useSignOut,
+  useBiometricLockGate,
 } from "@/lib/hooks";
 import { FEATURES } from "@/constants";
-import { useLockStore } from "@/lib/state";
-import { isBiometricEnabled } from "@/lib/services";
 
 export default function AppLayout() {
   const { isLoading: sessionLoading, isAuthenticated, session } = useSession();
   const { data: profile, isLoading: profileLoading } = useProfile();
   const userId = profile?.id;
-  const segments = useSegments();
 
   // ── Identify user in Sentry ─────────────────────────────────────────────
   useEffect(() => {
@@ -36,65 +33,26 @@ export default function AppLayout() {
     }
   }, [profile, session]);
 
-  // ── Biometric lock state ────────────────────────────────────────────────
-  const lockStore = useLockStore();
+  // ── Biometric lock + first-login enrolment prompt ───────────────────────
+  const lockGate = useBiometricLockGate(userId, isAuthenticated);
   const enrolmentPrompt = useBiometricEnrolmentPrompt();
-
-  // Once we have a userId, read SecureStore to decide whether to lock.
-  // Skip the gate when the user *just* authenticated via email/password.
-  useEffect(() => {
-    if (!userId || lockStore.initialized) return;
-
-    if (!FEATURES.BIOMETRIC_LOCK) {
-      lockStore.initialize(false);
-      return;
-    }
-
-    if (lockStore.skipBiometricOnce) {
-      // Fresh login — biometric already proven via password; don't lock again.
-      // Consume the flag immediately so next cold-start behaves normally.
-      useLockStore.getState().setSkipBiometricOnce(false);
-      lockStore.initialize(false);
-      return;
-    }
-
-    isBiometricEnabled(userId).then((enabled) => {
-      lockStore.initialize(enabled);
-    });
-  }, [userId, lockStore.initialized, lockStore]);
 
   // ── Notification hooks (auto-read current user internally) ──────────────
   useNotificationsLifecycle();
 
   // ── Loading ─────────────────────────────────────────────────────────────
-  // Only block on lock initialisation when biometrics is actually enabled.
-  const isLockCheckPending =
-    FEATURES.BIOMETRIC_LOCK &&
-    isAuthenticated &&
-    Boolean(userId) &&
-    !lockStore.initialized;
-
   const isLoading =
-    sessionLoading || (isAuthenticated && profileLoading) || isLockCheckPending;
+    sessionLoading ||
+    (isAuthenticated && profileLoading) ||
+    lockGate.isInitializing;
 
   // ── Status gate ─────────────────────────────────────────────────────────
   // Admins always have access; everyone else is gated by profile.status.
   const status = profile?.role === "admin" ? "approved" : profile?.status;
+  const segments = useSegments();
   const currentScreen = segments[segments.length - 1] as string | undefined;
-  const onPending = currentScreen === "pending";
-  const isDenied = status === "rejected" || status === "inactive";
-
-  // Approved users deactivated/rejected mid-session: sign them out so they
-  // can't keep using a stale session (and so the auth layout doesn't bounce
-  // them straight back here, which would loop). Normal denied sign-ins never
-  // reach this layout — useLogin signs them out before a session is kept.
-  const signOut = useSignOut();
-  useEffect(() => {
-    if (!isLoading && isAuthenticated && isDenied && !signOut.isPending) {
-      signOut.mutate();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, isAuthenticated, isDenied]);
+  const onHolding = currentScreen === "holding";
+  const isHolding = status === "pending" || status === "rejected" || status === "inactive";
 
   if (isLoading) {
     return <BrandedSplash message="Preparing your workspace…" />;
@@ -105,7 +63,7 @@ export default function AppLayout() {
   }
 
   // ── Lock gate: render only the lock screen until the user authenticates ─
-  if (FEATURES.BIOMETRIC_LOCK && lockStore.isLocked) {
+  if (FEATURES.BIOMETRIC_LOCK && lockGate.isLocked) {
     return (
       <LockScreen
         userName={profile?.full_name}
@@ -114,15 +72,10 @@ export default function AppLayout() {
     );
   }
 
-  // ── Status gate (declarative — no dashboard flash, no redirect races) ────
-  if (isDenied) {
-    // Signing out (effect above); hold on a splash until the session clears,
-    // then the !isAuthenticated branch redirects to login.
-    return <BrandedSplash message="Signing out…" />;
-  }
-  if (status === "pending") {
-    if (!onPending) return <Redirect href="/(app)/pending" />;
-  } else if (onPending) {
+  // ── Status gate ────────────────────────────────────────────────────────────
+  if (isHolding) {
+    if (!onHolding) return <Redirect href="/(app)/holding" />;
+  } else if (onHolding) {
     return <Redirect href="/(app)/(tabs)" />;
   }
 
@@ -147,7 +100,7 @@ export default function AppLayout() {
         />
         <Stack.Screen name="settings" options={{ title: "Settings" }} />
         <Stack.Screen name="help" options={{ title: "Help" }} />
-        <Stack.Screen name="pending" options={{ headerShown: false }} />
+        <Stack.Screen name="holding" options={{ headerShown: false }} />
       </Stack>
 
       {/* First-login biometric enrolment prompt — only when feature is enabled */}

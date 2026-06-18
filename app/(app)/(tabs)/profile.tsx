@@ -41,8 +41,13 @@ export default function ProfileScreen() {
       <View style={styles.hero}>
         <ProfileAvatar />
         <Text style={styles.email} numberOfLines={1}>
-          {profile.email ?? "No email available"}
+          {profile.phone ?? "No phone number set"}
         </Text>
+        {profile.email ? (
+          <Text style={styles.email} numberOfLines={1}>
+            {profile.email}
+          </Text>
+        ) : null}
       </View>
       <ProfileDetailsCard />
     </ScrollView>
@@ -57,11 +62,17 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing.sm,
     gap: theme.spacing.md,
   },
-  email: {
+  phone: {
     maxWidth: "100%",
     fontSize: 16,
     fontWeight: "700",
     color: theme.colors.text,
+    textAlign: "center",
+  },
+  email: {
+    maxWidth: "100%",
+    fontSize: 13,
+    color: theme.colors.textMuted,
     textAlign: "center",
   },
 });

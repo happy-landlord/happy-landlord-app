@@ -7,7 +7,7 @@ import {
   View,
 } from "react-native";
 import { Image } from "expo-image";
-import { AlertTriangle, Mail, Phone } from "lucide-react-native";
+import { AlertTriangle, Phone } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
 import { BottomSheet, Button, PhoneLink } from "@/components/ui";
@@ -167,14 +167,6 @@ function AgentProfileHeader({ agent }: { agent: AgentProfile }) {
           {name ?? "Unknown name"}
         </Text>
 
-        {agent.email ? (
-          <View style={styles.profileRow}>
-            <Mail size={13} color={theme.colors.textMuted} strokeWidth={1.8} />
-            <Text style={styles.profileRowText} numberOfLines={1}>
-              {agent.email}
-            </Text>
-          </View>
-        ) : null}
 
         {mobile ? (
           <View style={styles.profileRow}>

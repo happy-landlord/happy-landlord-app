@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+﻿import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import type { Session } from "@supabase/supabase-js";
 
@@ -6,7 +6,13 @@ import { QUERY_KEYS } from "@/lib/query";
 import { FEATURES } from "@/constants";
 import { useLockStore } from "@/lib/state";
 import { supabase } from "@/lib/supabase";
-import { deactivateCurrentDevicePushToken, fetchProfile, requestReactivation } from "@/lib/services";
+import {
+  deactivateCurrentDevicePushToken,
+  fetchProfile,
+  requestReactivation,
+  sendPhoneOtp,
+  verifyPhoneOtp,
+} from "@/lib/services";
 import { logger } from "@/lib/utils/logger";
 import type { DbProfile } from "@/types";
 
@@ -16,9 +22,7 @@ import type { DbProfile } from "@/types";
  * While a sign-in is being *verified* (status checked before we decide whether
  * the user is allowed in), the transient Supabase session must NOT propagate to
  * the query cache — otherwise the layouts would redirect a rejected/inactive
- * user into the app for a frame before useLogin signs them back out. useLogin
- * sets this flag around its sign-in + status check and writes the session
- * itself only for allowed users.
+ * user into the app for a frame before we sign them back out.
  */
 let authSyncPaused = false;
 
@@ -58,12 +62,25 @@ export function useSession() {
   };
 }
 
-// ── Sign in ──────────────────────────────────────────────────────────────────
+// ── OTP auth ─────────────────────────────────────────────────────────────────
 
-export type LoginCredentials = { email: string; password: string };
+export type OtpSendParams = {
+  /** Raw phone number (will be normalised to E.164 internally). */
+  phone: string;
+  /** Optional: supply during registration so the profile trigger gets the name. */
+  fullName?: string;
+};
+
+export type OtpVerifyMode = "login" | "register" | "reactivate";
+
+export type OtpVerifyParams = {
+  phone: string;
+  token: string;
+  mode: OtpVerifyMode;
+};
 
 export type LoginResult = {
-  /** Resolved status after auth ("admin" substituted for approved admins). */
+  /** Resolved status after OTP verification. */
   status: "approved" | "admin" | "pending" | "rejected" | "inactive";
   /** Admin rejection note, present only for rejected accounts. */
   adminNote?: string | null;
@@ -71,8 +88,8 @@ export type LoginResult = {
 
 /**
  * Writes the verified session + profile into the cache and arms the one-time
- * biometric skip (the password already proved identity). Shared by useLogin
- * and useRequestAccess so a granted sign-in renders without a refetch flash.
+ * biometric skip. Shared by useVerifyOtp so a granted sign-in renders
+ * without a refetch flash.
  */
 function primeAuthCaches(
   queryClient: QueryClient,
@@ -88,51 +105,67 @@ function primeAuthCaches(
 }
 
 /**
- * Signs the user in and checks their status:
- *  • approved / admin / pending → session kept, caches primed, caller navigates.
- *  • rejected / inactive        → signed out immediately (no session left open);
- *                                  returns status + any admin note so the login
- *                                  screen can show the warning banner without a
- *                                  session.
+ * Sends an SMS OTP to the given phone number.
+ * Use this before navigating to the OTP verification screen.
  */
-export function useLogin() {
+export function useSendOtp() {
+  return useMutation<void, Error, OtpSendParams>({
+    meta: { silentError: true },
+    mutationFn: ({ phone, fullName }) => sendPhoneOtp(phone, fullName),
+  });
+}
+
+/**
+ * Verifies an SMS OTP code and resolves the user's profile status:
+ *
+ *  mode="login"
+ *    • approved / admin / pending → session kept, caches primed.
+ *    • rejected / inactive        → signed out immediately; status + adminNote
+ *                                   returned so the caller can show a banner.
+ *
+ *  mode="register"
+ *    • Profile trigger creates a pending profile; caches primed.
+ *
+ *  mode="reactivate"
+ *    • Calls requestReactivation() to flip status → pending, then primes caches.
+ */
+export function useVerifyOtp() {
   const queryClient = useQueryClient();
 
-  return useMutation<LoginResult, Error, LoginCredentials>({
+  return useMutation<LoginResult, Error, OtpVerifyParams>({
     meta: { silentError: true },
-    mutationFn: async ({ email, password }) => {
-      // Pause auth→cache sync so the transient session from signInWithPassword
-      // can't redirect a denied user into the app before we sign them out.
+    mutationFn: async ({ phone, token, mode }) => {
       authSyncPaused = true;
       try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
-        if (error) throw error;
+        // Verify the OTP — establishes a Supabase session on success.
+        await verifyPhoneOtp(phone, token);
 
-        const profile = await fetchProfile(data.user.id);
-        const status: LoginResult["status"] =
-          profile?.role === "admin" ? "admin" : (profile?.status as LoginResult["status"]) ?? "pending";
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) throw new Error("No user returned after OTP verification.");
 
-        if (status === "rejected" || status === "inactive") {
-          // Fetch the admin note while we still have a valid session, then
-          // immediately sign out — no session is left open for denied users.
-          const { data: req } = await supabase
-            .from("registration_requests")
-            .select("admin_note")
-            .eq("profile_id", data.user.id)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
+        const { data: sessionData } = await supabase.auth.getSession();
+        const session = sessionData.session;
 
-          await supabase.auth.signOut();
-          queryClient.clear();
-          return { status, adminNote: req?.admin_note };
+        // ── Reactivation ────────────────────────────────────────────────────
+        if (mode === "reactivate") {
+          await requestReactivation(null);
+          const profile = await fetchProfile(user.id);
+          primeAuthCaches(queryClient, user.id, session, profile);
+          return { status: "pending" };
         }
 
-        // Approved / admin / pending — keep session and prime caches.
-        primeAuthCaches(queryClient, data.user.id, data.session, profile);
+        // ── Register / Login ─────────────────────────────────────────────────
+        const profile = await fetchProfile(user.id);
+        const status: LoginResult["status"] =
+          profile?.role === "admin"
+            ? "admin"
+            : ((profile?.status as LoginResult["status"]) ?? "pending");
+
+        // All statuses — prime caches; the app layout routes to the correct screen.
+        // Rejected/inactive/pending users are directed to the holding page.
+        primeAuthCaches(queryClient, user.id, session, profile);
         return { status };
       } finally {
         authSyncPaused = false;
@@ -142,54 +175,21 @@ export function useLogin() {
 }
 
 /**
- * Request access for a rejected/inactive account (which has no live session):
- * signs in with the supplied credentials, submits a fresh registration request
- * (flips the profile status → pending), primes the caches, and leaves the user
- * signed in so the layout routes them to the pending page.
+ * Submits a reactivation request for the currently signed-in rejected/inactive
+ * user and invalidates the profile cache so the holding page reflects the new status.
  */
-export function useRequestAccess() {
+export function useRequestReactivation() {
   const queryClient = useQueryClient();
-
-  return useMutation<void, Error, LoginCredentials>({
+  return useMutation<void, Error, void>({
     meta: { silentError: true },
-    mutationFn: async ({ email, password }) => {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-      if (error) throw error;
-
-      try {
-        await requestReactivation(null);
-      } catch (err) {
-        // Don't leave a session open if the request couldn't be submitted.
-        await supabase.auth.signOut();
-        throw err;
-      }
-
-      const profile = await fetchProfile(data.user.id);
-      primeAuthCaches(queryClient, data.user.id, data.session, profile);
+    mutationFn: async () => { await requestReactivation(null); },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["auth", "profile"] });
     },
   });
 }
 
 // ── Convenience helpers ──────────────────────────────────────────────────────
-
-// ── Change password ──────────────────────────────────────────────────────────
-
-/**
- * Updates the authenticated user's password via Supabase.
- * The caller is responsible for validating that the two password fields match
- * before invoking `mutate`.
- */
-export function useChangePassword() {
-  return useMutation({
-    mutationFn: async (newPassword: string) => {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) throw error;
-    },
-  });
-}
 
 /** Returns the current Supabase user id, or undefined if not signed in. */
 export function useCurrentUserId(): string | undefined {
@@ -199,16 +199,12 @@ export function useCurrentUserId(): string | undefined {
 
 /**
  * Signs the user out, clears all cached queries, and resets biometric lock
- * state. Use this everywhere instead of calling `supabase.auth.signOut()`
- * directly so cleanup stays consistent.
+ * state.
  */
 export function useSignOut() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      // Deactivate THIS device's push token BEFORE signing out, while we
-      // still have a valid JWT for the row-level update. Failure here is
-      // non-fatal — we still want sign-out to complete.
       try {
         const { data } = await supabase.auth.getSession();
         const userId = data.session?.user.id;
@@ -219,41 +215,25 @@ export function useSignOut() {
 
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      // Run cleanup inside mutationFn so it executes even after the calling
-      // component unmounts due to the SIGNED_OUT auth-state redirect.
       queryClient.clear();
       const lockStore = useLockStore.getState();
       lockStore.reset();
-      // When biometrics is disabled globally, re-initialise immediately so
-      // the next sign-in does not flash through an `initialized=false` state.
       if (!FEATURES.BIOMETRIC_LOCK) lockStore.initialize(false);
     },
   });
 }
 
 /**
- * Permanently deletes the authenticated user's account by calling the
- * `delete_account` SECURITY DEFINER RPC, which:
- *   1. Blocks deletion if the user has active checkouts (throws active_checkouts|...)
- *   2. Cancels active reservations held by this user
- *   3. Anonymises key_holder rows (clears PII, preserves UUID + history)
- *   4. Deletes the auth.users row — profiles + push tokens + notifications
- *      cascade automatically via ON DELETE CASCADE
- *
- * Push-token deactivation is intentionally NOT done on the FE — cascades
- * handle cleanup after the checkout guard passes, so tokens stay active if
- * the RPC rejects (e.g. unreturned keys).
+ * Permanently deletes the authenticated user's account via the
+ * `delete_account` SECURITY DEFINER RPC.
  */
 export function useDeleteAccount() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
       const { error } = await supabase.rpc("delete_account" as never);
-
       if (error) throw error;
 
-      // The auth user is already deleted server-side, so the /logout endpoint
-      // may reject. Use scope:"local" to only clear the local session.
       try {
         await supabase.auth.signOut({ scope: "local" });
       } catch (err) {
@@ -269,4 +249,3 @@ export function useDeleteAccount() {
     },
   });
 }
-

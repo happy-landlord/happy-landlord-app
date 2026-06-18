@@ -143,11 +143,10 @@ export async function updateProfile(
   // Explicitly allow only the three editable fields — never forward
   // id, email, role, status, or created_at from the caller.
   const payload: ProfileEdits = {
-    full_name: edits.full_name,
-    phone: edits.phone,
+  // Explicitly allow only the two editable fields — never forward
+  // id, phone, email, role, status, or created_at from the caller.
     profile_image: edits.profile_image,
   };
-
   const { error } = await supabase
     .from("profiles")
     .update(payload as never)

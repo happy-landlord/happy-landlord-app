@@ -1,10 +1,9 @@
-import {
+﻿import {
   useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-
 import { invalidateProperties, PAGE_SIZE, QUERY_KEYS, STALE_TIME } from "@/lib/query";
 import { useRole } from "@/hooks";
 import {
@@ -17,13 +16,13 @@ import {
   updateKeyHolder,
   updateProperty,
 } from "@/lib/services";
+import { normalizeAustralianPhone } from "@/lib/utils/phone";
 import {
   DbProperty,
   DbPropertyInsert,
   DbPropertyUpdate,
   PropertyStatus,
 } from "@/types";
-
 export function useInfiniteProperties({
   search = "",
   status,
@@ -40,19 +39,16 @@ export function useInfiniteProperties({
     initialPageParam: 0,
     getNextPageParam: (lastPage: DbProperty[], allPages: DbProperty[][]) =>
       lastPage.length === PAGE_SIZE ? allPages.length : undefined,
-    // Flatten pages so consumers don't have to memoise this themselves.
     select: (data) => ({
       ...data,
       properties: data.pages.flat() as DbProperty[],
     }),
   });
-
   return {
     ...query,
     properties: query.data?.properties ?? [],
   };
 }
-
 export function useProperty(id: string) {
   const { isAdmin } = useRole();
   return useQuery({
@@ -63,7 +59,6 @@ export function useProperty(id: string) {
     staleTime: STALE_TIME.short,
   });
 }
-
 export function usePropertyTenant(propertyId: string, enabled = true) {
   return useQuery({
     queryKey: ["propertyTenant", propertyId],
@@ -72,15 +67,11 @@ export function usePropertyTenant(propertyId: string, enabled = true) {
     staleTime: STALE_TIME.short,
   });
 }
-
 export function useCreateProperty() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: DbPropertyInsert) => createProperty(input),
     onSuccess: () => {
-      // Creating a property (and its keysets/keys in the same flow) touches
-      // far more than the properties list — refresh every dashboard-facing
-      // cache so the home screen reflects the new data immediately.
       invalidateProperties(queryClient);
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["keys"] });
@@ -89,7 +80,6 @@ export function useCreateProperty() {
     },
   });
 }
-
 export function useUpdateProperty(propertyId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -97,16 +87,13 @@ export function useUpdateProperty(propertyId: string) {
     onSuccess: () => invalidateProperties(queryClient, propertyId),
   });
 }
-
 /**
  * Combined edit mutation used by `PropertyEditSheet`. Patches the property
  * row + the joined landlord key-holder in one logical operation:
  *
- *  - If the property already has a landlord holder → patch it.
- *  - If not and a name/phone was provided        → create a holder and link it.
- *  - If the user cleared both fields              → leave the existing link alone
- *    (clearing/unlinking would be destructive and is intentionally not exposed
- *    from this hook).
+ *  - If the property already has a landlord holder -> patch it.
+ *  - If not and a name/phone was provided          -> create a holder and link it.
+ *  - If the user cleared both fields               -> leave the existing link alone.
  */
 export type UpdatePropertyDetailsInput = {
   patch: DbPropertyUpdate;
@@ -116,29 +103,29 @@ export type UpdatePropertyDetailsInput = {
     phone: string;
   };
 };
-
 export function useUpdatePropertyDetails(propertyId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ patch, landlord }: UpdatePropertyDetailsInput) => {
       const trimmedName = landlord.name.trim();
-      const trimmedPhone = landlord.phone.trim();
+      // Normalise to E.164 (+614...) before persisting.
+      const normalisedPhone = landlord.phone.trim()
+        ? normalizeAustralianPhone(landlord.phone.trim())
+        : null;
       const fullPatch: DbPropertyUpdate = { ...patch };
-
       if (landlord.holderId) {
         await updateKeyHolder(landlord.holderId, {
           full_name: trimmedName || null,
-          phone: trimmedPhone || null,
+          phone: normalisedPhone,
         });
-      } else if (trimmedName || trimmedPhone) {
+      } else if (trimmedName || normalisedPhone) {
         const holder = await createKeyHolder({
           holder_type: "landlord",
           full_name: trimmedName || null,
-          phone: trimmedPhone || null,
+          phone: normalisedPhone,
         });
         fullPatch.landlord_holder_id = holder.id;
       }
-
       return updateProperty(propertyId, fullPatch);
     },
     onSuccess: () => invalidateProperties(queryClient, propertyId),

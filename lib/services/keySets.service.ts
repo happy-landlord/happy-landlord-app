@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { compressImage } from "@/lib/utils/imageCompression";
+import { normalizeAustralianPhone } from "@/lib/utils/phone";
 import type {
   DbKeySet,
   DbKeySetInsert,
@@ -551,12 +552,17 @@ export async function handoverKeysetsToTenant(
   if (keySetIds.length === 0) return;
 
   // Create a key_holder record for the tenant
+  // Normalise to E.164 (+614…) before persisting.
+  const normalisedPhone = tenantPhone.trim()
+    ? normalizeAustralianPhone(tenantPhone.trim())
+    : null;
+
   const { data: holder, error: holderErr } = await supabase
     .from("key_holders")
     .insert({
       holder_type: "tenant",
       full_name: tenantName.trim(),
-      phone: tenantPhone.trim() || null,
+      phone: normalisedPhone,
     })
     .select("id")
     .single();

@@ -1,11 +1,18 @@
-import {
+﻿import {
   createKeyHolder,
   createKeys,
   createKeySet,
   uploadKeySetImages,
   updateKeySetImages,
 } from "@/lib/services";
-import { buildKeySetCode, countAllocatedKeys, formatLongDate, getUnallocatedKeys, keySetQrUrl } from "@/lib/utils";
+import {
+  buildKeySetCode,
+  countAllocatedKeys,
+  normalizeAustralianPhone,
+  formatLongDate,
+  getUnallocatedKeys,
+  keySetQrUrl,
+} from "@/lib/utils";
 import type { DbKeyInsert, DbProperty, DbPropertyInsert } from "@/types";
 import { KEY_TYPE_LABEL } from "@/constants";
 import type {
@@ -131,7 +138,9 @@ async function maybeCreateLandlordHolder(
   const holder = await createKeyHolder({
     holder_type: "landlord",
     full_name: landlordName || null,
-    phone: landlordContact || null,
+      phone: landlordContact
+        ? normalizeAustralianPhone(landlordContact)
+        : null,
     notes: `Keys received: ${formatLongDate(dateReceived)}`,
   });
   return holder.id;

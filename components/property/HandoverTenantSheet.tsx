@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -12,7 +12,7 @@ import { Check } from "lucide-react-native";
 import { BottomSheet, Button, OutlinedField } from "@/components/ui";
 import { theme } from "@/constants";
 import { useHandoverToTenant, useKeySets } from "@/lib/hooks";
-import { getTotalKeyQuantity } from "@/lib/utils";
+import { normalizeAustralianPhone, getTotalKeyQuantity } from "@/lib/utils";
 
 type Props = {
   visible: boolean;
@@ -50,7 +50,11 @@ export function HandoverTenantSheet({ visible, onClose, propertyId }: Props) {
     const ids = [...selected];
     if (ids.length === 0 || !tenantName.trim() || !tenantPhone.trim()) return;
     handoverMut.mutate(
-      { keySetIds: ids, tenantName, tenantPhone },
+      {
+        keySetIds: ids,
+        tenantName,
+        tenantPhone: normalizeAustralianPhone(tenantPhone),
+      },
       {
         onSuccess: () => {
           setSelected(new Set());

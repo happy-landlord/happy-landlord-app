@@ -50,22 +50,19 @@ export function AgentCard({ agent, onPress, style }: Props) {
           <Text style={styles.name} numberOfLines={1}>
             {name ?? "Unknown name"}
           </Text>
-          <Text style={styles.email} numberOfLines={1}>
-            {agent.email ?? "—"}
-          </Text>
-        </View>
-        <View style={styles.mobileRow}>
-          {mobile ? (
-            <PhoneLink
-              phone={mobile}
-              showIcon
-              iconSize={14}
-              iconColor={theme.colors.textMuted}
-              textStyle={styles.mobile}
-            />
-          ) : (
-            <Text style={styles.mobileEmpty}>No mobile</Text>
-          )}
+          <View style={styles.mobileRow}>
+            {mobile ? (
+              <PhoneLink
+                phone={mobile}
+                showIcon
+                iconSize={14}
+                iconColor={theme.colors.textMuted}
+                textStyle={styles.mobile}
+              />
+            ) : (
+              <Text style={styles.mobileEmpty}>No mobile</Text>
+            )}
+          </View>
         </View>
         {onPress ? (
           <ChevronRight size={16} color={theme.colors.textLight} strokeWidth={2.5} />
@@ -144,13 +141,10 @@ const styles = StyleSheet.create({
   },
   details: { flex: 1, minWidth: 0, gap: 2 },
   name: { fontSize: 15, fontWeight: "700", color: theme.colors.text },
-  email: { fontSize: 12, color: theme.colors.textMuted },
   mobileRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "flex-end",
     gap: 4,
-    maxWidth: "44%",
   },
   mobile: {
     flexShrink: 1,

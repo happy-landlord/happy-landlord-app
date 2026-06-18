@@ -1,9 +1,9 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { KEY_TYPE_LABEL } from "@/constants";
 import { useSyncOnce } from "@/hooks";
-import { getKeySignature, showSuccessToast } from "@/lib/utils";
+import { getKeySignature, showSuccessToast, normalizeAustralianPhone } from "@/lib/utils";
 import {
   useAllPropertyKeys,
   useCreateKeys,
@@ -201,12 +201,15 @@ export function usePropertyEditForm(propertyId: string) {
         landlord: {
           holderId: property.landlord?.id ?? null,
           name: landlordName,
-          phone: landlordContact,
+          phone: normalizeAustralianPhone(landlordContact),
         },
       });
 
       if (isLeased && tenant?.id) {
-        await tenantUpdateMut.mutateAsync({ name: tenantName, phone: tenantPhone });
+        await tenantUpdateMut.mutateAsync({
+          name: tenantName,
+          phone: normalizeAustralianPhone(tenantPhone),
+        });
       }
 
       for (const id of deletedIds) {

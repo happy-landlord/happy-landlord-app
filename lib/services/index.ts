@@ -4,6 +4,7 @@
  * Import via:
  *   import { fetchProperties, isBiometricEnabled } from "@/lib/services";
  */
+export * from "./auth.service";
 export * from "./biometric.service";
 export * from "./keys.service";
 export * from "./keySets.service";

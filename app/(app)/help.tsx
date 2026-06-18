@@ -61,8 +61,6 @@ type BrowseSection = {
 
 const SUPPORT_EMAIL = "info@happylandlord.com.au";
 const TECH_EMAIL = "tech@happylandlord.com.au";
-const SUPPORT_PHONE = "0466663356";
-const SUPPORT_PHONE_DISPLAY = "0466 663 356";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Static data
@@ -119,15 +117,6 @@ function getQuickActions(
       title: "My Activity",
       description: "View your checked-out keysets",
       onPress: () => router.push("/(app)/(tabs)/activity"),
-    },
-    {
-      id: "call",
-      icon: "call-outline",
-      iconBg: theme.colors.successSoft,
-      iconColor: theme.colors.success,
-      title: "Call Support",
-      description: `Speak to someone now · ${SUPPORT_PHONE_DISPLAY}`,
-      onPress: () => Linking.openURL(`tel:${SUPPORT_PHONE}`),
     },
   ];
 }
@@ -224,7 +213,7 @@ const BROWSE_SECTIONS: BrowseSection[] = [
         id: "k3",
         question: "What does 'overdue' mean?",
         answer:
-          "A keyset is overdue when its scheduled return date has passed and it has not been returned. Call support on 0466 663 356.",
+          "A keyset is overdue when its scheduled return date has passed and it has not been returned. Please contact support via email.",
       },
       {
         id: "k4",
@@ -284,7 +273,7 @@ const BROWSE_SECTIONS: BrowseSection[] = [
         id: "c3",
         question: "What happens if a handover is not confirmed?",
         answer:
-          "The keyset remains assigned to the original holder until the recipient scans and confirms. Call support on 0466 663 356 if you are stuck.",
+          "The keyset remains assigned to the original holder until the recipient scans and confirms. Contact support by email if you are stuck.",
       },
     ],
   },
@@ -305,7 +294,7 @@ const BROWSE_SECTIONS: BrowseSection[] = [
         id: "r2",
         question: "How long does approval take?",
         answer:
-          "Approval times vary. You will receive a notification when your request is reviewed. For urgent access, call support on 0466 663 356.",
+          "Approval times vary. You will receive a notification when your request is reviewed. For urgent access, contact support by email.",
       },
       {
         id: "r3",
@@ -711,25 +700,9 @@ export default function HelpScreen() {
             <Text style={styles.contactTitle}>Still need help?</Text>
           </View>
           <Text style={styles.contactBody}>
-            Reach the Happy Landlord support team by phone or email.
+            Reach the Happy Landlord support team by email.
           </Text>
           <View style={styles.contactBtns}>
-            <Pressable
-              onPress={() => Linking.openURL(`tel:${SUPPORT_PHONE}`)}
-              style={({ pressed }) => [
-                styles.contactBtn,
-                pressed && styles.contactBtnPressed,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel={`Call support ${SUPPORT_PHONE_DISPLAY}`}
-            >
-              <Ionicons
-                name="call-outline"
-                size={15}
-                color={theme.colors.accent}
-              />
-              <Text style={styles.contactBtnText}>{SUPPORT_PHONE_DISPLAY}</Text>
-            </Pressable>
             <Pressable
               onPress={() =>
                 Linking.openURL(

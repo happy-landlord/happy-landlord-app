@@ -1,10 +1,10 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Check, Pencil, Phone, User, X } from "lucide-react-native";
 
 import { theme } from "@/constants";
 import { useProfile, useUpdateProfile } from "@/lib/hooks";
-import { formatAuPhone } from "@/lib/utils";
+import { normalizeAustralianPhone, formatAustralianPhoneForDisplay } from "@/lib/utils";
 import type { ProfileEdits } from "@/lib/services";
 import { Button, Input } from "@/components/ui";
 
@@ -36,7 +36,7 @@ export function ProfileDetailsCard() {
   const saveEdit = () => {
     const edits: ProfileEdits = {
       full_name: draftName.trim() || null,
-      phone: formatAuPhone(draftPhone),
+      phone: draftPhone.trim() ? normalizeAustralianPhone(draftPhone) : null,
     };
     updateMutation.mutate(edits, {
       onSuccess: () => setEditing(false),
@@ -76,7 +76,9 @@ export function ProfileDetailsCard() {
         /* ── View card ── */
         <View style={styles.card}>
           <DetailRow
-            icon={<User size={16} color={theme.colors.accent} strokeWidth={1.9} />}
+            icon={
+              <User size={16} color={theme.colors.accent} strokeWidth={1.9} />
+            }
             label="Name"
           >
             <Text style={[styles.value, !hasName && styles.empty]}>
@@ -85,11 +87,15 @@ export function ProfileDetailsCard() {
           </DetailRow>
 
           <DetailRow
-            icon={<Phone size={16} color={theme.colors.accent} strokeWidth={1.9} />}
+            icon={
+              <Phone size={16} color={theme.colors.accent} strokeWidth={1.9} />
+            }
             label="Phone"
           >
             <Text style={[styles.value, !hasPhone && styles.empty]}>
-              {profile.phone?.trim() || "Not set"}
+              {profile.phone?.trim()
+                ? formatAustralianPhoneForDisplay(profile.phone.trim())
+                : "Not set"}
             </Text>
           </DetailRow>
         </View>
@@ -108,7 +114,9 @@ export function ProfileDetailsCard() {
           <Button
             title={updateMutation.isPending ? "Saving…" : "Save changes"}
             variant="primary"
-            icon={<Check size={16} color={theme.colors.accent} strokeWidth={2} />}
+            icon={
+              <Check size={16} color={theme.colors.accent} strokeWidth={2} />
+            }
             loading={updateMutation.isPending}
             onPress={saveEdit}
             disabled={updateMutation.isPending}
@@ -119,7 +127,9 @@ export function ProfileDetailsCard() {
         <Button
           title="Edit profile"
           variant="outline"
-          icon={<Pencil size={16} color={theme.colors.text} strokeWidth={1.9} />}
+          icon={
+            <Pencil size={16} color={theme.colors.text} strokeWidth={1.9} />
+          }
           onPress={startEdit}
           style={styles.btnFull}
         />
@@ -177,6 +187,30 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing.md,
     gap: theme.spacing.xs,
   },
+  readOnlyField: {
+    paddingVertical: theme.spacing.xs,
+    paddingHorizontal: 4,
+    gap: 2,
+  },
+  readOnlyLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.7,
+    color: theme.colors.textLight,
+  },
+  readOnlyValue: {
+    fontSize: 15,
+    color: theme.colors.text,
+    fontWeight: "600",
+  },
+  readOnlyHint: {
+    fontSize: 11,
+    color: theme.colors.textMuted,
+    lineHeight: 15,
+    marginTop: 1,
+  },
+
   row: {
     flexDirection: "row",
     alignItems: "flex-start",
