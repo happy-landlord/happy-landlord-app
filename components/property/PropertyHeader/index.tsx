@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { Alert } from "react-native";
 import { useRouter } from "expo-router";
 
 import { useRole } from "@/hooks";
 import type { TenantHolder } from "@/lib/services";
+import { useDeleteProperty } from "@/lib/hooks";
 import { CollectFromLandlordSheet } from "@/components/property/CollectFromLandlordSheet";
 import { CollectFromTenantSheet } from "@/components/property/CollectFromTenantSheet";
 import { HandoverLandlordSheet } from "@/components/property/HandoverLandlordSheet";
@@ -26,12 +28,31 @@ export function PropertyHeader({
 }: PropertyHeaderProps) {
   const router = useRouter();
   const { isAdmin } = useRole();
+  const { mutate: deleteProperty } = useDeleteProperty();
 
   const [tenantSheetOpen, setTenantSheetOpen] = useState(false);
   const [collectSheetOpen, setCollectSheetOpen] = useState(false);
   const [landlordSheetOpen, setLandlordSheetOpen] = useState(false);
   const [collectLandlordSheetOpen, setCollectLandlordSheetOpen] =
     useState(false);
+
+  function handleDelete() {
+    Alert.alert(
+      "Delete Property",
+      "This will permanently delete the property and all its keys and keysets. This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () =>
+            deleteProperty(propertyId, {
+              onSuccess: () => router.back(),
+            }),
+        },
+      ],
+    );
+  }
 
   return (
     <>
@@ -42,6 +63,7 @@ export function PropertyHeader({
           isAdmin
             ? {
                 onEdit: () => router.push(`/properties/edit/${propertyId}`),
+                onDelete: handleDelete,
                 onHandoverTenant: () => setTenantSheetOpen(true),
                 onHandoverLandlord: () => setLandlordSheetOpen(true),
                 onCollect: () => setCollectSheetOpen(true),

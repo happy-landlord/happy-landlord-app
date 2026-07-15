@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { notifyAdminsOfRequest } from "./notifications.service";
 import type { DbRegistrationRequest } from "@/types";
 
 export type RegistrationRequest = DbRegistrationRequest & {
@@ -73,6 +74,7 @@ export async function rejectRequest(
  */
 export async function requestReactivation(
   message?: string | null,
+  agentName?: string | null,
 ): Promise<string> {
   const { data, error } = await supabase.rpc("submit_registration_request", {
     p_full_name: null,
@@ -81,6 +83,10 @@ export async function requestReactivation(
   } as never);
 
   if (error) throw error;
+
+  // Fire-and-forget: notify all admins — errors must not block the submission.
+  notifyAdminsOfRequest(agentName ?? null);
+
   return data as string;
 }
 

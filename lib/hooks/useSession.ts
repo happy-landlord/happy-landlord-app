@@ -150,8 +150,8 @@ export function useVerifyOtp() {
 
         // ── Reactivation ────────────────────────────────────────────────────
         if (mode === "reactivate") {
-          await requestReactivation(null);
           const profile = await fetchProfile(user.id);
+          await requestReactivation(null, profile?.full_name ?? null);
           primeAuthCaches(queryClient, user.id, session, profile);
           return { status: "pending" };
         }
@@ -182,7 +182,11 @@ export function useRequestReactivation() {
   const queryClient = useQueryClient();
   return useMutation<void, Error, void>({
     meta: { silentError: true },
-    mutationFn: async () => { await requestReactivation(null); },
+    mutationFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const profile = user ? await fetchProfile(user.id) : null;
+      await requestReactivation(null, profile?.full_name ?? null);
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["auth", "profile"] });
     },

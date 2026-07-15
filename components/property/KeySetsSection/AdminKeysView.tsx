@@ -8,12 +8,13 @@ import {
   UIManager,
   View,
 } from "react-native";
-import { ChevronDown, ChevronRight, KeyRound } from "lucide-react-native";
+import { ChevronDown, ChevronRight, KeyRound, Plus } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
 import { KEY_TYPE_ICON, theme } from "@/constants";
 import { EmptyState } from "@/components/ui";
 import { KeySetCard } from "@/components/keyset";
+import { AddKeySetSheet } from "@/components/keyset/AddKeySetSheet";
 import { getKeyName } from "@/lib/utils";
 import type { KeySetWithDetails, UnassignedKey } from "@/lib/services";
 
@@ -26,13 +27,15 @@ if (
 }
 
 export type AdminKeysViewProps = {
+  propertyId: string;
   keySets: KeySetWithDetails[];
   unassignedKeys: UnassignedKey[];
 };
 
-export function AdminKeysView({ keySets, unassignedKeys }: AdminKeysViewProps) {
+export function AdminKeysView({ propertyId, keySets, unassignedKeys }: AdminKeysViewProps) {
   const router = useRouter();
   const [unassignedOpen, setUnassignedOpen] = useState(false);
+  const [addSheetOpen, setAddSheetOpen] = useState(false);
 
   // ensure animation flag is set before first toggle (defensive)
   useEffect(() => {}, []);
@@ -42,12 +45,28 @@ export function AdminKeysView({ keySets, unassignedKeys }: AdminKeysViewProps) {
     setUnassignedOpen((v) => !v);
   }
 
+  const unassignedQty = unassignedKeys.reduce((sum, k) => sum + (k.quantity ?? 1), 0);
+
   return (
     <View style={styles.root}>
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>
-          {keySets.length} {keySets.length === 1 ? "Keyset" : "Keysets"}
-        </Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
+            {keySets.length} {keySets.length === 1 ? "Keyset" : "Keysets"}
+          </Text>
+          <Pressable
+            style={({ pressed }) => [
+              styles.addButton,
+              pressed && styles.addButtonPressed,
+            ]}
+            onPress={() => setAddSheetOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Add keyset"
+          >
+            <Plus size={14} color={theme.colors.textInverse} strokeWidth={2.5} />
+            <Text style={styles.addButtonLabel}>Add</Text>
+          </Pressable>
+        </View>
         {keySets.length === 0 ? (
           <EmptyState
             title="No key sets"
@@ -66,53 +85,41 @@ export function AdminKeysView({ keySets, unassignedKeys }: AdminKeysViewProps) {
           </View>
         )}
       </View>
-
-      {unassignedKeys.length > 0 &&
-        (() => {
-          const unassignedQty = unassignedKeys.reduce(
-            (sum, k) => sum + (k.quantity ?? 1),
-            0,
-          );
-          return (
-            <View style={styles.section}>
-              <Pressable
-                style={styles.accordionHeader}
-                onPress={toggleUnassigned}
-                accessibilityRole="button"
-                accessibilityLabel="Toggle unassigned keys"
-              >
-                <Text style={styles.sectionTitle}>
-                  {unassignedQty} Unassigned{" "}
-                  {unassignedQty === 1 ? "Key" : "Keys"}
-                </Text>
-                {unassignedOpen ? (
-                  <ChevronDown
-                    size={16}
-                    color={theme.colors.textLight}
-                    strokeWidth={2.5}
-                  />
-                ) : (
-                  <ChevronRight
-                    size={16}
-                    color={theme.colors.textLight}
-                    strokeWidth={2.5}
-                  />
-                )}
-              </Pressable>
-              {unassignedOpen && (
-                <View style={styles.list}>
-                  {unassignedKeys.map((k) => (
-                    <UnassignedKeyChip key={k.id} keyItem={k} />
-                  ))}
-                </View>
-              )}
+      {unassignedKeys.length > 0 && (
+        <View style={styles.section}>
+          <Pressable
+            style={styles.accordionHeader}
+            onPress={toggleUnassigned}
+            accessibilityRole="button"
+            accessibilityLabel="Toggle unassigned keys"
+          >
+            <Text style={styles.sectionTitle}>
+              {unassignedQty} Unassigned{" "}
+              {unassignedQty === 1 ? "Key" : "Keys"}
+            </Text>
+            {unassignedOpen ? (
+              <ChevronDown size={16} color={theme.colors.textLight} strokeWidth={2.5} />
+            ) : (
+              <ChevronRight size={16} color={theme.colors.textLight} strokeWidth={2.5} />
+            )}
+          </Pressable>
+          {unassignedOpen && (
+            <View style={styles.list}>
+              {unassignedKeys.map((k) => (
+                <UnassignedKeyChip key={k.id} keyItem={k} />
+              ))}
             </View>
-          );
-        })()}
+          )}
+        </View>
+      )}
+      <AddKeySetSheet
+        visible={addSheetOpen}
+        onClose={() => setAddSheetOpen(false)}
+        propertyId={propertyId}
+      />
     </View>
   );
 }
-
 
 // ── UnassignedKeyChip ────────────────────────────────────────────────────────
 
@@ -148,6 +155,11 @@ function UnassignedKeyChip({ keyItem }: { keyItem: UnassignedKey }) {
 const styles = StyleSheet.create({
   root: { gap: theme.spacing.md },
   section: { gap: theme.spacing.sm },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   sectionTitle: {
     fontSize: 13,
     fontWeight: "600",
@@ -155,6 +167,21 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.6,
     paddingLeft: 2,
+  },
+  addButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: theme.spacing.sm + 2,
+    paddingVertical: 7,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.accent,
+  },
+  addButtonPressed: { opacity: 0.75 },
+  addButtonLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: theme.colors.textInverse,
   },
   accordionHeader: {
     flexDirection: "row",

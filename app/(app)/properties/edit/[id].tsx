@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
-import { Button, ErrorState, Input, LoadingState, OutlinedSelect, PickerModal } from "@/components/ui";
+import { AddressSearch, Button, ErrorState, Input, LoadingState, OutlinedSelect, PickerModal } from "@/components/ui";
 import { PropertyKeysSection, usePropertyEditForm } from "@/components/property/edit";
 import { PROPERTY_TYPES, theme } from "@/constants";
 import { useDeveloperSuggestions } from "@/lib/hooks";
@@ -49,6 +49,25 @@ export default function EditPropertyScreen() {
           bottomOffset={Platform.OS === "ios" ? 32 : 16}
           showsVerticalScrollIndicator={false}
         >
+          <View>
+            <AddressSearch
+              label="Address"
+              mode="full"
+              labelBackground={theme.colors.background}
+              initialValue={form.property.formatted_address ?? ""}
+              onSelect={form.onAddressSelect}
+            />
+            {form.addressChecking && (
+              <View style={styles.addressStatus}>
+                <ActivityIndicator size="small" color={theme.colors.primary} />
+                <Text style={styles.addressChecking}>Checking address…</Text>
+              </View>
+            )}
+            {form.addressError ? (
+              <Text style={styles.addressError}>{form.addressError}</Text>
+            ) : null}
+          </View>
+
           <OutlinedSelect
             label="Property Type"
             required
@@ -172,7 +191,7 @@ export default function EditPropertyScreen() {
             title="Save"
             variant="primary"
             loading={form.isPending}
-            disabled={form.isPending}
+            disabled={form.isPending || form.addressChecking || !!form.addressError}
             onPress={() => form.save(() => router.back())}
             style={styles.saveBtn}
           />
@@ -246,5 +265,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.text,
     fontWeight: "500",
+  },
+  addressStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 4,
+    marginLeft: 2,
+  },
+  addressChecking: {
+    fontSize: 12,
+    color: theme.colors.textLight,
+  },
+  addressError: {
+    fontSize: 12,
+    color: theme.colors.danger,
+    marginTop: 4,
+    marginLeft: 2,
   },
 });

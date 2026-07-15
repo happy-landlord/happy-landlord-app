@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -20,6 +20,8 @@ import { normaliseSuburb } from "@/lib/utils";
 export type PlaceResult = {
   placeId: string;
   description: string;
+  /** Unit / apartment number, separate from the building street number. */
+  unitNumber?: string;
   streetNumber?: string;
   street?: string;
   suburb?: string;
@@ -37,6 +39,8 @@ type AddressSearchProps = {
   placeholder?: string;
   label?: string;
   required?: boolean;
+  /** Pre-fill the text input with this value (e.g. current address when editing). */
+  initialValue?: string;
   /** Background colour of the floating label pill — should match the parent surface. */
   labelBackground?: string;
   /** Optional style for the outer field container. */
@@ -80,6 +84,7 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
       placeholder = "Search address…",
       label,
       required,
+      initialValue,
       labelBackground,
       containerStyle,
       borderless = false,
@@ -88,12 +93,19 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
     },
     ref,
   ) {
-    const [text, setText] = useState("");
+    const [text, setText] = useState(initialValue ?? "");
     const [focused, setFocused] = useState(false);
     const placesRef = useRef<GooglePlacesAutocompleteRef>(null);
 
     const iconVisible = showIcon ?? !label;
     const iconColor = focused ? theme.colors.accent : theme.colors.textLight;
+
+    // Pre-fill the Google Places input with the initial value after mount
+    useEffect(() => {
+      if (initialValue && placesRef.current) {
+        placesRef.current.setAddressText(initialValue);
+      }
+    }, [initialValue]);
 
     const debouncedFallbackSelect = useDebouncedCallback((raw: string) => {
       const trimmed = raw.trim();
@@ -229,10 +241,33 @@ function parsePlace(
   const getShort = (...types: string[]) =>
     components.find((c) => types.every((t) => c.types.includes(t)))?.short_name;
 
+  // Google Places may return the unit number in the dedicated `subpremise`
+  // component (e.g. "Unit 4"), or embed it in `street_number` using the
+  // Australian slash format (e.g. "4/12" where 4 = unit, 12 = building).
+  const subpremise = get("subpremise");
+  const rawStreetNumber = get("street_number") ?? "";
+
+  let unitNumber: string | undefined;
+  let streetNumber: string | undefined;
+
+  if (subpremise) {
+    // Explicit subpremise component: keep street_number as-is
+    unitNumber = subpremise.replace(/^unit\s*/i, "").trim() || undefined;
+    streetNumber = rawStreetNumber || undefined;
+  } else if (rawStreetNumber.includes("/")) {
+    // Australian slash format "4/12": split into unit / building number
+    const slash = rawStreetNumber.indexOf("/");
+    unitNumber = rawStreetNumber.slice(0, slash).trim() || undefined;
+    streetNumber = rawStreetNumber.slice(slash + 1).trim() || undefined;
+  } else {
+    streetNumber = rawStreetNumber || undefined;
+  }
+
   return {
     placeId: data.place_id,
     description: data.description,
-    streetNumber: get("street_number"),
+    unitNumber,
+    streetNumber,
     street: get("route"),
     suburb: normaliseSuburb(
       get("sublocality_level_1") ?? get("locality") ?? get("postal_town"),

@@ -107,8 +107,8 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
 
-  imagePane: { width: 74 },
-  image: { width: "100%", height: "100%" },
+  imagePane: { width: 74},
+  image: { ...StyleSheet.absoluteFillObject },
   imageFallback: {
     flex: 1,
     alignItems: "center",

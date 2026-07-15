@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  ActivityIndicator,
   Keyboard,
   Pressable,
   ScrollView,
@@ -53,6 +54,10 @@ type Props = {
   onAddressSelect: (place: PlaceResult) => void;
   keys: KeyEntry[];
   onKeysChange: (keys: KeyEntry[]) => void;
+  /** Set while the duplicate-address check is in flight. */
+  addressChecking?: boolean;
+  /** Error message to show below the address field (e.g. duplicate warning). */
+  addressError?: string | null;
 };
 
 export function PropertyInfoStep({
@@ -61,6 +66,8 @@ export function PropertyInfoStep({
   onAddressSelect,
   keys,
   onKeysChange,
+  addressChecking = false,
+  addressError = null,
 }: Props) {
   const [showTypePicker, setShowTypePicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -138,6 +145,21 @@ export function PropertyInfoStep({
           onAddressSelect(place);
         }}
       />
+
+      {/* Inline address check feedback */}
+      {addressChecking && (
+        <View style={styles.addressFeedbackRow}>
+          <ActivityIndicator size="small" color={theme.colors.textMuted} />
+          <Text style={styles.addressCheckingText}>Checking address…</Text>
+        </View>
+      )}
+      {!addressChecking && addressError && (
+        <View style={styles.addressFeedbackRow}>
+          <Text style={styles.addressErrorText}>{addressError}</Text>
+        </View>
+      )}
+
+      {/* Unit / Apt number — removed; unit is auto-extracted from the address */}
 
       <OutlinedSelect
         label="Property Type"
@@ -430,6 +452,24 @@ const styles = StyleSheet.create({
   addressField: {
     zIndex: 1000,
     elevation: 24,
+  },
+  addressFeedbackRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    marginTop: -theme.spacing.xs,
+    paddingHorizontal: 4,
+  },
+  addressCheckingText: {
+    fontSize: 13,
+    color: theme.colors.textMuted,
+    fontStyle: "italic",
+  },
+  addressErrorText: {
+    fontSize: 13,
+    color: theme.colors.danger,
+    fontWeight: "500",
+    flexShrink: 1,
   },
   inlineRow: {
     flexDirection: "row",

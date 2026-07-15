@@ -12,6 +12,7 @@ import {
   useNotificationsLifecycle,
   useBiometricEnrolmentPrompt,
   useBiometricLockGate,
+  useProfileStatusListener,
 } from "@/lib/hooks";
 import { FEATURES } from "@/constants";
 
@@ -39,6 +40,9 @@ export default function AppLayout() {
 
   // ── Notification hooks (auto-read current user internally) ──────────────
   useNotificationsLifecycle();
+
+  // ── Real-time profile status listener (approval / rejection / deactivation)
+  useProfileStatusListener();
 
   // ── Loading ─────────────────────────────────────────────────────────────
   const isLoading =
@@ -99,6 +103,7 @@ export default function AppLayout() {
           options={{ title: "Notifications" }}
         />
         <Stack.Screen name="settings" options={{ title: "Settings" }} />
+        <Stack.Screen name="developer" options={{ title: "Developer Console" }} />
         <Stack.Screen name="help" options={{ title: "Help" }} />
         <Stack.Screen name="holding" options={{ headerShown: false }} />
       </Stack>

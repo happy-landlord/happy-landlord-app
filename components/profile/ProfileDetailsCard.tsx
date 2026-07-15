@@ -1,15 +1,14 @@
 ﻿import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { Check, Pencil, Phone, User, X } from "lucide-react-native";
+import { AtSign, Check, Pencil, User, X } from "lucide-react-native";
 
 import { theme } from "@/constants";
 import { useProfile, useUpdateProfile } from "@/lib/hooks";
-import { normalizeAustralianPhone, formatAustralianPhoneForDisplay } from "@/lib/utils";
 import type { ProfileEdits } from "@/lib/services";
 import { Button, Input } from "@/components/ui";
 
 // ── ProfileDetailsCard ───────────────────────────────────────────────────────
-// View / edit name + phone for the current user.
+// View / edit name + email for the current user.
 // Reads + writes via TanStack hooks — no props.
 
 export function ProfileDetailsCard() {
@@ -18,16 +17,16 @@ export function ProfileDetailsCard() {
 
   const [editing, setEditing] = useState(false);
   const [draftName, setDraftName] = useState("");
-  const [draftPhone, setDraftPhone] = useState("");
+  const [draftEmail, setDraftEmail] = useState("");
 
   if (!profile) return null;
 
   const hasName = Boolean(profile.full_name?.trim());
-  const hasPhone = Boolean(profile.phone?.trim());
+  const hasEmail = Boolean(profile.email?.trim());
 
   const startEdit = () => {
     setDraftName(profile.full_name ?? "");
-    setDraftPhone(profile.phone ?? "");
+    setDraftEmail(profile.email ?? "");
     setEditing(true);
   };
 
@@ -36,7 +35,7 @@ export function ProfileDetailsCard() {
   const saveEdit = () => {
     const edits: ProfileEdits = {
       full_name: draftName.trim() || null,
-      phone: draftPhone.trim() ? normalizeAustralianPhone(draftPhone) : null,
+      email: draftEmail.trim() || null,
     };
     updateMutation.mutate(edits, {
       onSuccess: () => setEditing(false),
@@ -62,12 +61,14 @@ export function ProfileDetailsCard() {
             labelBackground={theme.colors.surface}
           />
           <Input
-            label="Phone"
-            value={draftPhone}
-            onChangeText={setDraftPhone}
-            placeholder="Add phone number"
-            keyboardType="phone-pad"
-            textContentType="telephoneNumber"
+            label="Email"
+            value={draftEmail}
+            onChangeText={setDraftEmail}
+            placeholder="Enter your email address"
+            keyboardType="email-address"
+            textContentType="emailAddress"
+            autoCapitalize="none"
+            autoCorrect={false}
             returnKeyType="done"
             labelBackground={theme.colors.surface}
           />
@@ -88,14 +89,12 @@ export function ProfileDetailsCard() {
 
           <DetailRow
             icon={
-              <Phone size={16} color={theme.colors.accent} strokeWidth={1.9} />
+              <AtSign size={16} color={theme.colors.accent} strokeWidth={1.9} />
             }
-            label="Phone"
+            label="Email"
           >
-            <Text style={[styles.value, !hasPhone && styles.empty]}>
-              {profile.phone?.trim()
-                ? formatAustralianPhoneForDisplay(profile.phone.trim())
-                : "Not set"}
+            <Text style={[styles.value, !hasEmail && styles.empty]}>
+              {profile.email?.trim() || "Not set"}
             </Text>
           </DetailRow>
         </View>

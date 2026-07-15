@@ -53,6 +53,7 @@ export const KeySetsSection = memo(function KeySetsSection({
 
   return isAdmin ? (
     <AdminKeysView
+      propertyId={propertyId}
       keySets={keySets ?? []}
       unassignedKeys={unassignedKeys ?? []}
     />

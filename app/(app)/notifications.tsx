@@ -3,12 +3,9 @@ import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Bell } from "lucide-react-native";
 
-import {
-  AdminPushTestPanel,
-  NotificationCard,
-} from "@/components/notification";
+import { NotificationCard } from "@/components/notification";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui";
-import { FEATURES, theme } from "@/constants";
+import { theme } from "@/constants";
 import {
   useMarkNotificationRead,
   useNotifications,
@@ -74,7 +71,7 @@ export default function NotificationsScreen() {
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         contentContainerStyle={[
           styles.list,
-          (!data || data.length === 0) && !FEATURES.DEVELOPER_SECTION && styles.listEmpty,
+          (!data || data.length === 0) && styles.listEmpty,
         ]}
         refreshControl={
           <RefreshControl
@@ -82,7 +79,6 @@ export default function NotificationsScreen() {
             onRefresh={refetch}
           />
         }
-        ListHeaderComponent={FEATURES.DEVELOPER_SECTION ? <AdminPushTestPanel /> : null}
         ListEmptyComponent={
           <EmptyState
             Icon={Bell}

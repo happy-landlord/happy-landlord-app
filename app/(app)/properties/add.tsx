@@ -31,6 +31,8 @@ export default function AddPropertyScreen() {
     keys,
     keySets,
     propertyCode,
+    addressError,
+    addressChecking,
     isLastStep,
     isSaving,
     nextLabel,
@@ -68,6 +70,8 @@ export default function AddPropertyScreen() {
             onAddressSelect={onAddressSelect}
             keys={keys}
             onKeysChange={setKeys}
+            addressChecking={addressChecking}
+            addressError={addressError}
           />
         )}
         {step === 2 && (

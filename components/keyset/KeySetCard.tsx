@@ -45,15 +45,19 @@ export function KeySetCard({
     getKeySetCardStatus(keySet, availability);
 
   const holder = keySet.current_holder;
-  const holderName = holder?.full_name;
+  // full_name is nullable in the DB — fall back to phone or a placeholder so
+  // the holder block is never silently hidden when a holder record exists.
+  const holderName = holder?.full_name ?? holder?.phone ?? "Unknown holder";
   const totalKeys = getTotalKeyQuantity(keySet);
   const keyCountLabel = `${totalKeys} ${totalKeys === 1 ? "key" : "keys"}`;
   const isAdmin = variant === "admin";
   const isAdminPressable = isAdmin && !!onPress;
 
+  // Show holder info whenever a holder record exists for statuses that imply
+  // someone has the keyset. Previously gated on !!holderName which silently
+  // suppressed the block whenever full_name was null.
   const showHolder =
-    (isCheckedOut || isHandover || (isAdmin && isMissingDamaged)) &&
-    !!holderName;
+    (isCheckedOut || isHandover || (isAdmin && isMissingDamaged)) && !!holder;
 
   const holderMeta: MetaItem[] | undefined = showHolder
     ? [
@@ -116,4 +120,3 @@ const cardStyles = StyleSheet.create({
     letterSpacing: 0,
   },
 });
-

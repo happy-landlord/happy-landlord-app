@@ -1,5 +1,6 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 
 import { PropertyCard } from "@/components/property";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui";
@@ -26,9 +27,20 @@ const EMPTY_MESSAGE_BY_TAB: Record<AdminPropertyTab, string> = {
 export default function PropertiesScreen() {
   const listPaddingBottom = useBottomListPadding();
   const { isAdmin } = useRole();
+  const { tab } = useLocalSearchParams<{ tab?: AdminPropertyTab }>();
 
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
-  const [adminTab, setAdminTab] = useState<AdminPropertyTab>("active");
+  const [adminTab, setAdminTab] = useState<AdminPropertyTab>(
+    tab && ["active", "leased", "inactive"].includes(tab) ? tab : "active",
+  );
+
+  // Sync tab when the route param changes (tab screens stay mounted, so
+  // useState initial value only runs once — useEffect handles re-navigation).
+  useEffect(() => {
+    if (tab && ["active", "leased", "inactive"].includes(tab)) {
+      setAdminTab(tab);
+    }
+  }, [tab]);
 
   const search = placeSearchLabel(selectedPlace);
   const status: PropertyStatus = isAdmin ? adminTab : "active";

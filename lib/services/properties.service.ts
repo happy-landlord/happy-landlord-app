@@ -174,6 +174,40 @@ export async function fetchPropertyByCode(
   return data;
 }
 
+/**
+ * Checks if a property already exists at a given Google Place ID + unit number.
+ *
+ * Two properties at the SAME building (same placeId) are distinct when they
+ * have different unit numbers (e.g. "Unit 1" vs "Unit 2"). A duplicate is
+ * only flagged when BOTH the place ID and the unit number match exactly
+ * (treating null / blank as the same — i.e. "no unit").
+ *
+ * Returns `null` when no match is found or `placeId` is blank.
+ */
+export async function fetchPropertyByPlaceId(
+  placeId: string,
+  unitNumber?: string | null,
+): Promise<DbProperty | null> {
+  if (!placeId) return null;
+
+  const normalizedUnit = unitNumber?.trim() || null;
+
+  let query = supabase
+    .from("properties")
+    .select("id, property_code, address, unit_number, suburb")
+    .eq("google_place_id", placeId);
+
+  if (normalizedUnit) {
+    query = query.eq("unit_number", normalizedUnit);
+  } else {
+    query = query.is("unit_number", null);
+  }
+
+  const { data, error } = await query.limit(1).maybeSingle();
+  if (error) throw error;
+  return data as DbProperty | null;
+}
+
 /** Admin — fetches all columns including joined landlord holder */
 export async function fetchPropertyById(
   id: string,
@@ -339,6 +373,28 @@ export async function createProperty(
 
   if (error) throw error;
   return data;
+}
+
+/**
+ * Deletes a property row by id.
+ * Used as a rollback step when downstream creation (keyset/key) fails after
+ * the property row has already been inserted.
+ *
+ * Errors are swallowed so that the original error is not masked.
+ */
+export async function deleteProperty(propertyId: string): Promise<void> {
+  await supabase.from("properties").delete().eq("id", propertyId);
+}
+
+/**
+ * Deletes a key_holder row by id.
+ * Used as a rollback step when property creation fails after a landlord
+ * key_holder was already inserted.
+ *
+ * Errors are swallowed so that the original error is not masked.
+ */
+export async function deleteKeyHolder(holderId: string): Promise<void> {
+  await supabase.from("key_holders").delete().eq("id", holderId);
 }
 
 /** Updates editable fields on a property and returns the updated record. */

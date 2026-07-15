@@ -67,11 +67,13 @@ export function KeySetPropertyCard({
   const eyebrow = [suburb, countLabel].filter(Boolean).join(" · ") || undefined;
 
   const holder = item.current_holder;
-  const holderName = holder?.full_name ?? null;
+  // full_name is nullable — fall back to phone or placeholder so the holder
+  // block is never suppressed when a holder record exists.
+  const holderName = holder?.full_name ?? holder?.phone ?? "Unknown holder";
   const renderHolder =
     showHolder &&
     (isCheckedOut || isHandover || isMissingDamaged) &&
-    !!holderName;
+    !!holder;
 
   const holderMeta: MetaItem[] | undefined = renderHolder
     ? [

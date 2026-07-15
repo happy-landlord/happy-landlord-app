@@ -5,12 +5,13 @@ import {
   HelpCircle,
   LogOut,
   ClipboardList,
+  Terminal,
   UserCircle,
 } from "lucide-react-native";
 
 import { BottomSheet } from "@/components/ui";
 import { RoleGate } from "@/components/RoleGate";
-import { theme } from "@/constants";
+import { theme, FEATURES } from "@/constants";
 import { usePendingRequests, useSignOut } from "@/lib/hooks";
 
 type MenuSheetProps = {
@@ -67,6 +68,16 @@ export function MenuSheet({ visible, onClose }: MenuSheetProps) {
           onPress={() => navigate("/(app)/help")}
         />
         <View style={styles.divider} />
+        {FEATURES.DEVELOPER_SECTION && (
+          <>
+            <MenuItem
+              Icon={Terminal}
+              label="Developer Console"
+              onPress={() => navigate("/(app)/developer")}
+            />
+            <View style={styles.divider} />
+          </>
+        )}
         <MenuItem
           Icon={LogOut}
           label="Sign out"

@@ -4,7 +4,7 @@ import { logger } from "@/lib/utils/logger";
 import type { DbKeyHolder, DbProfile, DbProfileUpdate } from "@/types";
 
 /** Profile fields the user can edit themselves. */
-export type ProfileEdits = Pick<DbProfileUpdate, "full_name" | "phone" | "profile_image">;
+export type ProfileEdits = Pick<DbProfileUpdate, "full_name" | "email" | "profile_image">;
 export type AgentProfile = DbProfile & {
   key_holder_full_name: string | null;
   key_holder_phone: string | null;
@@ -136,15 +136,16 @@ export async function fetchProfile(userId: string): Promise<DbProfile | null> {
   return data as DbProfile | null;
 }
 
+
 export async function updateProfile(
   userId: string,
   edits: ProfileEdits
 ): Promise<DbProfile> {
-  // Explicitly allow only the three editable fields — never forward
-  // id, email, role, status, or created_at from the caller.
+  // Explicitly allow only the editable fields — never forward
+  // id, phone, role, status, or created_at from the caller.
   const payload: ProfileEdits = {
-  // Explicitly allow only the two editable fields — never forward
-  // id, phone, email, role, status, or created_at from the caller.
+    full_name: edits.full_name,
+    email: edits.email,
     profile_image: edits.profile_image,
   };
   const { error } = await supabase

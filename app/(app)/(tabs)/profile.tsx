@@ -40,14 +40,9 @@ export default function ProfileScreen() {
     >
       <View style={styles.hero}>
         <ProfileAvatar />
-        <Text style={styles.email} numberOfLines={1}>
+        <Text style={styles.phone} numberOfLines={1}>
           {profile.phone ?? "No phone number set"}
         </Text>
-        {profile.email ? (
-          <Text style={styles.email} numberOfLines={1}>
-            {profile.email}
-          </Text>
-        ) : null}
       </View>
       <ProfileDetailsCard />
     </ScrollView>

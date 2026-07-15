@@ -131,9 +131,6 @@ export function getKeySetTone(keySet: KeySetWithStatus): KeySetCardTone {
  *
  * Returns `null` when no property code has been generated yet (used by the
  * wizard UI to show a loading state for QR buttons).
- *
- * The `propertyCode` and `total` params are kept for API compatibility but
- * are no longer used in code construction — keyset codes are always S1, S2, etc.
  */
 export function buildKeySetCode(
   propertyCode: string | null,

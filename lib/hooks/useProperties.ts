@@ -9,6 +9,7 @@ import { useRole } from "@/hooks";
 import {
   createKeyHolder,
   createProperty,
+  deleteProperty,
   fetchProperties,
   fetchPropertyById,
   fetchPropertyByIdForAgent,
@@ -23,6 +24,7 @@ import {
   DbPropertyUpdate,
   PropertyStatus,
 } from "@/types";
+
 export function useInfiniteProperties({
   search = "",
   status,
@@ -49,6 +51,7 @@ export function useInfiniteProperties({
     properties: query.data?.properties ?? [],
   };
 }
+
 export function useProperty(id: string) {
   const { isAdmin } = useRole();
   return useQuery({
@@ -59,6 +62,7 @@ export function useProperty(id: string) {
     staleTime: STALE_TIME.short,
   });
 }
+
 export function usePropertyTenant(propertyId: string, enabled = true) {
   return useQuery({
     queryKey: ["propertyTenant", propertyId],
@@ -67,6 +71,7 @@ export function usePropertyTenant(propertyId: string, enabled = true) {
     staleTime: STALE_TIME.short,
   });
 }
+
 export function useCreateProperty() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -80,6 +85,7 @@ export function useCreateProperty() {
     },
   });
 }
+
 export function useUpdateProperty(propertyId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -87,6 +93,7 @@ export function useUpdateProperty(propertyId: string) {
     onSuccess: () => invalidateProperties(queryClient, propertyId),
   });
 }
+
 /**
  * Combined edit mutation used by `PropertyEditSheet`. Patches the property
  * row + the joined landlord key-holder in one logical operation:
@@ -103,6 +110,7 @@ export type UpdatePropertyDetailsInput = {
     phone: string;
   };
 };
+
 export function useUpdatePropertyDetails(propertyId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -129,5 +137,24 @@ export function useUpdatePropertyDetails(propertyId: string) {
       return updateProperty(propertyId, fullPatch);
     },
     onSuccess: () => invalidateProperties(queryClient, propertyId),
+  });
+}
+
+/**
+ * Permanently deletes a property and all its associated data.
+ * The caller is responsible for showing a confirmation prompt before invoking.
+ * On success, all related query caches are invalidated.
+ */
+export function useDeleteProperty() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (propertyId: string) => deleteProperty(propertyId),
+    onSuccess: (_data, propertyId) => {
+      invalidateProperties(queryClient, propertyId);
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["keys"] });
+      queryClient.invalidateQueries({ queryKey: ["keySets"] });
+      queryClient.invalidateQueries({ queryKey: ["activity"] });
+    },
   });
 }

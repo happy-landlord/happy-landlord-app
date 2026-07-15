@@ -300,6 +300,24 @@ export async function createNotification(params: {
   return data as string;
 }
 
+/**
+ * Calls the `notify-admins-of-request` Edge Function which runs server-side
+ * with the service role. Admin user IDs are fetched there — never on the client.
+ *
+ * Errors are swallowed — notification failure must never block request submission.
+ */
+export async function notifyAdminsOfRequest(
+  agentName: string | null,
+): Promise<void> {
+  try {
+    await supabase.functions.invoke("notify-admin-registration-request", {
+      body: { agent_name: agentName },
+    });
+  } catch {
+    // Don't let notification errors surface to the caller
+  }
+}
+
 // ── Navigation target resolution ─────────────────────────────────────────────
 // Both push payloads (`NotificationNavigationData`) and DB rows
 // (`DbNotification`) eventually want the same routing decision. Normalise both

@@ -10,6 +10,7 @@ import type { ComponentType } from "react";
 import {
   AppWindow,
   CreditCard,
+  DoorOpen,
   Key,
   KeyRound,
   Layers,
@@ -40,6 +41,7 @@ export const KEY_TYPE_ICON: Record<KeyType, LucideIcon> = {
   common_area: Lock,
   security: Shield,
   balcony: Layers,
+  fire_door: DoorOpen,
   other: KeyRound,
 };
 
@@ -54,6 +56,7 @@ export const KEY_TYPE_LABEL: Record<KeyType, string> = {
   common_area: "Common Area",
   security: "Security Key",
   balcony: "Balcony Key",
+  fire_door: "Fire Door Key",
   other: "Other Key",
 };
 
@@ -69,6 +72,7 @@ export const KEY_TYPE_SHORT: Record<KeyType, string> = {
   common_area: "CA",
   security: "SY",
   balcony: "BL",
+  fire_door: "FD",
   other: "OT",
 };
 

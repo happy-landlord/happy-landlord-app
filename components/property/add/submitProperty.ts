@@ -4,6 +4,8 @@
   createKeySet,
   uploadKeySetImages,
   updateKeySetImages,
+  deleteProperty,
+  deleteKeyHolder,
 } from "@/lib/services";
 import {
   buildKeySetCode,
@@ -11,7 +13,6 @@ import {
   normalizeAustralianPhone,
   formatLongDate,
   getUnallocatedKeys,
-  keySetQrUrl,
 } from "@/lib/utils";
 import type { DbKeyInsert, DbProperty, DbPropertyInsert } from "@/types";
 import { KEY_TYPE_LABEL } from "@/constants";
@@ -55,7 +56,7 @@ export async function submitProperty({
   const created = await createProperty({
     property_code: propertyCode,
     address: buildStreetAddress(place),
-    unit_number: null,
+    unit_number: place.unitNumber?.trim() || null,
     suburb: place.suburb ?? "",
     city: place.suburb ?? place.state ?? "",
     postcode: place.postcode ?? null,
@@ -73,47 +74,60 @@ export async function submitProperty({
 
   // 3. Create each keyset with its selected keys. A key can appear only once
   // per keyset, so each assigned key record has quantity 1.
-  for (let i = 0; i < keySets.length; i++) {
-    const draft = keySets[i];
-    const code = buildKeySetCode(propertyCode, i, keySets.length);
-    if (!code) {
-      // Defensive: we validated propertyCode above, so this should not happen.
-      throw new Error("Failed to generate keyset code.");
+  // If anything below fails we roll back the property row (and landlord holder)
+  // so the DB is never left in a partially-created state.
+  try {
+    for (let i = 0; i < keySets.length; i++) {
+      const draft = keySets[i];
+      const code = buildKeySetCode(propertyCode, i, keySets.length);
+      if (!code) {
+        // Defensive: we validated propertyCode above, so this should not happen.
+        throw new Error("Failed to generate keyset code.");
+      }
+
+      const keySet = await createKeySet({
+        property_id: created.id,
+        code,
+        name: draft.name,
+        status: "available",
+        qr_code: `${propertyCode}-${code}`,
+      });
+
+      if (draft.photoUris.length > 0) {
+        const images = await uploadKeySetImages(
+          created.id,
+          keySet.id,
+          draft.photoUris,
+        );
+        await updateKeySetImages(keySet.id, images);
+      }
+
+      const draftKeys = keys.filter((k) => draft.keyIds.includes(k.id));
+      if (draftKeys.length > 0) {
+        await createKeys(buildKeyInserts(created.id, keySet.id, draftKeys, 1));
+      }
     }
 
-    const keySet = await createKeySet({
-      property_id: created.id,
-      code,
-      name: draft.name,
-      status: "available",
-      qr_code: keySetQrUrl(code),
-    });
+    // 4. Persist leftover keys as unassigned keys (key_set_id = null), matching
+    // the admin property-detail page's unassigned key section.
+    const unassigned = getUnallocatedKeys(keys, countAllocatedKeys(keySets));
 
-    if (draft.photoUris.length > 0) {
-      const images = await uploadKeySetImages(
-        created.id,
-        keySet.id,
-        draft.photoUris,
+    if (unassigned.length > 0) {
+      await createKeys(
+        unassigned.map(({ key, quantity }) =>
+          buildKeyInsert(created.id, null, key, quantity),
+        ),
       );
-      await updateKeySetImages(keySet.id, images);
     }
-
-    const draftKeys = keys.filter((k) => draft.keyIds.includes(k.id));
-    if (draftKeys.length > 0) {
-      await createKeys(buildKeyInserts(created.id, keySet.id, draftKeys, 1));
+  } catch (err) {
+    // Roll back: delete the property row (cascades to any partial keysets/keys
+    // if FK constraints use ON DELETE CASCADE; otherwise clean slate since the
+    // property was brand-new). Also remove the landlord holder if we created one.
+    await deleteProperty(created.id);
+    if (landlordHolderId) {
+      await deleteKeyHolder(landlordHolderId);
     }
-  }
-
-  // 4. Persist leftover keys as unassigned keys (key_set_id = null), matching
-  // the admin property-detail page's unassigned key section.
-  const unassigned = getUnallocatedKeys(keys, countAllocatedKeys(keySets));
-
-  if (unassigned.length > 0) {
-    await createKeys(
-      unassigned.map(({ key, quantity }) =>
-        buildKeyInsert(created.id, null, key, quantity),
-      ),
-    );
+    throw err;
   }
 
   return created;

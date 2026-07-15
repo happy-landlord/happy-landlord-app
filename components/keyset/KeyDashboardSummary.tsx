@@ -1,5 +1,6 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Path, Text as SvgText } from "react-native-svg";
+import { useRouter } from "expo-router";
 
 import { theme } from "@/constants";
 import { useAdminDashboardSummary } from "@/lib/hooks";
@@ -120,27 +121,58 @@ function buildSegments(d: AdminDashboardSummary): Segment[] {
 
 export function PropertyStatsBanner() {
   const { data, isLoading, isError } = useAdminDashboardSummary();
+  const router = useRouter();
 
   if (isLoading || isError || !data) return null;
 
+  function goToProperties(tab: "active" | "leased" | "inactive") {
+    router.push({
+      pathname: "/(app)/(tabs)/properties",
+      params: { tab },
+    } as never);
+  }
+
   return (
     <View style={styles.statsRow}>
-      <View style={styles.statCard}>
+      <Pressable
+        style={({ pressed }) => [styles.statCard, pressed && styles.statCardPressed]}
+        onPress={() => goToProperties("active")}
+        accessibilityRole="button"
+        accessibilityLabel="View all properties"
+      >
         <Text style={styles.statValue}>{data.total_properties}</Text>
         <Text style={styles.statLabel}>Properties</Text>
-      </View>
-      <View style={[styles.statCard, styles.statCardAccent]}>
+      </Pressable>
+      <Pressable
+        style={({ pressed }) => [
+          styles.statCard,
+          styles.statCardAccent,
+          pressed && styles.statCardPressed,
+        ]}
+        onPress={() => goToProperties("leased")}
+        accessibilityRole="button"
+        accessibilityLabel="View leased properties"
+      >
         <Text style={[styles.statValue, { color: theme.colors.info }]}>
           {data.leased_properties}
         </Text>
         <Text style={styles.statLabel}>Leased</Text>
-      </View>
-      <View style={[styles.statCard, styles.statCardNeutral]}>
+      </Pressable>
+      <Pressable
+        style={({ pressed }) => [
+          styles.statCard,
+          styles.statCardNeutral,
+          pressed && styles.statCardPressed,
+        ]}
+        onPress={() => goToProperties("inactive")}
+        accessibilityRole="button"
+        accessibilityLabel="View inactive properties"
+      >
         <Text style={[styles.statValue, { color: theme.colors.neutral }]}>
           {data.inactive_properties}
         </Text>
         <Text style={styles.statLabel}>Inactive</Text>
-      </View>
+      </Pressable>
     </View>
   );
 }
@@ -264,6 +296,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: theme.spacing.md,
     gap: 4,
+  },
+  statCardPressed: {
+    opacity: 0.7,
   },
   statCardAccent: {
     borderColor: theme.colors.infoSoft,

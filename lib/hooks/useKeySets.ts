@@ -17,6 +17,7 @@ import {
   reportKeySetLost,
   undoReportKeySetLost,
   updateKeySet,
+  deleteKeySet,
   handoverKeysetsToTenant,
   handoverPropertyToLandlord,
   collectKeysetsFromTenant,
@@ -276,6 +277,22 @@ export function useUpdateKeySet(propertyId: string, keySetId: string) {
   return useMutation({
     mutationFn: (patch: { name?: string }) => updateKeySet(keySetId, patch),
     onSuccess: () => invalidateKeySets(queryClient, propertyId, keySetId),
+  });
+}
+
+/**
+ * Permanently deletes a keyset (and its keys via ON DELETE CASCADE).
+ * The caller is responsible for showing a confirmation prompt before invoking.
+ */
+export function useDeleteKeySet(propertyId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (keySetId: string) => deleteKeySet(keySetId),
+    onSuccess: (_data, keySetId) => {
+      invalidateKeySets(queryClient, propertyId, keySetId);
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["activity"] });
+    },
   });
 }
 

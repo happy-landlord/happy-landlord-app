@@ -36,13 +36,18 @@ export function ReviewStep({ propertyData, keys, keySets }: Props) {
 
   const addressPrimaryLine = propertyData.selectedPlace
     ? [
-        propertyData.selectedPlace.streetNumber,
-        propertyData.selectedPlace.street,
+        propertyData.selectedPlace.unitNumber?.trim() || null,
+        [
+          propertyData.selectedPlace.streetNumber,
+          propertyData.selectedPlace.street,
+        ]
+          .filter(Boolean)
+          .join(" ") ||
+          descriptionParts[0] ||
+          null,
       ]
         .filter(Boolean)
-        .join(" ") ||
-      descriptionParts[0] ||
-      "—"
+        .join(" / ") || "—"
     : "—";
 
   const addressSecondaryLine = propertyData.selectedPlace
@@ -162,7 +167,9 @@ export function ReviewStep({ propertyData, keys, keySets }: Props) {
                 <View key={ks.id} style={styles.keySetRow}>
                   <View style={styles.keySetRowTop}>
                     <Text style={styles.keySetIndex}>{i + 1}</Text>
-                    <Text style={styles.keySetName} numberOfLines={1}>{ks.name}</Text>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={styles.keySetName} numberOfLines={1}>{ks.name}</Text>
+                    </View>
                     {ks.photoUris.length > 0 && (
                       <Text style={styles.keySetPhotos}>
                         {ks.photoUris.length} photo{ks.photoUris.length === 1 ? "" : "s"}

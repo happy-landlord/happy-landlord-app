@@ -1,9 +1,13 @@
-﻿import { useState } from "react";
+﻿import { useCallback, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { KEY_TYPE_LABEL } from "@/constants";
 import { useSyncOnce } from "@/hooks";
-import { getKeySignature, showSuccessToast, normalizeAustralianPhone } from "@/lib/utils";
+import {
+  getKeySignature,
+  showSuccessToast,
+  normalizeAustralianPhone,
+} from "@/lib/utils";
 import {
   useAllPropertyKeys,
   useCreateKeys,
@@ -13,7 +17,8 @@ import {
   useUpdateKey,
   useUpdatePropertyDetails,
 } from "@/lib/hooks";
-import { updateKeyHolder } from "@/lib/services";
+import { fetchPropertyByPlaceId, updateKeyHolder } from "@/lib/services";
+import type { PlaceResult } from "@/components/ui";
 import type { EnrichedKey } from "@/lib/hooks";
 import type { DbKeyInsert, KeyType, PropertyType } from "@/types";
 
@@ -106,11 +111,14 @@ export function usePropertyEditForm(propertyId: string) {
     const label = KEY_TYPE_LABEL[type] ?? type;
     const sig = getKeySignature({ key_type: type, label, code });
 
-    const existingMatch = existingDisplay.find((k) => getKeySignature(k) === sig);
+    const existingMatch = existingDisplay.find(
+      (k) => getKeySignature(k) === sig,
+    );
     if (existingMatch) {
       setQtyOverrides((prev) => ({
         ...prev,
-        [existingMatch.id]: (prev[existingMatch.id] ?? existingMatch.quantity) + qty,
+        [existingMatch.id]:
+          (prev[existingMatch.id] ?? existingMatch.quantity) + qty,
       }));
       return;
     }
@@ -147,7 +155,9 @@ export function usePropertyEditForm(propertyId: string) {
 
     if (key.isNew) {
       setPendingCreates((prev) =>
-        prev.map((c) => (c._tempId === key._tempId ? { ...c, quantity: next } : c)),
+        prev.map((c) =>
+          c._tempId === key._tempId ? { ...c, quantity: next } : c,
+        ),
       );
     } else {
       setQtyOverrides((prev) => ({ ...prev, [key.id]: next }));
@@ -156,7 +166,9 @@ export function usePropertyEditForm(propertyId: string) {
 
   function deleteKey(key: DisplayKey) {
     if (key.isNew) {
-      setPendingCreates((prev) => prev.filter((c) => c._tempId !== key._tempId));
+      setPendingCreates((prev) =>
+        prev.filter((c) => c._tempId !== key._tempId),
+      );
     } else {
       setDeletedIds((prev) => [...prev, key.id]);
       setQtyOverrides((prev) => {
@@ -177,7 +189,9 @@ export function usePropertyEditForm(propertyId: string) {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["propertyTenant", propertyId] });
+      queryClient.invalidateQueries({
+        queryKey: ["propertyTenant", propertyId],
+      });
     },
   });
   const createMut = useCreateKeys(propertyId);
@@ -186,17 +200,67 @@ export function usePropertyEditForm(propertyId: string) {
 
   // ── Save ─────────────────────────────────────────────────────────────────
   const [isSaving, setIsSaving] = useState(false);
-  const isPending = updateDetailsMut.isPending || tenantUpdateMut.isPending || isSaving;
+  const isPending =
+    updateDetailsMut.isPending || tenantUpdateMut.isPending || isSaving;
+
+  // ── Address state ─────────────────────────────────────────────────────────
+  const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
+  const [addressError, setAddressError] = useState<string | null>(null);
+  const [addressChecking, setAddressChecking] = useState(false);
+
+  const onAddressSelect = useCallback(
+    async (place: PlaceResult) => {
+      setSelectedPlace(place);
+      setAddressError(null);
+      if (!place.placeId) return;
+      setAddressChecking(true);
+      try {
+        const unitToCheck = place.unitNumber?.trim() || null;
+        const existing = await fetchPropertyByPlaceId(
+          place.placeId,
+          unitToCheck,
+        );
+        if (existing && existing.id !== propertyId) {
+          setAddressError(`A property already exists at this address.`);
+        }
+      } catch {
+        // Silently ignore — don't block the user
+      } finally {
+        setAddressChecking(false);
+      }
+    },
+    [propertyId],
+  );
 
   async function save(onSuccess: () => void) {
     if (isPending || !property) return;
+    if (addressChecking) return;
+    if (addressError) return;
     setIsSaving(true);
     try {
+      const addressPatch = selectedPlace
+        ? {
+            address:
+              [selectedPlace.streetNumber, selectedPlace.street]
+                .filter(Boolean)
+                .join(" ") || selectedPlace.description,
+            unit_number: selectedPlace.unitNumber?.trim() || null,
+            suburb: selectedPlace.suburb ?? "",
+            city: selectedPlace.suburb ?? selectedPlace.state ?? "",
+            postcode: selectedPlace.postcode ?? null,
+            formatted_address: selectedPlace.description,
+            google_place_id: selectedPlace.placeId,
+            latitude: selectedPlace.lat ?? null,
+            longitude: selectedPlace.lng ?? null,
+          }
+        : {};
+
       await updateDetailsMut.mutateAsync({
         patch: {
           property_type: propertyType,
           developer_name: developerName.trim() || null,
           cabinet_code: cabinetCode.trim() || null,
+          ...addressPatch,
         },
         landlord: {
           holderId: property.landlord?.id ?? null,
@@ -260,6 +324,9 @@ export function usePropertyEditForm(propertyId: string) {
     deleteKey,
     isPending,
     save,
+    selectedPlace,
+    addressError,
+    addressChecking,
+    onAddressSelect,
   };
 }
-

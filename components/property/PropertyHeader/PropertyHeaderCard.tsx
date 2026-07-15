@@ -4,6 +4,7 @@ import {
   Building2,
   MoreVertical,
   Pencil,
+  Trash2,
   Users,
   ArrowDownToLine,
   PackageOpen,
@@ -20,6 +21,7 @@ import { formatStreetLine } from "@/lib/utils";
 
 export type PropertyHeaderCardActions = {
   onEdit: () => void;
+  onDelete: () => void;
   onHandoverTenant: () => void;
   onHandoverLandlord: () => void;
   onCollect: () => void;
@@ -152,12 +154,6 @@ export const PropertyHeaderCard = memo<PropertyHeaderCardProps>(
           <BottomSheet visible={menuOpen} onClose={() => setMenuOpen(false)}>
             <Text style={styles.sheetTitle}>Property Options</Text>
             <View style={styles.menuItems}>
-              <MenuItem
-                icon={<Pencil size={18} color={theme.colors.text} strokeWidth={1.8} />}
-                label="Edit Property"
-                onPress={() => pick(actions.onEdit)}
-              />
-              <View style={styles.sep} />
               {isLeased ? (
                 <MenuItem
                   icon={<ArrowDownToLine size={18} color={theme.colors.text} strokeWidth={1.8} />}
@@ -185,6 +181,19 @@ export const PropertyHeaderCard = memo<PropertyHeaderCardProps>(
                   />
                 </>
               )}
+              <View style={styles.sep} />
+              <MenuItem
+                icon={<Pencil size={18} color={theme.colors.text} strokeWidth={1.8} />}
+                label="Edit Property"
+                onPress={() => pick(actions.onEdit)}
+              />
+              <View style={styles.sep} />
+              <MenuItem
+                icon={<Trash2 size={18} color={theme.colors.danger} strokeWidth={1.8} />}
+                label="Delete Property"
+                labelStyle={styles.dangerLabel}
+                onPress={() => pick(actions.onDelete)}
+              />
             </View>
           </BottomSheet>
         ) : null}
@@ -198,10 +207,12 @@ export const PropertyHeaderCard = memo<PropertyHeaderCardProps>(
 function MenuItem({
   icon,
   label,
+  labelStyle,
   onPress,
 }: {
   icon: React.ReactNode;
   label: string;
+  labelStyle?: object;
   onPress: () => void;
 }) {
   return (
@@ -210,7 +221,7 @@ function MenuItem({
       onPress={onPress}
     >
       {icon}
-      <Text style={styles.menuItemLabel}>{label}</Text>
+      <Text style={[styles.menuItemLabel, labelStyle]}>{label}</Text>
     </Pressable>
   );
 }
@@ -295,6 +306,9 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: theme.colors.text,
     flex: 1,
+  },
+  dangerLabel: {
+    color: theme.colors.danger,
   },
   sep: {
     height: 1,

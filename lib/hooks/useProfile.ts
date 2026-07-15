@@ -1,6 +1,9 @@
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { QUERY_KEYS } from "@/lib/query";
+import { supabase } from "@/lib/supabase";
+import { useSession } from "@/lib/hooks/useSession";
 import {
   deactivateAgent,
   fetchAgents,
@@ -12,7 +15,6 @@ import {
   uploadProfileImage,
   type ProfileEdits,
 } from "@/lib/services";
-import { useSession } from "@/lib/hooks/useSession";
 
 /** Returns all agent profiles for the admin view. */
 export function useAgents() {
@@ -120,5 +122,52 @@ export function useDeactivateAgent() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.agents.all });
     },
   });
+}
+
+/**
+ * Subscribes to real-time changes on the current user's profile row.
+ * When Supabase emits an UPDATE (e.g. admin approves, rejects, or deactivates
+ * the account), the profile and requests queries are invalidated so the app
+ * layout re-evaluates the route and the holding screen shows the latest
+ * rejection note immediately.
+ *
+ * Mount this once at the app-layout level so it fires regardless of which
+ * screen the user is on (catches in-app deactivation too).
+ */
+export function useProfileStatusListener() {
+  const { session } = useSession();
+  const queryClient = useQueryClient();
+  const userId = session?.user.id;
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const channel = supabase
+      .channel(`profile-status-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "profiles",
+          filter: `id=eq.${userId}`,
+        },
+        () => {
+          // Refresh profile so the layout re-evaluates the status gate.
+          queryClient.invalidateQueries({
+            queryKey: QUERY_KEYS.auth.profile(userId),
+          });
+          // Refresh the latest request so the rejection admin_note is current.
+          queryClient.invalidateQueries({
+            queryKey: QUERY_KEYS.requests.mine,
+          });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, queryClient]);
 }
 

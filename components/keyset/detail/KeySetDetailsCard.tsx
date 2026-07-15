@@ -1,18 +1,25 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
-import { KeyRound, MoreVertical, Pencil } from "lucide-react-native";
+import { KeyRound, MoreVertical, Pencil, Trash2 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
-import { BottomSheet, IconBadge, MetaRow, type MetaItem, ShareQrButton } from "@/components/ui";
+import {
+  BottomSheet,
+  IconBadge,
+  MetaRow,
+  type MetaItem,
+  ShareQrButton,
+} from "@/components/ui";
 import { theme } from "@/constants";
 import {
   useCurrentUserId,
+  useDeleteKeySet,
   useFirstKeySetImageUrl,
   useKeySet,
 } from "@/lib/hooks";
 import { useRole } from "@/hooks";
-import { getTotalKeyQuantity } from "@/lib/utils";
+import { keySetQrUrl, getTotalKeyQuantity } from "@/lib/utils";
 import { getVisibleKeySetImages } from "@/lib/services";
 
 import { getKeySetCardStatus } from "@/components/keyset/getKeySetCardStatus";
@@ -31,6 +38,7 @@ export function KeySetDetailsCard() {
   const { isAdmin } = useRole();
   const availability = useKeysetAvailabilityFor(keySet);
   const { data: imageUrl } = useFirstKeySetImageUrl(keySet?.images);
+  const { mutate: deleteKeySet } = useDeleteKeySet(keySet?.property_id ?? "");
   const [menuOpen, setMenuOpen] = useState(false);
 
   if (!keySet) return null;
@@ -38,7 +46,10 @@ export function KeySetDetailsCard() {
   const hasImage = getVisibleKeySetImages(keySet.images ?? []).length > 0;
 
   const holderProfileId = keySet.current_holder?.profile_id;
-  const { isCheckedOut, chipStatus } = getKeySetCardStatus(keySet, availability);
+  const { isCheckedOut, chipStatus } = getKeySetCardStatus(
+    keySet,
+    availability,
+  );
   const isHeldByMe = isCheckedOut && holderProfileId === currentUserId;
   const isHeldByOther = isCheckedOut && holderProfileId !== currentUserId;
 
@@ -51,6 +62,27 @@ export function KeySetDetailsCard() {
   function pickEdit() {
     setMenuOpen(false);
     setTimeout(() => router.push(`/properties/keyset/edit/${keySetId}`), 250);
+  }
+
+  function pickDelete() {
+    setMenuOpen(false);
+    setTimeout(() => {
+      Alert.alert(
+        "Delete Keyset",
+        "This will permanently delete this keyset and all its keys. This cannot be undone.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: () =>
+              deleteKeySet(keySetId, {
+                onSuccess: () => router.back(),
+              }),
+          },
+        ],
+      );
+    }, 250);
   }
 
   return (
@@ -99,7 +131,11 @@ export function KeySetDetailsCard() {
               accessibilityLabel="Keyset options"
               hitSlop={8}
             >
-              <MoreVertical size={20} color={theme.colors.textLight} strokeWidth={2} />
+              <MoreVertical
+                size={20}
+                color={theme.colors.textLight}
+                strokeWidth={2}
+              />
             </Pressable>
           </View>
         ) : (
@@ -111,7 +147,8 @@ export function KeySetDetailsCard() {
                 <Text style={styles.nameAgent} numberOfLines={1}>
                   {keySet.name}
                   <Text style={styles.agentCount}>
-                    {" "}· {totalKeys} {totalKeys === 1 ? "key" : "keys"}
+                    {" "}
+                    · {totalKeys} {totalKeys === 1 ? "key" : "keys"}
                   </Text>
                 </Text>
                 <KeyStatusChip status={chipStatus} size="md" />
@@ -120,27 +157,28 @@ export function KeySetDetailsCard() {
           </View>
         )}
 
-        {showHolderMeta && (() => {
-          const displayName = isHeldByMe ? "You" : (holderName ?? "Unknown");
-          const showType = holderType && holderType !== "agent";
-          const holderItems: MetaItem[] = [
-            {
-              label: "With",
-              value: `${displayName}${showType ? ` · ${holderType}` : ""}`,
-            },
-            {
-              label: "Contact",
-              value: holderPhone ?? "No contact",
-              phone: !!holderPhone,
-            },
-          ];
-          return (
-            <View style={styles.meta}>
-              <View style={styles.metaDivider} />
-              <MetaRow items={holderItems} divider={false} />
-            </View>
-          );
-        })()}
+        {showHolderMeta &&
+          (() => {
+            const displayName = isHeldByMe ? "You" : (holderName ?? "Unknown");
+            const showType = holderType && holderType !== "agent";
+            const holderItems: MetaItem[] = [
+              {
+                label: "With",
+                value: `${displayName}${showType ? ` · ${holderType}` : ""}`,
+              },
+              {
+                label: "Contact",
+                value: holderPhone ?? "No contact",
+                phone: !!holderPhone,
+              },
+            ];
+            return (
+              <View style={styles.meta}>
+                <View style={styles.metaDivider} />
+                <MetaRow items={holderItems} divider={false} />
+              </View>
+            );
+          })()}
 
         {/* Keys list */}
         {keySet.keys && keySet.keys.length > 0 && (
@@ -156,6 +194,12 @@ export function KeySetDetailsCard() {
         <BottomSheet visible={menuOpen} onClose={() => setMenuOpen(false)}>
           <Text style={styles.sheetTitle}>Keyset Options</Text>
           <View style={styles.menuItems}>
+            <ShareQrButton
+              variant="menuRow"
+              code={keySetQrUrl(keySet.qr_code!)}
+              title={keySet.name}
+            />
+            <View style={styles.sep} />
             <Pressable
               style={({ pressed }) => [
                 styles.menuItem,
@@ -167,11 +211,18 @@ export function KeySetDetailsCard() {
               <Text style={styles.menuItemLabel}>Edit Keyset</Text>
             </Pressable>
             <View style={styles.sep} />
-            <ShareQrButton
-              variant="menuRow"
-              code={keySet.qr_code!}
-              title={keySet.name}
-            />
+            <Pressable
+              style={({ pressed }) => [
+                styles.menuItem,
+                pressed && styles.menuItemPressed,
+              ]}
+              onPress={pickDelete}
+            >
+              <Trash2 size={18} color={theme.colors.danger} strokeWidth={1.8} />
+              <Text style={[styles.menuItemLabel, styles.dangerLabel]}>
+                Delete Keyset
+              </Text>
+            </Pressable>
           </View>
         </BottomSheet>
       )}
@@ -297,6 +348,9 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: theme.colors.text,
     flex: 1,
+  },
+  dangerLabel: {
+    color: theme.colors.danger,
   },
   sep: {
     height: 1,

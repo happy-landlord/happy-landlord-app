@@ -438,6 +438,51 @@ export async function createKeySet(input: DbKeySetInsert): Promise<DbKeySet> {
   return data;
 }
 
+/**
+ * Returns the next safe S-sequence number for a new keyset on this property.
+ *
+ * Queries ALL keyset codes (including inactive ones) to find the current
+ * maximum S-number, then returns max + 1.  This avoids collisions caused by
+ * counting only active keysets — inactive keysets still hold their qr_code in
+ * the unique index, so re-using their slot would fail the constraint.
+ *
+ * E.g. if S1, S2 (inactive), S3 exist → max = 3 → next = 4.
+ */
+export async function fetchNextKeySetSeq(propertyId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from("key_sets")
+    .select("code")
+    .eq("property_id", propertyId);
+
+  if (error || !data || data.length === 0) return 1;
+
+  // Parse trailing S-number from codes like "S3" or "PAR-A01-S3"
+  let maxSeq = 0;
+  for (const row of data) {
+    const match = (row.code as string).match(/S(\d+)$/);
+    if (match) {
+      const n = parseInt(match[1], 10);
+      if (n > maxSeq) maxSeq = n;
+    }
+  }
+  return maxSeq + 1;
+}
+
+/**
+ * Permanently deletes a keyset row by id.
+ * Keys linked to this keyset are removed automatically via ON DELETE CASCADE.
+ * Used as both a cleanup/rollback step and the admin "Delete Keyset" action.
+ *
+ * Errors are NOT swallowed here — callers should handle them.
+ */
+export async function deleteKeySet(keySetId: string): Promise<void> {
+  const { error } = await supabase
+    .from("key_sets")
+    .delete()
+    .eq("id", keySetId);
+  if (error) throw error;
+}
+
 export async function updateKeySet(
   keySetId: string,
   patch: DbKeySetUpdate,

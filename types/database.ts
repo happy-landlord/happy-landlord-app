@@ -311,6 +311,7 @@ export type Database = {
             | "common_area"
             | "security"
             | "balcony"
+            | "fire_door"
             | "other";
           label: string;
           notes: string | null;
@@ -335,6 +336,7 @@ export type Database = {
             | "common_area"
             | "security"
             | "balcony"
+            | "fire_door"
             | "other";
           label: string;
           notes?: string | null;
@@ -359,6 +361,7 @@ export type Database = {
             | "common_area"
             | "security"
             | "balcony"
+            | "fire_door"
             | "other";
           label?: string;
           notes?: string | null;
