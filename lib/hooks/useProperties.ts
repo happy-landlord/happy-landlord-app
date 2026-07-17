@@ -108,6 +108,7 @@ export type UpdatePropertyDetailsInput = {
     holderId: string | null;
     name: string;
     phone: string;
+    notes?: string | null;
   };
 };
 
@@ -125,12 +126,14 @@ export function useUpdatePropertyDetails(propertyId: string) {
         await updateKeyHolder(landlord.holderId, {
           full_name: trimmedName || null,
           phone: normalisedPhone,
+          notes: landlord.notes ?? null,
         });
       } else if (trimmedName || normalisedPhone) {
         const holder = await createKeyHolder({
           holder_type: "landlord",
           full_name: trimmedName || null,
           phone: normalisedPhone,
+          notes: landlord.notes ?? null,
         });
         fullPatch.landlord_holder_id = holder.id;
       }

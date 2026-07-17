@@ -355,8 +355,8 @@ function AgentActivityView() {
 
   const ListHeader = (
     <View style={styles.agentHeader}>
-      {/* Page title */}
-      <View style={styles.pageHeader}>
+      {/* Page title — no extra horizontal padding; agentListContent already pads */}
+      <View style={[styles.pageHeader, styles.agentPageHeader]}>
         <Text style={styles.pageTitle}>Activity</Text>
       </View>
 
@@ -499,8 +499,11 @@ const styles = StyleSheet.create({
   footerLoader: { paddingVertical: theme.spacing.lg, alignItems: "center" },
   // Agent
   agentHeader: {
-    gap: theme.spacing.lg,
+    gap: theme.spacing.sm,
     paddingBottom: theme.spacing.sm,
+  },
+  agentPageHeader: {
+    paddingHorizontal: 0,
   },
   agentListContent: {
     paddingHorizontal: theme.spacing.screen,

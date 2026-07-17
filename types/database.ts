@@ -397,6 +397,7 @@ export type Database = {
           updated_at: string;
           images: { path: string; sort_order: number; is_hidden: boolean }[];
           qr_code: string | null;
+          cabinet_slot: string | null;
         };
         Insert: {
           id?: string;
@@ -419,6 +420,7 @@ export type Database = {
           updated_at?: string;
           images?: { path: string; sort_order: number; is_hidden: boolean }[];
           qr_code?: string | null;
+          cabinet_slot?: string | null;
         };
         Update: {
           id?: string;
@@ -441,6 +443,7 @@ export type Database = {
           updated_at?: string;
           images?: { path: string; sort_order: number; is_hidden: boolean }[];
           qr_code?: string | null;
+          cabinet_slot?: string | null;
         };
         Relationships: [];
       };

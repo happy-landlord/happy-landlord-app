@@ -43,6 +43,7 @@ export function KeySetActionsPanel() {
     isHeldByOther,
     isMissingDamaged,
     showAdminReturn,
+    showAdminReportLost,
     showAgentCheckout,
     showAgentReserve,
     showAgentCancelReservation,
@@ -106,6 +107,15 @@ export function KeySetActionsPanel() {
           variant="accent"
           disabled={isBusy}
           onPress={() => openModal({ kind: "return" })}
+        />
+      )}
+
+      {showAdminReportLost && (
+        <Button
+          title="Mark as Lost"
+          variant="dangerOutline"
+          disabled={isBusy}
+          onPress={() => openModal({ kind: "reportLost" })}
         />
       )}
 

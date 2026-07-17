@@ -9,6 +9,8 @@ export * from "./ConfirmSheet";
 export * from "./EmptyState";
 export * from "./EntityCard";
 export * from "./ErrorState";
+export * from "./FormFooter";
+export * from "./FormSection";
 export * from "./IconBadge";
 export * from "./Input";
 export * from "./LoadingState";

@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { KeyRound, Plus, Trash2 } from "lucide-react-native";
 
 import { KEY_TYPE_ICON, theme } from "@/constants";
-import { PhotoPicker, ShareQrButton } from "@/components/ui";
+import { Input, PhotoPicker, ShareQrButton } from "@/components/ui";
 import { buildKeySetCode, countAllocatedKeys, getDraftKeyLabel, keySetQrUrl } from "@/lib/utils";
 import type { KeyEntry, KeySetDraft } from "./useAddPropertyWizard";
 
@@ -35,6 +35,7 @@ export function KeySetsStep({
       name: `Set ${keySets.length + 1}`,
       photoUris: [],
       keyIds: [],
+      cabinetSlot: null,
     };
     onChange([...keySets, newSet]);
   }
@@ -180,6 +181,7 @@ function KeySetDraftCard({
         </Pressable>
       </View>
 
+
       <View style={styles.divider} />
 
       {/* Assigned keys */}
@@ -288,6 +290,18 @@ function KeySetDraftCard({
           compact
         />
       </View>
+
+      {/* Cabinet Slot */}
+      <Input
+        label="Cabinet Slot"
+        placeholder="e.g. A3"
+        value={draft.cabinetSlot ?? ""}
+        onChangeText={(v) => onUpdate({ cabinetSlot: v.trim() || null })}
+        autoCapitalize="characters"
+        maxLength={20}
+        containerStyle={styles.cabinetSlotInput}
+        labelBackground={theme.colors.surface}
+      />
     </View>
   );
 }
@@ -359,6 +373,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: theme.radius.md,
     backgroundColor: theme.colors.dangerSoft,
+  },
+  cabinetSlotInput: {
+    marginTop: theme.spacing.sm,
   },
   divider: {
     height: 1,

@@ -87,6 +87,10 @@ export function useKeySetEditForm(keySetId: string) {
   const [pendingName, setPendingName] = useState("");
   useSyncOnce(keySet, (ks) => setPendingName(ks.name ?? ""));
 
+  // ── Cabinet slot state ────────────────────────────────────────────────────
+  const [cabinetSlot, setCabinetSlot] = useState("");
+  useSyncOnce(keySet, (ks) => setCabinetSlot(ks.cabinet_slot ?? ""));
+
   // ── Photo state ───────────────────────────────────────────────────────────
   const existingImages = useMemo(
     () => getVisibleKeySetImages(keySet?.images ?? []),
@@ -168,8 +172,13 @@ export function useKeySetEditForm(keySetId: string) {
     }
 
     try {
-      if (trimmedName !== keySet.name) {
-        await updateKeySetMut.mutateAsync({ name: trimmedName });
+      const nameDirty = trimmedName !== keySet.name;
+      const slotDirty = (cabinetSlot.trim() || null) !== (keySet.cabinet_slot ?? null);
+      if (nameDirty || slotDirty) {
+        await updateKeySetMut.mutateAsync({
+          ...(nameDirty && { name: trimmedName }),
+          ...(slotDirty && { cabinet_slot: cabinetSlot.trim() || null }),
+        });
       }
 
       await keyAssignment.applyDiff();
@@ -209,6 +218,8 @@ export function useKeySetEditForm(keySetId: string) {
     keyAssignment,
     pendingName,
     setPendingName,
+    cabinetSlot,
+    setCabinetSlot,
     photoUris,
     setPhotoUris,
     isSaving,

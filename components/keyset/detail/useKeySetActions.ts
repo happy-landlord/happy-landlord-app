@@ -37,6 +37,7 @@ export type KeySetActions = {
 
   // visibility flags (single source of truth for which buttons appear)
   showAdminReturn: boolean;
+  showAdminReportLost: boolean;
   showAgentCheckout: boolean;
   showAgentReserve: boolean;
   showAgentCancelReservation: boolean;
@@ -136,6 +137,7 @@ export function useKeySetActions({
 
   // ── Visibility ─────────────────────────────────────────────────────────
   const showAdminReturn = isAdmin && (isHeldByMe || isHeldByOther);
+  const showAdminReportLost = isAdmin && !isMissingDamaged;
   const showAgentCheckout =
     !isAdmin && canCheckout && !myPropertyCheckout && !isHeldByMe;
   const showAgentReserve =
@@ -154,6 +156,7 @@ export function useKeySetActions({
 
   const hasActions =
     showAdminReturn ||
+    showAdminReportLost ||
     showAgentCheckout ||
     showAgentReserve ||
     showAgentCancelReservation ||
@@ -272,6 +275,7 @@ export function useKeySetActions({
     isMissingDamaged,
     overdue,
     showAdminReturn,
+    showAdminReportLost,
     showAgentCheckout,
     showAgentReserve,
     showAgentCancelReservation,

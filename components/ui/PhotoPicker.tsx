@@ -43,8 +43,7 @@ type Props = {
   onChange: (uris: string[]) => void;
   /** Accent colour for icon, placeholder border, add button. Defaults to primary. */
   color?: string;
-  /** Section label. Defaults to "Photos". */
-  label?: string;
+  label?: string | null;
   /** Placeholder helper text. */
   hint?: string;
   /** Extra horizontal inset beyond the screen padding already applied by the parent. */
@@ -57,7 +56,7 @@ export function PhotoPicker({
   uris,
   onChange,
   color = theme.colors.primary,
-  label = "Photos",
+  label,
   hint = "Tap to add photos",
   gridInset = 0,
   compact = false,
@@ -110,16 +109,20 @@ export function PhotoPicker({
   return (
     <View style={styles.container}>
       {/* Header row */}
-      <View style={styles.header}>
-        <Text style={[styles.label, compact && styles.labelCompact]}>
-          {label}
-        </Text>
-        {uris.length > 0 && (
-          <Text style={styles.photoCount}>
-            {uris.length} {uris.length === 1 ? "photo" : "photos"} added
-          </Text>
-        )}
-      </View>
+      {(label || uris.length > 0) && (
+        <View style={styles.header}>
+          {label ? (
+            <Text style={[styles.label, compact && styles.labelCompact]}>
+              {label}
+            </Text>
+          ) : <View />}
+          {uris.length > 0 && (
+            <Text style={styles.photoCount}>
+              {uris.length} {uris.length === 1 ? "photo" : "photos"} added
+            </Text>
+          )}
+        </View>
+      )}
 
       {/* Empty placeholder */}
       {uris.length === 0 && (

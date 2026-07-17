@@ -4,13 +4,20 @@ import {
   Building2,
   KeyRound,
   User,
-  HardHat,
+  HardHat, // eslint-disable-line @typescript-eslint/no-unused-vars
 } from "lucide-react-native";
 
 import { KEY_TYPE_ICON, PROPERTY_TYPES, theme } from "@/constants";
-import { countAllocatedKeys, getDraftKeyLabel, getUnallocatedKeys } from "@/lib/utils";
-import type { KeyEntry, KeySetDraft, PropertyStep } from "./useAddPropertyWizard";
-
+import {
+  countAllocatedKeys,
+  getDraftKeyLabel,
+  getUnallocatedKeys,
+} from "@/lib/utils";
+import type {
+  KeyEntry,
+  KeySetDraft,
+  PropertyStep,
+} from "./useAddPropertyWizard";
 
 type IconComponent = ComponentType<{
   size?: number;
@@ -26,7 +33,8 @@ type Props = {
 
 export function ReviewStep({ propertyData, keys, keySets }: Props) {
   const selectedTypeLabel =
-    PROPERTY_TYPES.find((t) => t.value === propertyData.propertyType)?.label ?? "";
+    PROPERTY_TYPES.find((t) => t.value === propertyData.propertyType)?.label ??
+    "";
 
   const descriptionParts =
     propertyData.selectedPlace?.description
@@ -71,6 +79,11 @@ export function ReviewStep({ propertyData, keys, keySets }: Props) {
 
       {/* Property overview card */}
       <View style={styles.overviewCard}>
+        {propertyData.cabinetCode ? (
+          <View style={styles.ribbon}>
+            <Text style={styles.ribbonText}>{propertyData.cabinetCode}</Text>
+          </View>
+        ) : null}
         <View style={styles.overviewHeaderRow}>
           <View style={styles.propertyIconTile}>
             <Building2
@@ -94,11 +107,15 @@ export function ReviewStep({ propertyData, keys, keySets }: Props) {
           </View>
         </View>
 
-        {(propertyData.landlordName || propertyData.landlordContact) ? (
+        {propertyData.landlordName || propertyData.landlordContact ? (
           <>
             <View style={styles.overviewDivider} />
             <View style={styles.overviewMetaRow}>
-              <User size={13} color={theme.colors.textLight} strokeWidth={1.8} />
+              <User
+                size={13}
+                color={theme.colors.textLight}
+                strokeWidth={1.8}
+              />
               <View style={styles.overviewMetaItem}>
                 <Text style={styles.overviewMetaLabel}>Landlord</Text>
                 <Text style={styles.overviewMetaValue} numberOfLines={1}>
@@ -106,7 +123,12 @@ export function ReviewStep({ propertyData, keys, keySets }: Props) {
                 </Text>
               </View>
               {propertyData.landlordContact ? (
-                <View style={[styles.overviewMetaItem, styles.overviewMetaItemBorder]}>
+                <View
+                  style={[
+                    styles.overviewMetaItem,
+                    styles.overviewMetaItemBorder,
+                  ]}
+                >
                   <Text style={styles.overviewMetaLabel}>Contact</Text>
                   <Text style={styles.overviewMetaValue} numberOfLines={1}>
                     {propertyData.landlordContact}
@@ -117,6 +139,7 @@ export function ReviewStep({ propertyData, keys, keySets }: Props) {
           </>
         ) : null}
 
+        {/* Developer row — hidden for now (cabinet slot shown as ribbon instead)
         {(propertyData.developerName || propertyData.cabinetCode) ? (
           <>
             <View style={styles.overviewDivider} />
@@ -146,6 +169,7 @@ export function ReviewStep({ propertyData, keys, keySets }: Props) {
             </View>
           </>
         ) : null}
+        */}
       </View>
 
       {/* Keysets summary */}
@@ -156,23 +180,34 @@ export function ReviewStep({ propertyData, keys, keySets }: Props) {
       >
         {keySets.length === 0 ? (
           <View style={styles.emptyKeyCard}>
-            <KeyRound size={18} color={theme.colors.textLight} strokeWidth={1.8} />
+            <KeyRound
+              size={18}
+              color={theme.colors.textLight}
+              strokeWidth={1.8}
+            />
             <Text style={styles.noKeys}>No keysets added.</Text>
           </View>
         ) : (
           <View style={styles.keySetList}>
-            {keySets.map((ks, i) => {
+            {keySets.map((ks) => {
               const ksKeys = keys.filter((k) => ks.keyIds.includes(k.id));
               return (
                 <View key={ks.id} style={styles.keySetRow}>
+                  {ks.cabinetSlot ? (
+                    <View style={styles.ribbon}>
+                      <Text style={styles.ribbonText}>{ks.cabinetSlot}</Text>
+                    </View>
+                  ) : null}
                   <View style={styles.keySetRowTop}>
-                    <Text style={styles.keySetIndex}>{i + 1}</Text>
                     <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text style={styles.keySetName} numberOfLines={1}>{ks.name}</Text>
+                      <Text style={styles.keySetName} numberOfLines={1}>
+                        {ks.name}
+                      </Text>
                     </View>
                     {ks.photoUris.length > 0 && (
                       <Text style={styles.keySetPhotos}>
-                        {ks.photoUris.length} photo{ks.photoUris.length === 1 ? "" : "s"}
+                        {ks.photoUris.length} photo
+                        {ks.photoUris.length === 1 ? "" : "s"}
                       </Text>
                     )}
                   </View>
@@ -183,7 +218,11 @@ export function ReviewStep({ propertyData, keys, keySets }: Props) {
                         return (
                           <View key={key.id} style={styles.keyRow}>
                             <View style={styles.keyRowIconCircle}>
-                              <KeyIcon size={14} color={theme.colors.textMuted} strokeWidth={1.8} />
+                              <KeyIcon
+                                size={14}
+                                color={theme.colors.surface}
+                                strokeWidth={1.8}
+                              />
                             </View>
                             <Text style={styles.keyRowLabel} numberOfLines={1}>
                               {getDraftKeyLabel(key)}
@@ -205,13 +244,15 @@ export function ReviewStep({ propertyData, keys, keySets }: Props) {
         )}
       </InfoSection>
 
-      {/* Unassigned keys */}
+      {/* Stored keys */}
       {unassignedKeys.length > 0 && (
         <InfoSection
-          title="Unassigned Keys"
+          title="Stored Keys"
           icon={KeyRound}
           trailing={`${unassignedKeys.reduce((sum, item) => sum + item.quantity, 0)} key${
-            unassignedKeys.reduce((sum, item) => sum + item.quantity, 0) === 1 ? "" : "s"
+            unassignedKeys.reduce((sum, item) => sum + item.quantity, 0) === 1
+              ? ""
+              : "s"
           }`}
         >
           <View style={styles.unassignedList}>
@@ -220,7 +261,11 @@ export function ReviewStep({ propertyData, keys, keySets }: Props) {
               return (
                 <View key={key.id} style={styles.unassignedRow}>
                   <View style={styles.unassignedIconCircle}>
-                    <KeyIcon size={14} color={theme.colors.textMuted} strokeWidth={1.8} />
+                    <KeyIcon
+                      size={14}
+                      color={theme.colors.surface}
+                      strokeWidth={1.8}
+                    />
                   </View>
                   <Text style={styles.unassignedLabel} numberOfLines={1}>
                     {getDraftKeyLabel(key)}
@@ -230,9 +275,11 @@ export function ReviewStep({ propertyData, keys, keySets }: Props) {
                       {key.code}
                     </Text>
                   ) : null}
-                  <View style={styles.qtyBadge}>
-                    <Text style={styles.qtyBadgeText}>{quantity}</Text>
-                  </View>
+                  {quantity > 1 && (
+                    <View style={styles.storageQtyBadge}>
+                      <Text style={styles.storageQtyBadgeText}>{quantity}</Text>
+                    </View>
+                  )}
                 </View>
               );
             })}
@@ -291,6 +338,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
     gap: theme.spacing.md,
+    overflow: "hidden",
   },
   overviewHeaderRow: {
     flexDirection: "row",
@@ -432,22 +480,30 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.border,
     gap: 6,
+    overflow: "hidden",
+  },
+  ribbon: {
+    position: "absolute",
+    top: 10,
+    right: -26,
+    width: 96,
+    backgroundColor: theme.colors.accent,
+    transform: [{ rotate: "45deg" }],
+    alignItems: "center",
+    paddingVertical: 4,
+    zIndex: 1,
+  },
+  ribbonText: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: theme.colors.surface,
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
   },
   keySetRowTop: {
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing.sm,
-  },
-  keySetIndex: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: theme.colors.neutralSoft,
-    textAlign: "center",
-    lineHeight: 20,
-    fontSize: 11,
-    fontWeight: "800",
-    color: theme.colors.textMuted,
   },
   keySetName: {
     flex: 1,
@@ -468,14 +524,16 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: theme.radius.md,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: theme.colors.accentLight,
     backgroundColor: theme.colors.surface,
   },
   keyRowIconCircle: {
     width: 28,
     height: 28,
     borderRadius: theme.radius.sm,
-    backgroundColor: theme.colors.neutralSoft,
+    backgroundColor: theme.colors.accent,
+    borderWidth: 1,
+    borderColor: theme.colors.accent,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -497,7 +555,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
   },
 
-  // ── Unassigned keys ───────────────────────────────────────────────────────
+  // ── Storage keys ──────────────────────────────────────────────────────────
   unassignedList: { gap: 8 },
   unassignedRow: {
     flexDirection: "row",
@@ -506,14 +564,16 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: theme.radius.md,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.background,
+    borderColor: theme.colors.accentLight,
+    backgroundColor: theme.colors.neutralSoft,
   },
   unassignedIconCircle: {
     width: 28,
     height: 28,
     borderRadius: theme.radius.sm,
-    backgroundColor: theme.colors.neutralSoft,
+    backgroundColor: theme.colors.accent,
+    borderWidth: 1,
+    borderColor: theme.colors.accent,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -546,5 +606,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
     color: theme.colors.textMuted,
+  },
+  storageQtyBadge: {
+    minWidth: 28,
+    alignItems: "center",
+    borderRadius: theme.radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.accentLight,
+  },
+  storageQtyBadgeText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: theme.colors.accent,
   },
 });

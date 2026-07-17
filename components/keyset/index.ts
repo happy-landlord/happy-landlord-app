@@ -15,6 +15,8 @@
  */
 
 // ── Shared atoms & helpers ───────────────────────────────────────────────────
+export { KeyListSection } from "./KeyListSection";
+export type { KeyListSectionProps } from "./KeyListSection";
 export { getKeySetCardStatus } from "./getKeySetCardStatus";
 export type { KeySetCardStatus, KeySetLike } from "./getKeySetCardStatus";
 export { KeyStatusChip, resolveKeyStatusChipStatus } from "./KeyStatusChip";

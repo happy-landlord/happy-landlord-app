@@ -91,6 +91,7 @@ export async function submitProperty({
         name: draft.name,
         status: "available",
         qr_code: `${propertyCode}-${code}`,
+        cabinet_slot: draft.cabinetSlot ?? null,
       });
 
       if (draft.photoUris.length > 0) {

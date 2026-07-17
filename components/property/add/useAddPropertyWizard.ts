@@ -3,11 +3,11 @@ import { Alert } from "react-native";
 import { useRouter } from "expo-router";
 
 import { useCreateProperty } from "@/lib/hooks";
-import { fetchPropertyByPlaceId } from "@/lib/services";
 import { showSuccessToast } from "@/lib/utils";
 import type { PlaceResult } from "@/components/ui";
 import type { KeyType, PropertyType } from "@/types";
 
+import { useAddressDuplicateCheck } from "../useAddressDuplicateCheck";
 import { submitProperty } from "./submitProperty";
 import { usePropertyCode } from "./usePropertyCode";
 
@@ -41,6 +41,8 @@ export type KeySetDraft = {
   photoUris: string[];
   /** IDs of KeyEntry items (from step 1) to include in this keyset. */
   keyIds: string[];
+  /** Optional cabinet slot for this keyset (maps to key_sets.cabinet_slot). */
+  cabinetSlot: string | null;
 };
 
 // ── Defaults & wizard steps ──────────────────────────────────────────────────
@@ -83,10 +85,6 @@ export function useAddPropertyWizard() {
   const [submitting, setSubmitting] = useState(false);
   const [submitLabel, setSubmitLabel] = useState<string | null>(null);
 
-  // ── Address duplicate-check state ──────────────────────────────────────
-  const [addressError, setAddressError] = useState<string | null>(null);
-  const [addressChecking, setAddressChecking] = useState(false);
-
   // Derived: property code is generated from the selected address + developer name.
   // When developerName is blank, the property-type letter is used as fallback.
   const propertyCode = usePropertyCode(
@@ -94,6 +92,10 @@ export function useAddPropertyWizard() {
     property.developerName,
     property.propertyType,
   );
+
+  // ── Address duplicate-check (shared with edit flow) ────────────────────
+  const { addressError, addressChecking, onAddressSelect } =
+    useAddressDuplicateCheck({ onSelect: propertyCode.generate });
 
   // ── Derived UI flags ───────────────────────────────────────────────────
   const isLastStep = step === TOTAL_STEPS;
@@ -111,30 +113,6 @@ export function useAddPropertyWizard() {
     setProperty((p) => ({ ...p, ...patch }));
   }, []);
 
-  const onAddressSelect = useCallback(
-    async (place: PlaceResult) => {
-      propertyCode.generate(place);
-      // Clear any previous error immediately when a new address is picked
-      setAddressError(null);
-      if (!place.placeId) return;
-      setAddressChecking(true);
-      try {
-        const unitToCheck = place.unitNumber?.trim() || null;
-        const existing = await fetchPropertyByPlaceId(
-          place.placeId,
-          unitToCheck,
-        );
-        if (existing) {
-          setAddressError(`A property already exists at this address.`);
-        }
-      } catch {
-        // Silently ignore network errors — don't block the user
-      } finally {
-        setAddressChecking(false);
-      }
-    },
-    [propertyCode],
-  );
 
   // ── Navigation ─────────────────────────────────────────────────────────
   const confirmDiscard = useCallback((onConfirm: () => void) => {
@@ -159,48 +137,41 @@ export function useAddPropertyWizard() {
   }, [step, exit]);
 
   const next = useCallback(() => {
-    if (step === 1 && !property.selectedPlace) {
-      Alert.alert(
-        "Address required",
-        "Please search and select a property address.",
-      );
-      return;
+    if (step === 1) {
+      if (!property.selectedPlace) {
+        Alert.alert(
+          "Address required",
+          "Please search and select a property address.",
+        );
+        return;
+      }
+      if (addressError) {
+        Alert.alert("Duplicate address", addressError);
+        return;
+      }
     }
-    if (step === 1 && addressError) {
-      Alert.alert("Duplicate address", addressError);
-      return;
-    }
-    if (step === 1 && keys.length === 0) {
-      Alert.alert(
-        "No keys added",
-        "Please add at least one key before continuing.",
-      );
-      return;
-    }
-    if (step === 1 && addressError) {
-      Alert.alert("Duplicate address", addressError);
-      return;
-    }
-    if (step === 2 && keys.length === 0) {
+    if ((step === 1 || step === 2) && keys.length === 0) {
       Alert.alert(
         "No keys added",
         "Please add at least one key before continuing.",
       );
       return;
     }
-    if (step === 2 && keySets.length === 0) {
-      Alert.alert(
-        "No keysets added",
-        "Please add at least one keyset before continuing.",
-      );
-      return;
-    }
-    if (step === 2 && keySets.some((ks) => !ks.name.trim())) {
-      Alert.alert(
-        "Keyset name required",
-        "Every keyset needs a name. Please name or remove any blank keysets.",
-      );
-      return;
+    if (step === 2) {
+      if (keySets.length === 0) {
+        Alert.alert(
+          "No keysets added",
+          "Please add at least one keyset before continuing.",
+        );
+        return;
+      }
+      if (keySets.some((ks) => !ks.name.trim())) {
+        Alert.alert(
+          "Keyset name required",
+          "Every keyset needs a name. Please name or remove any blank keysets.",
+        );
+        return;
+      }
     }
     setStep((s) => s + 1);
   }, [step, property.selectedPlace, addressError, keys, keySets]);

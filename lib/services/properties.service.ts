@@ -91,6 +91,7 @@ export type PropertyWithLandlord = DbProperty & {
     full_name: string | null;
     phone: string | null;
     email: string | null;
+    notes: string | null;
   } | null;
 };
 
@@ -120,7 +121,7 @@ export async function fetchTenantHolderForProperty(
 }
 
 const LANDLORD_SELECT =
-  "*, landlord:landlord_holder_id(id, full_name, phone, email)" as const;
+  "*, landlord:landlord_holder_id(id, full_name, phone, email, notes)" as const;
 
 // Fields visible to agents — no audit/internal columns
 const AGENT_SELECT =
@@ -413,10 +414,10 @@ export async function updateProperty(
   return data;
 }
 
-/** Updates name/phone on an existing key_holder row. */
+/** Updates fields on an existing key_holder row. */
 export async function updateKeyHolder(
   holderId: string,
-  patch: { full_name: string | null; phone: string | null },
+  patch: { full_name: string | null; phone: string | null; notes?: string | null },
 ): Promise<void> {
   const { error } = await supabase
     .from("key_holders")

@@ -1,4 +1,4 @@
-﻿import { useCallback, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { KEY_TYPE_LABEL } from "@/constants";
@@ -7,6 +7,7 @@ import {
   getKeySignature,
   showSuccessToast,
   normalizeAustralianPhone,
+  formatLongDate,
 } from "@/lib/utils";
 import {
   useAllPropertyKeys,
@@ -17,10 +18,11 @@ import {
   useUpdateKey,
   useUpdatePropertyDetails,
 } from "@/lib/hooks";
-import { fetchPropertyByPlaceId, updateKeyHolder } from "@/lib/services";
-import type { PlaceResult } from "@/components/ui";
+import { updateKeyHolder } from "@/lib/services";
 import type { EnrichedKey } from "@/lib/hooks";
 import type { DbKeyInsert, KeyType, PropertyType } from "@/types";
+
+import { useAddressDuplicateCheck } from "../useAddressDuplicateCheck";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -61,6 +63,7 @@ export function usePropertyEditForm(propertyId: string) {
   const [propertyType, setPropertyType] = useState<PropertyType>("apartment");
   const [landlordName, setLandlordName] = useState("");
   const [landlordContact, setLandlordContact] = useState("");
+  const [dateReceived, setDateReceived] = useState<Date>(new Date());
   const [tenantName, setTenantName] = useState("");
   const [tenantPhone, setTenantPhone] = useState("");
   const [developerName, setDeveloperName] = useState("");
@@ -73,6 +76,13 @@ export function usePropertyEditForm(propertyId: string) {
     setLandlordContact(p.landlord?.phone ?? "");
     setDeveloperName(p.developer_name ?? "");
     setCabinetCode(p.cabinet_code ?? "");
+    // Parse date received from landlord notes ("Keys received: <date>")
+    const notes = p.landlord?.notes ?? null;
+    const match = notes?.match(/Keys received: (.+)/);
+    if (match) {
+      const parsed = new Date(match[1]);
+      if (!isNaN(parsed.getTime())) setDateReceived(parsed);
+    }
   });
 
   useSyncOnce(tenant, (t) => {
@@ -203,34 +213,9 @@ export function usePropertyEditForm(propertyId: string) {
   const isPending =
     updateDetailsMut.isPending || tenantUpdateMut.isPending || isSaving;
 
-  // ── Address state ─────────────────────────────────────────────────────────
-  const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
-  const [addressError, setAddressError] = useState<string | null>(null);
-  const [addressChecking, setAddressChecking] = useState(false);
-
-  const onAddressSelect = useCallback(
-    async (place: PlaceResult) => {
-      setSelectedPlace(place);
-      setAddressError(null);
-      if (!place.placeId) return;
-      setAddressChecking(true);
-      try {
-        const unitToCheck = place.unitNumber?.trim() || null;
-        const existing = await fetchPropertyByPlaceId(
-          place.placeId,
-          unitToCheck,
-        );
-        if (existing && existing.id !== propertyId) {
-          setAddressError(`A property already exists at this address.`);
-        }
-      } catch {
-        // Silently ignore — don't block the user
-      } finally {
-        setAddressChecking(false);
-      }
-    },
-    [propertyId],
-  );
+  // ── Address state (shared with add flow) ───────────────────────────────────
+  const { selectedPlace, addressError, addressChecking, onAddressSelect } =
+    useAddressDuplicateCheck({ excludePropertyId: propertyId });
 
   async function save(onSuccess: () => void) {
     if (isPending || !property) return;
@@ -266,6 +251,7 @@ export function usePropertyEditForm(propertyId: string) {
           holderId: property.landlord?.id ?? null,
           name: landlordName,
           phone: normalizeAustralianPhone(landlordContact),
+          notes: `Keys received: ${formatLongDate(dateReceived)}`,
         },
       });
 
@@ -309,6 +295,8 @@ export function usePropertyEditForm(propertyId: string) {
     setLandlordName,
     landlordContact,
     setLandlordContact,
+    dateReceived,
+    setDateReceived,
     tenantName,
     setTenantName,
     tenantPhone,

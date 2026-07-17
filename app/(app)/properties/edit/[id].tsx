@@ -1,22 +1,22 @@
 import { useState } from "react";
 import { ActivityIndicator, Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
-import { AddressSearch, Button, ErrorState, Input, LoadingState, OutlinedSelect, PickerModal } from "@/components/ui";
+import { AddressSearch, BottomSheet, Button, ErrorState, FormFooter, FormSection, Input, LoadingState, OutlinedDateField, OutlinedSelect, PickerModal } from "@/components/ui";
 import { PropertyKeysSection, usePropertyEditForm } from "@/components/property/edit";
 import { PROPERTY_TYPES, theme } from "@/constants";
 import { useDeveloperSuggestions } from "@/lib/hooks";
-
+import { formatLongDate } from "@/lib/utils";
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 export default function EditPropertyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const [showTypePicker, setShowTypePicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [devFocused, setDevFocused] = useState(false);
 
   const form = usePropertyEditForm(id);
@@ -49,106 +49,129 @@ export default function EditPropertyScreen() {
           bottomOffset={Platform.OS === "ios" ? 32 : 16}
           showsVerticalScrollIndicator={false}
         >
-          <View>
-            <AddressSearch
-              label="Address"
-              mode="full"
-              labelBackground={theme.colors.background}
-              initialValue={form.property.formatted_address ?? ""}
-              onSelect={form.onAddressSelect}
-            />
-            {form.addressChecking && (
-              <View style={styles.addressStatus}>
-                <ActivityIndicator size="small" color={theme.colors.primary} />
-                <Text style={styles.addressChecking}>Checking address…</Text>
-              </View>
-            )}
-            {form.addressError ? (
-              <Text style={styles.addressError}>{form.addressError}</Text>
-            ) : null}
-          </View>
-
-          <OutlinedSelect
-            label="Property Type"
-            required
-            value={selectedTypeLabel}
-            focused={showTypePicker}
-            onPress={() => setShowTypePicker(true)}
-          />
-
-          <Input
-            label="Landlord / Owner"
-            placeholder="Full name"
-            value={form.landlordName}
-            onChangeText={form.setLandlordName}
-            autoCapitalize="words"
-            autoCorrect={false}
-            labelBackground={theme.colors.background}
-          />
-          <Input
-            label="Landlord Contact"
-            placeholder="Phone number"
-            value={form.landlordContact}
-            onChangeText={form.setLandlordContact}
-            keyboardType="phone-pad"
-            textContentType="telephoneNumber"
-            labelBackground={theme.colors.background}
-          />
-
-          {/* Developer Name + Cabinet Slot */}
-          <View style={styles.inlineRow}>
-            <View style={{ flex: 1 }}>
-              <Input
-                label="Developer Name"
-                placeholder="Optional"
-                value={form.developerName}
-                onChangeText={form.setDeveloperName}
-                autoCapitalize="words"
-                autoCorrect={false}
-                labelBackground={theme.colors.background}
-                onFocus={() => setDevFocused(true)}
-                onBlur={() => setDevFocused(false)}
+          {/* ── Property Details ──────────────────────────────────────────── */}
+          <FormSection title="Property Details" cardStyle={styles.cardNoGap}>
+            <View style={styles.addressField}>
+              <AddressSearch
+                label="Address"
+                mode="full"
+                labelBackground={theme.colors.surface}
+                initialValue={form.property.formatted_address ?? ""}
+                onSelect={form.onAddressSelect}
               />
-              {devFocused && devSuggestions.length > 0 && (
-                <ScrollView
-                  style={styles.suggestionsDropdown}
-                  keyboardShouldPersistTaps="handled"
-                  nestedScrollEnabled
-                >
-                  {devSuggestions.map((name) => (
-                    <Pressable
-                      key={name}
-                      style={({ pressed }) => [
-                        styles.suggestionRow,
-                        pressed && styles.suggestionRowPressed,
-                      ]}
-                      onPress={() => {
-                        form.setDeveloperName(name);
-                        clearDevSuggestions();
-                        setDevFocused(false);
-                        Keyboard.dismiss();
-                      }}
-                    >
-                      <Text style={styles.suggestionText} numberOfLines={1}>{name}</Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
+              {form.addressChecking && (
+                <View style={styles.addressFeedbackRow}>
+                  <ActivityIndicator size="small" color={theme.colors.textMuted} />
+                  <Text style={styles.addressCheckingText}>Checking address…</Text>
+                </View>
               )}
+              {form.addressError ? (
+                <View style={styles.addressFeedbackRow}>
+                  <Text style={styles.addressErrorText}>{form.addressError}</Text>
+                </View>
+              ) : null}
             </View>
-            <Input
-              label="Cabinet Slot"
-              placeholder="Optional"
-              value={form.cabinetCode}
-              onChangeText={form.setCabinetCode}
-              autoCapitalize="characters"
-              containerStyle={{ width: 130 }}
-              labelBackground={theme.colors.background}
-              onFocus={() => setDevFocused(false)}
-            />
-          </View>
 
+            <OutlinedSelect
+              label="Property Type"
+              required
+              value={selectedTypeLabel}
+              focused={showTypePicker}
+              onPress={() => setShowTypePicker(true)}
+              labelBackground={theme.colors.surface}
+            />
+
+            {/* Developer Name + Cabinet Slot */}
+            <View style={styles.inlineRow}>
+              <View style={{ flex: 1 }}>
+                <Input
+                  label="Developer Name"
+                  placeholder="Optional"
+                  value={form.developerName}
+                  onChangeText={form.setDeveloperName}
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                  labelBackground={theme.colors.surface}
+                  onFocus={() => setDevFocused(true)}
+                  onBlur={() => setDevFocused(false)}
+                />
+                {devFocused && devSuggestions.length > 0 && (
+                  <ScrollView
+                    style={styles.suggestionsDropdown}
+                    keyboardShouldPersistTaps="handled"
+                    nestedScrollEnabled
+                  >
+                    {devSuggestions.map((name) => (
+                      <Pressable
+                        key={name}
+                        style={({ pressed }) => [
+                          styles.suggestionRow,
+                          pressed && styles.suggestionRowPressed,
+                        ]}
+                        onPress={() => {
+                          form.setDeveloperName(name);
+                          clearDevSuggestions();
+                          setDevFocused(false);
+                          Keyboard.dismiss();
+                        }}
+                      >
+                        <Text style={styles.suggestionText} numberOfLines={1}>{name}</Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                )}
+              </View>
+              <Input
+                label="Cabinet Slot"
+                placeholder="Optional"
+                value={form.cabinetCode}
+                onChangeText={form.setCabinetCode}
+                autoCapitalize="characters"
+                containerStyle={{ width: 130 }}
+                labelBackground={theme.colors.surface}
+                onFocus={() => setDevFocused(false)}
+              />
+            </View>
+          </FormSection>
+
+          {/* ── Landlord Information ──────────────────────────────────────── */}
+          <FormSection title="Landlord Information" cardStyle={styles.cardNoGap}>
+            <Input
+              label="Landlord / Owner"
+              placeholder="Full name"
+              value={form.landlordName}
+              onChangeText={form.setLandlordName}
+              autoCapitalize="words"
+              autoCorrect={false}
+              labelBackground={theme.colors.surface}
+              onFocus={() => setShowDatePicker(false)}
+            />
+            <View style={styles.inlineRow}>
+              <Input
+                label="Landlord Contact"
+                placeholder="Phone number"
+                value={form.landlordContact}
+                onChangeText={form.setLandlordContact}
+                keyboardType="phone-pad"
+                textContentType="telephoneNumber"
+                containerStyle={styles.phoneField}
+                labelBackground={theme.colors.surface}
+                onFocus={() => setShowDatePicker(false)}
+              />
+              <OutlinedDateField
+                label="Date Received"
+                value={formatLongDate(form.dateReceived)}
+                focused={showDatePicker}
+                onPress={() => { Keyboard.dismiss(); setShowDatePicker(true); }}
+                style={styles.dateField}
+                labelBackground={theme.colors.surface}
+              />
+            </View>
+          </FormSection>
+
+          {/* ── Tenant Information (leased only) ──────────────────────────── */}
           {form.isLeased && (
-            <>
+            <FormSection title="Tenant Information" cardStyle={styles.cardNoGap}>
               <Input
                 label="Tenant"
                 placeholder="Full name"
@@ -156,7 +179,8 @@ export default function EditPropertyScreen() {
                 onChangeText={form.setTenantName}
                 autoCapitalize="words"
                 autoCorrect={false}
-                labelBackground={theme.colors.background}
+                labelBackground={theme.colors.surface}
+                onFocus={() => setShowDatePicker(false)}
               />
               <Input
                 label="Tenant Contact"
@@ -165,9 +189,10 @@ export default function EditPropertyScreen() {
                 onChangeText={form.setTenantPhone}
                 keyboardType="phone-pad"
                 textContentType="telephoneNumber"
-                labelBackground={theme.colors.background}
+                labelBackground={theme.colors.surface}
+                onFocus={() => setShowDatePicker(false)}
               />
-            </>
+            </FormSection>
           )}
 
           <PropertyKeysSection
@@ -179,24 +204,45 @@ export default function EditPropertyScreen() {
           />
         </KeyboardAwareScrollView>
 
-        <View style={[styles.footer, { paddingBottom: insets.bottom + theme.spacing.sm }]}>
+        <FormFooter
+          onCancel={() => router.back()}
+          onSave={() => form.save(() => router.back())}
+          saving={form.isPending}
+          saveDisabled={form.addressChecking || !!form.addressError}
+        />
+      </View>
+
+      <BottomSheet
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+      >
+        <DateTimePicker
+          value={form.dateReceived}
+          mode="date"
+          display="spinner"
+          textColor={theme.colors.text}
+          themeVariant="light"
+          maximumDate={new Date()}
+          onChange={(_, selected) => {
+            if (selected) form.setDateReceived(selected);
+          }}
+          style={styles.datePicker}
+        />
+        <View style={styles.datePickerActions}>
           <Button
             title="Cancel"
             variant="outline"
-            onPress={() => router.back()}
-            disabled={form.isPending}
-            style={styles.cancelBtn}
+            onPress={() => setShowDatePicker(false)}
+            style={styles.datePickerBtn}
           />
           <Button
-            title="Save"
+            title="Done"
             variant="primary"
-            loading={form.isPending}
-            disabled={form.isPending || form.addressChecking || !!form.addressError}
-            onPress={() => form.save(() => router.back())}
-            style={styles.saveBtn}
+            onPress={() => setShowDatePicker(false)}
+            style={styles.datePickerBtn}
           />
         </View>
-      </View>
+      </BottomSheet>
 
       <PickerModal
         visible={showTypePicker}
@@ -214,28 +260,54 @@ export default function EditPropertyScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.background },
-  footer: {
-    flexDirection: "row",
-    gap: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.screen,
-    paddingTop: theme.spacing.md,
-    backgroundColor: theme.colors.background,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
-  },
-  cancelBtn: { flex: 1 },
-  saveBtn: { flex: 2 },
   scroll: { flex: 1 },
   scrollContent: {
     paddingHorizontal: theme.spacing.screen,
     paddingTop: theme.spacing.md,
+    gap: theme.spacing.md,
+  },
+
+  // Property/landlord/tenant cards rely on each field's own top margin for
+  // spacing, so opt out of FormSection's default gap.
+  cardNoGap: { gap: 0 },
+
+  // ── Field helpers ─────────────────────────────────────────────────────────
+  addressField: {
+    zIndex: 1000,
+    elevation: 24,
+  },
+  addressFeedbackRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: theme.spacing.sm,
+    marginTop: -theme.spacing.xs,
+    paddingHorizontal: 4,
+  },
+  addressCheckingText: {
+    fontSize: 13,
+    color: theme.colors.textMuted,
+    fontStyle: "italic",
+  },
+  addressErrorText: {
+    fontSize: 13,
+    color: theme.colors.danger,
+    fontWeight: "500",
+    flexShrink: 1,
   },
   inlineRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: theme.spacing.sm,
   },
+  phoneField: { flex: 1, marginTop: 10 },
+  dateField: { width: 155 },
+  datePicker: { width: "100%" },
+  datePickerActions: {
+    flexDirection: "row",
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.md,
+  },
+  datePickerBtn: { flex: 1 },
   suggestionsDropdown: {
     position: "absolute",
     bottom: "100%",
@@ -265,22 +337,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.text,
     fontWeight: "500",
-  },
-  addressStatus: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 4,
-    marginLeft: 2,
-  },
-  addressChecking: {
-    fontSize: 12,
-    color: theme.colors.textLight,
-  },
-  addressError: {
-    fontSize: 12,
-    color: theme.colors.danger,
-    marginTop: 4,
-    marginLeft: 2,
   },
 });

@@ -14,7 +14,6 @@ import { useRouter } from "expo-router";
 import { KEY_TYPE_ICON, theme } from "@/constants";
 import { EmptyState } from "@/components/ui";
 import { KeySetCard } from "@/components/keyset";
-import { AddKeySetSheet } from "@/components/keyset/AddKeySetSheet";
 import { getKeyName } from "@/lib/utils";
 import type { KeySetWithDetails, UnassignedKey } from "@/lib/services";
 
@@ -35,7 +34,6 @@ export type AdminKeysViewProps = {
 export function AdminKeysView({ propertyId, keySets, unassignedKeys }: AdminKeysViewProps) {
   const router = useRouter();
   const [unassignedOpen, setUnassignedOpen] = useState(false);
-  const [addSheetOpen, setAddSheetOpen] = useState(false);
 
   // ensure animation flag is set before first toggle (defensive)
   useEffect(() => {}, []);
@@ -59,7 +57,7 @@ export function AdminKeysView({ propertyId, keySets, unassignedKeys }: AdminKeys
               styles.addButton,
               pressed && styles.addButtonPressed,
             ]}
-            onPress={() => setAddSheetOpen(true)}
+            onPress={() => router.push(`/(app)/properties/keyset/add?propertyId=${propertyId}` as never)}
             accessibilityRole="button"
             accessibilityLabel="Add keyset"
           >
@@ -91,10 +89,10 @@ export function AdminKeysView({ propertyId, keySets, unassignedKeys }: AdminKeys
             style={styles.accordionHeader}
             onPress={toggleUnassigned}
             accessibilityRole="button"
-            accessibilityLabel="Toggle unassigned keys"
+            accessibilityLabel="Toggle stored keys"
           >
             <Text style={styles.sectionTitle}>
-              {unassignedQty} Unassigned{" "}
+              {unassignedQty} Stored{" "}
               {unassignedQty === 1 ? "Key" : "Keys"}
             </Text>
             {unassignedOpen ? (
@@ -112,11 +110,6 @@ export function AdminKeysView({ propertyId, keySets, unassignedKeys }: AdminKeys
           )}
         </View>
       )}
-      <AddKeySetSheet
-        visible={addSheetOpen}
-        onClose={() => setAddSheetOpen(false)}
-        propertyId={propertyId}
-      />
     </View>
   );
 }

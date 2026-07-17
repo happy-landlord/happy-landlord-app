@@ -6,7 +6,7 @@ import { theme } from "@/constants";
 // ── OutlinedField ─────────────────────────────────────────────────────────────
 
 type OutlinedFieldProps = {
-  label: string;
+  label?: string;
   required?: boolean;
   focused?: boolean;
   disabled?: boolean;
@@ -38,18 +38,20 @@ export function OutlinedField({
         style,
       ]}
     >
-      <Text
-        style={[
-          styles.label,
-          !disabled && focused && styles.labelFocused,
-          disabled && styles.labelDisabled,
-          labelBackground ? { backgroundColor: labelBackground } : undefined,
-        ]}
-        numberOfLines={1}
-      >
-        {label}
-        {required ? <Text style={styles.asterisk}> *</Text> : null}
-      </Text>
+      {label ? (
+        <Text
+          style={[
+            styles.label,
+            !disabled && focused && styles.labelFocused,
+            disabled && styles.labelDisabled,
+            labelBackground ? { backgroundColor: labelBackground } : undefined,
+          ]}
+          numberOfLines={1}
+        >
+          {label}
+          {required ? <Text style={styles.asterisk}> *</Text> : null}
+        </Text>
+      ) : null}
       {children}
     </View>
   );
@@ -58,13 +60,15 @@ export function OutlinedField({
 // ── OutlinedSelect ────────────────────────────────────────────────────────────
 
 type OutlinedSelectProps = {
-  label: string;
+  label?: string;
   required?: boolean;
   value: string;
-  onPress: () => void;
+  onPress?: () => void;
   focused?: boolean;
   disabled?: boolean;
   style?: ViewStyle;
+  /** Override the floating label background colour (should match parent surface). */
+  labelBackground?: string;
 };
 
 /** Pressable dropdown trigger styled as an outlined field. */
@@ -76,6 +80,7 @@ export function OutlinedSelect({
   focused,
   disabled,
   style,
+  labelBackground,
 }: OutlinedSelectProps) {
   return (
     <OutlinedField
@@ -84,6 +89,7 @@ export function OutlinedSelect({
       focused={focused}
       disabled={disabled}
       style={style}
+      labelBackground={labelBackground}
     >
       <Pressable
         style={styles.select}
@@ -107,7 +113,7 @@ export function OutlinedSelect({
   );
 }
 
-// ── OutlinedDateField ─────────────────────────────────────────────────────────
+// ── OutlinedDateField ────────────────────────────────────────────────────────
 
 type OutlinedDateFieldProps = {
   label: string;
@@ -117,6 +123,7 @@ type OutlinedDateFieldProps = {
   focused?: boolean;
   disabled?: boolean;
   style?: ViewStyle;
+  labelBackground?: string;
 };
 
 /** Date field with calendar icon, styled as an outlined field. */
@@ -128,6 +135,7 @@ export function OutlinedDateField({
   focused,
   disabled,
   style,
+  labelBackground,
 }: OutlinedDateFieldProps) {
   return (
     <OutlinedField
@@ -136,6 +144,7 @@ export function OutlinedDateField({
       focused={focused}
       disabled={disabled}
       style={style}
+      labelBackground={labelBackground}
     >
       <Pressable
         style={styles.select}

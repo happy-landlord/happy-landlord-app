@@ -103,7 +103,7 @@ export function useAllPropertyKeys(propertyId: string) {
 
 /**
  * Centralised cache invalidation for keyset-shaped mutations.
- * Exported so screen-level mutations (e.g. KeySetEditSheet's combined
+ * Exported so screen-level mutations (e.g. the edit-keyset screen's combined
  * assign/unassign flows) can reuse the exact same invalidation set
  * instead of cherry-picking query keys themselves.
  */
@@ -275,7 +275,7 @@ export function useUpdateKey(propertyId: string) {
 export function useUpdateKeySet(propertyId: string, keySetId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (patch: { name?: string }) => updateKeySet(keySetId, patch),
+    mutationFn: (patch: { name?: string; cabinet_slot?: string | null }) => updateKeySet(keySetId, patch),
     onSuccess: () => invalidateKeySets(queryClient, propertyId, keySetId),
   });
 }

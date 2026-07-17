@@ -6,11 +6,11 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { ChevronDown, KeyRound, X } from "lucide-react-native";
+import { KeyRound, Plus, Trash2 } from "lucide-react-native";
+import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 
 import {
   KEY_TYPE_ICON,
@@ -22,6 +22,7 @@ import {
   AddressSearch,
   BottomSheet,
   Button,
+  FormSection,
   Input,
   OutlinedSelect,
   OutlinedDateField,
@@ -44,6 +45,11 @@ const KEY_TYPE_OPTIONS = (Object.keys(KEY_TYPE_LABEL) as KeyType[]).map(
     };
   },
 );
+
+const QTY_OPTIONS = Array.from({ length: 6 }, (_, i) => ({
+  value: String(i + 1),
+  label: String(i + 1),
+}));
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -71,13 +77,12 @@ export function PropertyInfoStep({
 }: Props) {
   const [showTypePicker, setShowTypePicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [pendingType, setPendingType] = useState<KeyType>(
-    KEY_TYPE_OPTIONS[0].value,
+  const [activeTypePickerFor, setActiveTypePickerFor] = useState<string | null>(
+    null,
   );
-  const [pendingCount, setPendingCount] = useState(1);
-  const [pendingCode, setPendingCode] = useState("");
-  const [pendingOtherLabel, setPendingOtherLabel] = useState("");
-  const [keyPickerOpen, setKeyPickerOpen] = useState(false);
+  const [activeQtyPickerFor, setActiveQtyPickerFor] = useState<string | null>(
+    null,
+  );
   const [devFocused, setDevFocused] = useState(false);
 
   const { suggestions: devSuggestions, clear: clearDevSuggestions } =
@@ -87,43 +92,21 @@ export function PropertyInfoStep({
     PROPERTY_TYPES.find((t) => t.value === data.propertyType)?.label ??
     "Select…";
 
-  const totalKeys = keys.reduce((sum, k) => sum + k.count, 0);
+  const totalKeys = keys.reduce((sum, k) => sum + (k.count || 0), 0);
 
   function addKey() {
-    if (pendingCount < 1) return;
-    const normalizedCode = pendingCode.trim() || null;
-    const normalizedLabel =
-      pendingType === "other" ? pendingOtherLabel.trim() || null : null;
+    const entry: KeyEntry = {
+      id: `key-${Date.now()}`,
+      type: KEY_TYPE_OPTIONS[0].value,
+      count: 1,
+      code: null,
+      otherLabel: null,
+    };
+    onKeysChange([...keys, entry]);
+  }
 
-    const existingIndex = keys.findIndex(
-      (k) =>
-        k.type === pendingType &&
-        k.code === normalizedCode &&
-        k.otherLabel === normalizedLabel,
-    );
-
-    if (existingIndex !== -1) {
-      const updated = keys.map((k, i) =>
-        i === existingIndex ? { ...k, count: k.count + pendingCount } : k,
-      );
-      onKeysChange(updated);
-    } else {
-      const entry: KeyEntry = {
-        id: `key-${Date.now()}`,
-        type: pendingType,
-        count: pendingCount,
-        code: normalizedCode,
-        otherLabel: normalizedLabel,
-      };
-      onKeysChange([...keys, entry]);
-    }
-
-    const next = KEY_TYPE_OPTIONS.find((o) => o.value !== pendingType);
-    setPendingType(next?.value ?? KEY_TYPE_OPTIONS[0].value);
-    setPendingCount(1);
-    setPendingCode("");
-    setPendingOtherLabel("");
-    Keyboard.dismiss();
+  function updateKey(id: string, patch: Partial<KeyEntry>) {
+    onKeysChange(keys.map((k) => (k.id === id ? { ...k, ...patch } : k)));
   }
 
   function removeKey(id: string) {
@@ -132,42 +115,92 @@ export function PropertyInfoStep({
 
   return (
     <View style={styles.container}>
-      {/* Address */}
-      <AddressSearch
-        label="Address"
-        required
-        placeholder="Search address…"
-        mode="full"
-        labelBackground={theme.colors.background}
-        containerStyle={styles.addressField}
-        onSelect={(place) => {
-          onChange({ selectedPlace: place });
-          onAddressSelect(place);
-        }}
-      />
 
-      {/* Inline address check feedback */}
-      {addressChecking && (
-        <View style={styles.addressFeedbackRow}>
-          <ActivityIndicator size="small" color={theme.colors.textMuted} />
-          <Text style={styles.addressCheckingText}>Checking address…</Text>
+      {/* ── Property Details ────────────────────────────────────────────────── */}
+      <FormSection title="Property Details" cardStyle={styles.cardNoGap}>
+        <AddressSearch
+          label="Address"
+          required
+          placeholder="Search address…"
+          mode="full"
+          labelBackground={theme.colors.surface}
+          containerStyle={styles.addressField}
+          onSelect={(place) => {
+            onChange({ selectedPlace: place });
+            onAddressSelect(place);
+          }}
+        />
+        {addressChecking && (
+          <View style={styles.addressFeedbackRow}>
+            <ActivityIndicator size="small" color={theme.colors.textMuted} />
+            <Text style={styles.addressCheckingText}>Checking address…</Text>
+          </View>
+        )}
+        {!addressChecking && addressError && (
+          <View style={styles.addressFeedbackRow}>
+            <Text style={styles.addressErrorText}>{addressError}</Text>
+          </View>
+        )}
+
+        <OutlinedSelect
+          label="Property Type"
+          required
+          value={selectedTypeLabel}
+          focused={showTypePicker}
+          onPress={() => setShowTypePicker(true)}
+          labelBackground={theme.colors.surface}
+        />
+
+        {/* Developer Name + Cabinet Slot */}
+        <View style={styles.inlineRow}>
+          <View style={{ flex: 1 }}>
+            <Input
+              label="Developer Name"
+              value={data.developerName}
+              onChangeText={(developerName) => onChange({ developerName })}
+              autoCapitalize="words"
+              labelBackground={theme.colors.surface}
+              onFocus={() => { setShowDatePicker(false); setDevFocused(true); }}
+              onBlur={() => setDevFocused(false)}
+            />
+            {devFocused && devSuggestions.length > 0 && (
+              <ScrollView
+                style={styles.suggestionsDropdown}
+                keyboardShouldPersistTaps="handled"
+                nestedScrollEnabled
+              >
+                {devSuggestions.map((name) => (
+                  <Pressable
+                    key={name}
+                    style={({ pressed }) => [
+                      styles.suggestionRow,
+                      pressed && styles.suggestionRowPressed,
+                    ]}
+                    onPress={() => {
+                      onChange({ developerName: name });
+                      clearDevSuggestions();
+                      setDevFocused(false);
+                      Keyboard.dismiss();
+                    }}
+                  >
+                    <Text style={styles.suggestionText} numberOfLines={1}>{name}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+          <Input
+            label="Cabinet Slot"
+            value={data.cabinetCode}
+            onChangeText={(cabinetCode) => onChange({ cabinetCode })}
+            autoCapitalize="characters"
+            containerStyle={{ width: 130 }}
+            labelBackground={theme.colors.surface}
+            onFocus={() => { setShowDatePicker(false); setDevFocused(false); }}
+          />
         </View>
-      )}
-      {!addressChecking && addressError && (
-        <View style={styles.addressFeedbackRow}>
-          <Text style={styles.addressErrorText}>{addressError}</Text>
-        </View>
-      )}
+      </FormSection>
 
-      {/* Unit / Apt number — removed; unit is auto-extracted from the address */}
-
-      <OutlinedSelect
-        label="Property Type"
-        required
-        value={selectedTypeLabel}
-        focused={showTypePicker}
-        onPress={() => setShowTypePicker(true)}
-      />
       <PickerModal
         visible={showTypePicker}
         title="Property Type"
@@ -177,39 +210,38 @@ export function PropertyInfoStep({
         onClose={() => setShowTypePicker(false)}
       />
 
-      <Input
-        label="Landlord / Owner"
-        placeholder="Full name"
-        value={data.landlordName}
-        onChangeText={(landlordName) => onChange({ landlordName })}
-        autoCapitalize="words"
-        labelBackground={theme.colors.background}
-        onFocus={() => setShowDatePicker(false)}
-      />
-
-      {/* Landlord Contact + Date Received */}
-      <View style={styles.inlineRow}>
+      {/* ── Landlord Information ─────────────────────────────────────────────── */}
+      <FormSection title="Landlord Information" cardStyle={styles.cardNoGap}>
         <Input
-          label="Landlord Contact"
-          placeholder="Phone number"
-          value={data.landlordContact}
-          onChangeText={(landlordContact) => onChange({ landlordContact })}
-          keyboardType="phone-pad"
-          containerStyle={styles.phoneField}
-          labelBackground={theme.colors.background}
+          label="Landlord / Owner"
+          placeholder="Full name"
+          value={data.landlordName}
+          onChangeText={(landlordName) => onChange({ landlordName })}
+          autoCapitalize="words"
+          labelBackground={theme.colors.surface}
           onFocus={() => setShowDatePicker(false)}
         />
-        <OutlinedDateField
-          label="Date Received"
-          value={formatLongDate(data.dateReceived)}
-          focused={showDatePicker}
-          onPress={() => {
-            Keyboard.dismiss();
-            setShowDatePicker(true);
-          }}
-          style={styles.dateField}
-        />
-      </View>
+        <View style={styles.inlineRow}>
+          <Input
+            label="Landlord Contact"
+            placeholder="Phone number"
+            value={data.landlordContact}
+            onChangeText={(landlordContact) => onChange({ landlordContact })}
+            keyboardType="phone-pad"
+            containerStyle={styles.phoneField}
+            labelBackground={theme.colors.surface}
+            onFocus={() => setShowDatePicker(false)}
+          />
+          <OutlinedDateField
+            label="Date Received"
+            value={formatLongDate(data.dateReceived)}
+            focused={showDatePicker}
+            onPress={() => { Keyboard.dismiss(); setShowDatePicker(true); }}
+            style={styles.dateField}
+            labelBackground={theme.colors.surface}
+          />
+        </View>
+      </FormSection>
 
       <BottomSheet
         visible={showDatePicker}
@@ -243,198 +275,130 @@ export function PropertyInfoStep({
         </View>
       </BottomSheet>
 
-      {/* Developer Name (with autocomplete) + Cabinet Slot */}
-      <View style={styles.inlineRow}>
-        <View style={{ flex: 1 }}>
-          <Input
-            label="Developer Name"
-            value={data.developerName}
-            onChangeText={(developerName) => onChange({ developerName })}
-            autoCapitalize="words"
-            labelBackground={theme.colors.background}
-            onFocus={() => { setShowDatePicker(false); setDevFocused(true); }}
-            onBlur={() => setDevFocused(false)}
-          />
-          {devFocused && devSuggestions.length > 0 && (
-            <ScrollView
-              style={styles.suggestionsDropdown}
-              keyboardShouldPersistTaps="handled"
-              nestedScrollEnabled
-            >
-              {devSuggestions.map((name) => (
-                <Pressable
-                  key={name}
-                  style={({ pressed }) => [
-                    styles.suggestionRow,
-                    pressed && styles.suggestionRowPressed,
-                  ]}
-                  onPress={() => {
-                    onChange({ developerName: name });
-                    clearDevSuggestions();
-                    setDevFocused(false);
-                    Keyboard.dismiss();
-                  }}
-                >
-                  <Text style={styles.suggestionText} numberOfLines={1}>{name}</Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-          )}
-        </View>
-        <Input
-          label="Cabinet Slot"
-          value={data.cabinetCode}
-          onChangeText={(cabinetCode) => onChange({ cabinetCode })}
-          autoCapitalize="characters"
-          containerStyle={{ width: 130 }}
-          labelBackground={theme.colors.background}
-          onFocus={() => { setShowDatePicker(false); setDevFocused(false); }}
-        />
-      </View>
 
       {/* ── Keys received ───────────────────────────────────────────────────── */}
-      <View style={styles.keysCard}>
+      <View style={styles.keysSection}>
         {/* Header */}
-        <View style={styles.keysCardHeader}>
-          <Text style={styles.keysCardTitle}>Keys Received</Text>
-          <Text style={styles.totalCount}>
-            {totalKeys} {totalKeys === 1 ? "key" : "keys"}
-          </Text>
+        <View style={styles.keysHeader}>
+          <Text style={styles.sectionGroupTitle}>Keys Received</Text>
+          {totalKeys > 0 && (
+            <Text style={styles.totalCount}>
+              {totalKeys} {totalKeys === 1 ? "key" : "keys"}
+            </Text>
+          )}
         </View>
 
-        {/* Added entries */}
-        {keys.length > 0 && (
-          <View style={styles.keyList}>
-            {keys.map((entry) => {
-              const Icon = KEY_TYPE_ICON[entry.type] ?? KeyRound;
-              return (
-                <View key={entry.id} style={styles.keyEntry}>
-                  <Icon
-                    size={15}
-                    color={theme.colors.accent}
-                    strokeWidth={1.8}
-                  />
-                  <Text style={styles.keyEntryLabel} numberOfLines={1}>
-                    {entry.type === "other" && entry.otherLabel
-                      ? entry.otherLabel
-                      : KEY_TYPE_LABEL[entry.type]}
-                  </Text>
-                  {entry.code ? (
-                    <View style={styles.codeBadge}>
-                      <Text style={styles.codeBadgeText} numberOfLines={1}>
-                        {entry.code}
-                      </Text>
-                    </View>
-                  ) : null}
-                  <View style={styles.countBadge}>
-                    <Text style={styles.countBadgeText}>{entry.count}</Text>
-                  </View>
-                  <Pressable onPress={() => removeKey(entry.id)} hitSlop={8}>
-                    <X size={16} color={theme.colors.danger} strokeWidth={2} />
-                  </Pressable>
-                </View>
-              );
-            })}
-          </View>
-        )}
-
-        <View style={styles.divider} />
-
-        {/* Add-key row */}
-        <>
-          <View style={styles.addKeyRow}>
-            <Pressable
-              style={styles.keyTypePicker}
-              onPress={() => setKeyPickerOpen(true)}
-            >
-              {(() => {
-                const Icon = KEY_TYPE_ICON[pendingType] ?? KeyRound;
-                return (
-                  <Icon
-                    size={15}
-                    color={theme.colors.textMuted}
-                    strokeWidth={1.8}
-                  />
-                );
-              })()}
-              <Text style={styles.keyTypePickerText} numberOfLines={1}>
-                {KEY_TYPE_LABEL[pendingType]}
-              </Text>
-              <ChevronDown
-                size={14}
-                color={theme.colors.textMuted}
-                strokeWidth={2}
-              />
-            </Pressable>
-
-            <View style={styles.counter}>
+        {/* Editable key cards */}
+        {keys.map((entry) => (
+          <ReanimatedSwipeable
+            key={entry.id}
+            renderRightActions={() => (
               <Pressable
-                style={styles.counterBtn}
-                onPress={() => setPendingCount((v) => Math.max(1, v - 1))}
+                style={styles.swipeDeleteAction}
+                onPress={() => removeKey(entry.id)}
               >
-                <Text style={styles.counterBtnText}>−</Text>
+                <Trash2 size={18} color="#fff" strokeWidth={1.8} />
+                <Text style={styles.swipeDeleteText}>Remove</Text>
               </Pressable>
-              <Text style={styles.counterVal}>{pendingCount}</Text>
-              <Pressable
-                style={styles.counterBtn}
-                onPress={() => setPendingCount((v) => v + 1)}
-              >
-                <Text style={styles.counterBtnText}>+</Text>
-              </Pressable>
-            </View>
-
-            <Pressable
-              style={({ pressed }) => [
-                styles.addKeyBtn,
-                pressed && { opacity: 0.78 },
-              ]}
-              onPress={addKey}
-            >
-              <Text style={styles.addKeyBtnText}>Add</Text>
-            </Pressable>
-          </View>
-          {/* Name + code inputs inline */}
-          <View style={styles.codeRow}>
-            {pendingType === "other" && (
-              <TextInput
-                placeholder="Key label"
-                value={pendingOtherLabel}
-                onChangeText={setPendingOtherLabel}
-                placeholderTextColor={theme.colors.textLight}
-                selectionColor={theme.colors.text}
-                returnKeyType="next"
-                maxLength={40}
-                style={styles.codeInputFlex}
-                onFocus={() => setShowDatePicker(false)}
-              />
             )}
-            <TextInput
-              placeholder="Code / tag #"
-              value={pendingCode}
-              onChangeText={setPendingCode}
-              placeholderTextColor={theme.colors.textLight}
-              selectionColor={theme.colors.text}
-              returnKeyType="done"
-              maxLength={30}
-              onSubmitEditing={() => Keyboard.dismiss()}
-              style={
-                pendingType === "other"
-                  ? styles.codeInputFixed
-                  : styles.codeInputFlex
-              }
-              onFocus={() => setShowDatePicker(false)}
-            />
-          </View>
-        </>
+            rightThreshold={40}
+            overshootRight={false}
+          >
+            <View style={styles.keyFormCard}>
+              {/* Type | Code | Qty row */}
+              <View style={styles.keyFormRow}>
+                <OutlinedSelect
+                  value={KEY_TYPE_LABEL[entry.type]}
+                  focused={activeTypePickerFor === entry.id}
+                  onPress={() => setActiveTypePickerFor(entry.id)}
+                  style={styles.keyTypeField}
+                  labelBackground={theme.colors.surface}
+                />
+                <Input
+                  placeholder="Code #"
+                  value={entry.code ?? ""}
+                  onChangeText={(v) =>
+                    updateKey(entry.id, { code: v.trim() || null })
+                  }
+                  autoCapitalize="characters"
+                  maxLength={30}
+                  containerStyle={styles.keyCodeField}
+                  labelBackground={theme.colors.surface}
+                  onFocus={() => setShowDatePicker(false)}
+                />
+                <OutlinedSelect
+                  value={String(entry.count)}
+                  focused={activeQtyPickerFor === entry.id}
+                  onPress={() => setActiveQtyPickerFor(entry.id)}
+                  style={styles.keyQtyField}
+                  labelBackground={theme.colors.surface}
+                />
+              </View>
+
+              {/* "Other" label input */}
+              {entry.type === "other" && (
+                <Input
+                  placeholder="Key label"
+                  value={entry.otherLabel ?? ""}
+                  onChangeText={(v) =>
+                    updateKey(entry.id, { otherLabel: v || null })
+                  }
+                  maxLength={40}
+                  containerStyle={styles.keyOtherField}
+                  labelBackground={theme.colors.surface}
+                  onFocus={() => setShowDatePicker(false)}
+                />
+              )}
+            </View>
+          </ReanimatedSwipeable>
+        ))}
+
+        {/* Dotted "Add Key" button — always visible */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.addKeyDotBtn,
+            pressed && { opacity: 0.7 },
+          ]}
+          onPress={addKey}
+        >
+          <Plus size={16} color={theme.colors.accent} strokeWidth={2.2} />
+          <Text style={styles.addKeyDotBtnText}>Add Key</Text>
+        </Pressable>
       </View>
 
+      {/* Single shared PickerModal for key type selection */}
       <PickerModal
-        visible={keyPickerOpen}
+        visible={activeTypePickerFor !== null}
         title="Key Type"
         options={KEY_TYPE_OPTIONS}
-        value={pendingType}
-        onSelect={(v) => setPendingType(v as KeyType)}
-        onClose={() => setKeyPickerOpen(false)}
+        value={
+          keys.find((k) => k.id === activeTypePickerFor)?.type ??
+          KEY_TYPE_OPTIONS[0].value
+        }
+        onSelect={(v) => {
+          if (activeTypePickerFor) {
+            updateKey(activeTypePickerFor, {
+              type: v as KeyType,
+              otherLabel: null,
+            });
+          }
+        }}
+        onClose={() => setActiveTypePickerFor(null)}
+      />
+      {/* Single shared PickerModal for quantity selection */}
+      <PickerModal
+        visible={activeQtyPickerFor !== null}
+        title="Quantity"
+        options={QTY_OPTIONS}
+        value={String(
+          keys.find((k) => k.id === activeQtyPickerFor)?.count ?? 1,
+        )}
+        onSelect={(v) => {
+          if (activeQtyPickerFor) {
+            updateKey(activeQtyPickerFor, { count: Number(v) });
+          }
+        }}
+        onClose={() => setActiveQtyPickerFor(null)}
       />
     </View>
   );
@@ -444,11 +408,25 @@ export function PropertyInfoStep({
 
 const styles = StyleSheet.create({
   container: {
-    gap: theme.spacing.sm,
+    gap: theme.spacing.md,
     paddingHorizontal: theme.spacing.screen,
     paddingTop: theme.spacing.md,
     paddingBottom: theme.spacing.xl,
   },
+
+  // ── Section groups ────────────────────────────────────────────────────────
+  sectionGroupTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: theme.colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    paddingHorizontal: theme.spacing.xs,
+  },
+  // Property/landlord cards space fields via their own top margins.
+  cardNoGap: { gap: 0 },
+
+  // ── Shared field helpers ──────────────────────────────────────────────────
   addressField: {
     zIndex: 1000,
     elevation: 24,
@@ -518,154 +496,83 @@ const styles = StyleSheet.create({
   },
   datePickerBtn: { flex: 1 },
 
-  // ── Keys card ─────────────────────────────────────────────────────────────
-  keysCard: {
-    marginTop: theme.spacing.sm,
-    borderWidth: 1.5,
-    borderColor: theme.colors.accentSoft,
-    borderRadius: theme.radius.lg,
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.md,
+  // ── Keys section ──────────────────────────────────────────────────────────
+  keysSection: {
     gap: theme.spacing.sm,
   },
-  keysCardHeader: {
+  keysHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 2,
-  },
-  keysCardTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: theme.colors.accent,
   },
   totalCount: {
     fontSize: 13,
     fontWeight: "600",
     color: theme.colors.textMuted,
   },
-  keyList: { gap: 6 },
-  keyEntry: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.radius.md,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 8,
-    gap: theme.spacing.sm,
-  },
-  keyEntryLabel: { flex: 1, fontSize: 14, color: theme.colors.text },
-  countBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.accentSoft,
-  },
-  countBadgeText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: theme.colors.accent,
-  },
-  codeBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.neutralSoft,
+
+  // Editable key form card
+  keyFormCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    maxWidth: 80,
+    padding: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
-  codeBadgeText: {
+  keyFormRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
+  keyTypeField: {
+    flex: 2,
+    marginTop: 0,
+  },
+  keyCodeField: {
+    flex: 2,
+    marginTop: 0,
+  },
+  keyQtyField: {
+    width: 72,
+    marginTop: 0,
+  },
+  keyOtherField: {
+    marginTop: 0,
+  },
+
+  // Swipe-to-delete action
+  swipeDeleteAction: {
+    backgroundColor: theme.colors.danger,
+    borderRadius: theme.radius.lg,
+    marginLeft: theme.spacing.sm,
+    width: 76,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: theme.spacing.xs,
+  },
+  swipeDeleteText: {
     fontSize: 11,
     fontWeight: "700",
-    color: theme.colors.textMuted,
+    color: "#fff",
   },
-  divider: {
-    height: 1,
-    backgroundColor: theme.colors.border,
-    marginVertical: 2,
-  },
-  addKeyRow: {
+
+  // Dotted "Add Key" button
+  addKeyDotBtn: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: theme.spacing.sm,
+    height: 46,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    borderColor: theme.colors.accentLight,
+    backgroundColor: theme.colors.accentSoft,
   },
-  keyTypePicker: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 6,
-    height: 40,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.md,
-    paddingHorizontal: theme.spacing.sm,
-    backgroundColor: theme.colors.background,
-  },
-  keyTypePickerText: { flex: 1, fontSize: 13, color: theme.colors.text },
-  counter: { flexDirection: "row", alignItems: "center", gap: 6 },
-  counterBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: theme.colors.neutralSoft,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  counterBtnText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: theme.colors.text,
-    lineHeight: 22,
-  },
-  counterVal: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: theme.colors.text,
-    minWidth: 22,
-    textAlign: "center",
-  },
-  addKeyBtn: {
-    height: 40,
-    paddingHorizontal: theme.spacing.md,
-    borderRadius: theme.radius.md,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.accent,
-  },
-  addKeyBtnText: {
+  addKeyDotBtnText: {
     fontSize: 14,
     fontWeight: "700",
-    color: theme.colors.textInverse,
-  },
-  codeRow: {
-    flexDirection: "row",
-    gap: theme.spacing.sm,
-    alignItems: "center",
-  },
-  codeInputFlex: {
-    flex: 1,
-    height: 40,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.background,
-    paddingHorizontal: theme.spacing.sm,
-    fontSize: 13,
-    color: theme.colors.text,
-    paddingVertical: 0,
-  },
-  codeInputFixed: {
-    width: 130,
-    height: 40,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.background,
-    paddingHorizontal: theme.spacing.sm,
-    fontSize: 13,
-    color: theme.colors.text,
-    paddingVertical: 0,
+    color: theme.colors.accent,
   },
 });
