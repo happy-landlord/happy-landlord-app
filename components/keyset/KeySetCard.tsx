@@ -65,7 +65,11 @@ export function KeySetCard({
           label: "With",
           value: `${holderName}${holder?.holder_type && holder.holder_type !== "agent" ? ` · ${holder.holder_type}` : ""}`,
         },
-        { label: "Contact", value: holder?.phone ?? "No contact" },
+        {
+          label: "Contact",
+          value: holder?.phone ?? "No contact",
+          phone: !!holder?.phone,
+        },
       ]
     : undefined;
 

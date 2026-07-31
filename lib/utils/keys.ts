@@ -53,6 +53,31 @@ export function getDraftKeyLabel(entry: DraftKeyLike): string {
   return KEY_TYPE_LABEL[entry.type] ?? entry.type;
 }
 
+/**
+ * Merges duplicate KeyEntry items (same type + otherLabel + code) by
+ * summing their counts. Called when the user advances past step 1 of the
+ * add-property wizard so free-form editing isn't disrupted mid-entry.
+ */
+export function deduplicateKeyEntries<
+  T extends DraftKeyLike & { id: string; count: number; code?: string | null },
+>(entries: T[]): T[] {
+  const seen = new Map<string, T>();
+  for (const entry of entries) {
+    const sig = [
+      entry.type,
+      getDraftKeyLabel(entry).toLowerCase(),
+      (entry.code ?? "").toLowerCase(),
+    ].join("::");
+    const existing = seen.get(sig);
+    if (existing) {
+      seen.set(sig, { ...existing, count: existing.count + entry.count });
+    } else {
+      seen.set(sig, entry);
+    }
+  }
+  return Array.from(seen.values());
+}
+
 // ── Key allocation helpers (add-property wizard) ─────────────────────────────
 
 /** Minimal shape needed to allocate keys across keysets. */

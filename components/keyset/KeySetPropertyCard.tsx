@@ -71,9 +71,7 @@ export function KeySetPropertyCard({
   // block is never suppressed when a holder record exists.
   const holderName = holder?.full_name ?? holder?.phone ?? "Unknown holder";
   const renderHolder =
-    showHolder &&
-    (isCheckedOut || isHandover || isMissingDamaged) &&
-    !!holder;
+    showHolder && (isCheckedOut || isHandover || isMissingDamaged) && !!holder;
 
   const holderMeta: MetaItem[] | undefined = renderHolder
     ? [
@@ -81,7 +79,11 @@ export function KeySetPropertyCard({
           label: "With",
           value: `${holderName}${holder?.holder_type && holder.holder_type !== "agent" ? ` · ${holder.holder_type}` : ""}`,
         },
-        { label: "Contact", value: holder?.phone ?? "No contact" },
+        {
+          label: "Contact",
+          value: holder?.phone ?? "No contact",
+          phone: !!holder?.phone,
+        },
       ]
     : undefined;
 
@@ -96,7 +98,9 @@ export function KeySetPropertyCard({
           <KeyStatusChip status={chipStatus} size="md" />
         ) : undefined
       }
-      meta={holderMeta ? <MetaRow items={holderMeta} divider={false} /> : undefined}
+      meta={
+        holderMeta ? <MetaRow items={holderMeta} divider={false} /> : undefined
+      }
       right={
         <ChevronRight
           size={16}

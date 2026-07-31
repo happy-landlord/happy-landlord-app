@@ -1,11 +1,5 @@
 import { useState } from "react";
-import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { AlertTriangle, Phone } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -20,6 +14,15 @@ import {
 } from "@/lib/hooks";
 import type { AgentProfile } from "@/lib/services";
 
+function formatJoined(dateStr: string): string {
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return "Unknown";
+  return d.toLocaleDateString("en-AU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
 
 type Props = {
   agent: AgentProfile | null;
@@ -71,7 +74,6 @@ export function AgentDetailsSheet({ agent, onClose }: Props) {
       {/* Profile header — details-specific layout */}
       {agent && <AgentProfileHeader agent={agent} />}
 
-
       {/* Section heading */}
       <View style={styles.sectionHeading}>
         <Text style={styles.sectionLabel}>Currently Holding</Text>
@@ -110,12 +112,15 @@ export function AgentDetailsSheet({ agent, onClose }: Props) {
         )}
       </ScrollView>
 
-
       {/* Footer */}
       <View style={styles.footer}>
         {hasHoldings ? (
           <View style={styles.warningRow}>
-            <AlertTriangle size={13} color={theme.colors.textMuted} strokeWidth={2} />
+            <AlertTriangle
+              size={13}
+              color={theme.colors.textMuted}
+              strokeWidth={2}
+            />
             <Text style={styles.warningText}>
               Reassign keysets before deactivating.
             </Text>
@@ -167,26 +172,26 @@ function AgentProfileHeader({ agent }: { agent: AgentProfile }) {
           {name ?? "Unknown name"}
         </Text>
 
-
-        {mobile ? (
-          <View style={styles.profileRow}>
-            <Phone size={13} color={theme.colors.textMuted} strokeWidth={1.8} />
-            <PhoneLink
-              phone={mobile}
-              textStyle={styles.profilePhone}
-            />
-          </View>
-        ) : (
-          <View style={styles.profileRow}>
-            <Phone size={13} color={theme.colors.textLight} strokeWidth={1.8} />
+        {/* Phone + joined date in one row */}
+        <View style={styles.profileRow}>
+          <Phone
+            size={13}
+            color={mobile ? theme.colors.textMuted : theme.colors.textLight}
+            strokeWidth={1.8}
+          />
+          {mobile ? (
+            <PhoneLink phone={mobile} textStyle={styles.profilePhone} />
+          ) : (
             <Text style={styles.profileRowText}>No mobile</Text>
-          </View>
-        )}
+          )}
+          <Text style={styles.joinedText}>
+            Joined {formatJoined(agent.created_at)}
+          </Text>
+        </View>
       </View>
     </View>
   );
 }
-
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
@@ -201,21 +206,22 @@ const styles = StyleSheet.create({
   // Profile header
   profileHeader: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.md,
+    alignItems: "stretch",
+    gap: theme.spacing.sm + 2,
     backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.lg,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm + 2,
+    paddingHorizontal: theme.spacing.sm + 2,
     marginBottom: theme.spacing.md,
   },
   avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 62,
+    height: 62,
+    borderRadius: 31,
     flexShrink: 0,
+    alignSelf: "center",
   },
   avatarFallback: {
     backgroundColor: theme.colors.accent,
@@ -223,25 +229,27 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   avatarInitial: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "700",
     color: theme.colors.textInverse,
   },
   profileInfo: {
     flex: 1,
     minWidth: 0,
-    gap: 5,
+    justifyContent: "center",
+    gap: 4,
   },
   profileName: {
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: "700",
     color: theme.colors.text,
-    letterSpacing: -0.2,
-    marginBottom: 2,
+    letterSpacing: -0.3,
+    marginBottom: 4,
   },
   profileRow: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     gap: 5,
   },
   profileRowText: {
@@ -254,11 +262,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.textMuted,
   },
-
-  divider: {
-    height: 1,
-    backgroundColor: theme.colors.border,
-    marginVertical: theme.spacing.sm,
+  joinedText: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: theme.colors.textLight,
+    letterSpacing: 0.1,
+    marginLeft: "auto",
   },
 
   // Section heading
@@ -290,7 +299,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingVertical: theme.spacing.md,
   },
-
 
   // Footer
   footer: {

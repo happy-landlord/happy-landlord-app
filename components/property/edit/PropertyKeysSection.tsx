@@ -1,10 +1,5 @@
 import { useState } from "react";
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Plus, Trash2 } from "lucide-react-native";
 import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 
@@ -15,14 +10,18 @@ import type { DisplayKey } from "./usePropertyEditForm";
 
 // ── Options ───────────────────────────────────────────────────────────────────
 
-const KEY_TYPE_OPTIONS = (Object.keys(KEY_TYPE_LABEL) as KeyType[]).map((type) => {
-  const Icon = KEY_TYPE_ICON[type];
-  return {
-    value: type,
-    label: KEY_TYPE_LABEL[type],
-    icon: Icon ? <Icon size={16} color={theme.colors.textMuted} strokeWidth={1.8} /> : undefined,
-  };
-});
+const KEY_TYPE_OPTIONS = (Object.keys(KEY_TYPE_LABEL) as KeyType[]).map(
+  (type) => {
+    const Icon = KEY_TYPE_ICON[type];
+    return {
+      value: type,
+      label: KEY_TYPE_LABEL[type],
+      icon: Icon ? (
+        <Icon size={16} color={theme.colors.textMuted} strokeWidth={1.8} />
+      ) : undefined,
+    };
+  },
+);
 
 const QTY_OPTIONS = Array.from({ length: 6 }, (_, i) => ({
   value: String(i + 1),
@@ -44,7 +43,12 @@ export type PropertyKeysSectionProps = {
   totalKeys: number;
   onChangeQty: (key: DisplayKey, delta: number) => void;
   onDelete: (key: DisplayKey) => void;
-  onAdd: (type: KeyType, qty: number, code: string | null) => void;
+  onAdd: (
+    type: KeyType,
+    qty: number,
+    code: string | null,
+    otherLabel: string | null,
+  ) => void;
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -57,34 +61,51 @@ export function PropertyKeysSection({
   onAdd,
 }: PropertyKeysSectionProps) {
   const [drafts, setDrafts] = useState<DraftKey[]>([]);
-  const [activeTypePickerFor, setActiveTypePickerFor] = useState<string | null>(null);
-  const [activeQtyPickerFor, setActiveQtyPickerFor] = useState<string | null>(null);
+  const [activeTypePickerFor, setActiveTypePickerFor] = useState<string | null>(
+    null,
+  );
+  const [activeQtyPickerFor, setActiveQtyPickerFor] = useState<string | null>(
+    null,
+  );
 
   function addDraft() {
     setDrafts((prev) => [
       ...prev,
-      { id: `draft-${Date.now()}`, type: KEY_TYPE_OPTIONS[0].value as KeyType, count: 1, code: null, otherLabel: null },
+      {
+        id: `draft-${Date.now()}`,
+        type: KEY_TYPE_OPTIONS[0].value as KeyType,
+        count: 1,
+        code: null,
+        otherLabel: null,
+      },
     ]);
   }
 
   function updateDraft(id: string, patch: Partial<DraftKey>) {
-    setDrafts((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
+    setDrafts((prev) =>
+      prev.map((d) => (d.id === id ? { ...d, ...patch } : d)),
+    );
   }
 
   function commitDraft(draft: DraftKey) {
-    onAdd(draft.type, draft.count, draft.code);
+    onAdd(draft.type, draft.count, draft.code, draft.otherLabel);
     setDrafts((prev) => prev.filter((d) => d.id !== draft.id));
   }
 
   // Picker resolution
-  const activeQtyDisplayKey = displayKeys.find((k) => k.id === activeQtyPickerFor);
+  const activeQtyDisplayKey = displayKeys.find(
+    (k) => k.id === activeQtyPickerFor,
+  );
   const activeQtyDraft = drafts.find((d) => d.id === activeQtyPickerFor);
-  const activeQtyValue = String(activeQtyDisplayKey?.quantity ?? activeQtyDraft?.count ?? 1);
+  const activeQtyValue = String(
+    activeQtyDisplayKey?.quantity ?? activeQtyDraft?.count ?? 1,
+  );
   const activeTypeDraft = drafts.find((d) => d.id === activeTypePickerFor);
 
   function handleQtySelect(v: string) {
     const newQty = Number(v);
-    if (activeQtyDisplayKey) onChangeQty(activeQtyDisplayKey, newQty - activeQtyDisplayKey.quantity);
+    if (activeQtyDisplayKey)
+      onChangeQty(activeQtyDisplayKey, newQty - activeQtyDisplayKey.quantity);
     else if (activeQtyDraft) updateDraft(activeQtyDraft.id, { count: newQty });
   }
 
@@ -105,12 +126,16 @@ export function PropertyKeysSection({
       {/* Existing / already-committed keys */}
       {displayKeys.map((entry) => {
         const keySetName = !entry.isNew
-          ? (entry as DisplayKey & { keySetName?: string | null }).keySetName ?? null
+          ? ((entry as DisplayKey & { keySetName?: string | null })
+              .keySetName ?? null)
           : null;
         const inKeyset = Boolean(keySetName);
-        const typeLabel = KEY_TYPE_LABEL[entry.key_type as KeyType] ?? entry.key_type;
+        const typeLabel =
+          KEY_TYPE_LABEL[entry.key_type as KeyType] ?? entry.key_type;
         const isOther = entry.key_type === "other";
-        const otherLabel = isOther ? (entry as { label?: string }).label ?? null : null;
+        const otherLabel = isOther
+          ? ((entry as { label?: string }).label ?? null)
+          : null;
 
         const card = (
           <View style={styles.keyFormCard}>
@@ -165,7 +190,10 @@ export function PropertyKeysSection({
           <ReanimatedSwipeable
             key={entry.id}
             renderRightActions={() => (
-              <Pressable style={styles.swipeDeleteAction} onPress={() => onDelete(entry)}>
+              <Pressable
+                style={styles.swipeDeleteAction}
+                onPress={() => onDelete(entry)}
+              >
                 <Trash2 size={18} color="#fff" strokeWidth={1.8} />
                 <Text style={styles.swipeDeleteText}>Remove</Text>
               </Pressable>
@@ -183,7 +211,12 @@ export function PropertyKeysSection({
         <ReanimatedSwipeable
           key={draft.id}
           renderRightActions={() => (
-            <Pressable style={styles.swipeDeleteAction} onPress={() => setDrafts((p) => p.filter((d) => d.id !== draft.id))}>
+            <Pressable
+              style={styles.swipeDeleteAction}
+              onPress={() =>
+                setDrafts((p) => p.filter((d) => d.id !== draft.id))
+              }
+            >
               <Trash2 size={18} color="#fff" strokeWidth={1.8} />
               <Text style={styles.swipeDeleteText}>Remove</Text>
             </Pressable>
@@ -203,7 +236,9 @@ export function PropertyKeysSection({
               <Input
                 placeholder="Code #"
                 value={draft.code ?? ""}
-                onChangeText={(v) => updateDraft(draft.id, { code: v.trim() || null })}
+                onChangeText={(v) =>
+                  updateDraft(draft.id, { code: v.trim() || null })
+                }
                 autoCapitalize="characters"
                 maxLength={30}
                 containerStyle={styles.keyCodeField}
@@ -221,14 +256,19 @@ export function PropertyKeysSection({
               <Input
                 placeholder="Key label"
                 value={draft.otherLabel ?? ""}
-                onChangeText={(v) => updateDraft(draft.id, { otherLabel: v || null })}
+                onChangeText={(v) =>
+                  updateDraft(draft.id, { otherLabel: v || null })
+                }
                 maxLength={40}
                 containerStyle={styles.keyOtherField}
                 labelBackground={theme.colors.surface}
               />
             )}
             <Pressable
-              style={({ pressed }) => [styles.confirmBtn, pressed && { opacity: 0.75 }]}
+              style={({ pressed }) => [
+                styles.confirmBtn,
+                pressed && { opacity: 0.75 },
+              ]}
               onPress={() => commitDraft(draft)}
             >
               <Text style={styles.confirmBtnText}>+ Add key</Text>
@@ -239,7 +279,10 @@ export function PropertyKeysSection({
 
       {/* Dotted Add Key button */}
       <Pressable
-        style={({ pressed }) => [styles.addKeyDotBtn, pressed && { opacity: 0.7 }]}
+        style={({ pressed }) => [
+          styles.addKeyDotBtn,
+          pressed && { opacity: 0.7 },
+        ]}
         onPress={addDraft}
       >
         <Plus size={16} color={theme.colors.accent} strokeWidth={2.2} />
@@ -253,7 +296,11 @@ export function PropertyKeysSection({
         options={KEY_TYPE_OPTIONS}
         value={activeTypeDraft?.type ?? KEY_TYPE_OPTIONS[0].value}
         onSelect={(v) => {
-          if (activeTypeDraft) updateDraft(activeTypeDraft.id, { type: v as KeyType, otherLabel: null });
+          if (activeTypeDraft)
+            updateDraft(activeTypeDraft.id, {
+              type: v as KeyType,
+              otherLabel: null,
+            });
         }}
         onClose={() => setActiveTypePickerFor(null)}
       />
@@ -372,4 +419,3 @@ const styles = StyleSheet.create({
     color: theme.colors.accent,
   },
 });
-

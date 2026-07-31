@@ -3,7 +3,7 @@ import { Alert } from "react-native";
 import { useRouter } from "expo-router";
 
 import { useCreateProperty } from "@/lib/hooks";
-import { showSuccessToast } from "@/lib/utils";
+import { showSuccessToast, deduplicateKeyEntries } from "@/lib/utils";
 import type { PlaceResult } from "@/components/ui";
 import type { KeyType, PropertyType } from "@/types";
 
@@ -16,6 +16,7 @@ import { usePropertyCode } from "./usePropertyCode";
 export type PropertyStep = {
   propertyType: PropertyType;
   selectedPlace: PlaceResult | null;
+  title: string;
   landlordName: string;
   landlordContact: string;
   dateReceived: Date;
@@ -50,6 +51,7 @@ export type KeySetDraft = {
 export const DEFAULT_PROPERTY: PropertyStep = {
   propertyType: "apartment",
   selectedPlace: null,
+  title: "",
   landlordName: "",
   landlordContact: "",
   dateReceived: new Date(),
@@ -113,7 +115,6 @@ export function useAddPropertyWizard() {
     setProperty((p) => ({ ...p, ...patch }));
   }, []);
 
-
   // ── Navigation ─────────────────────────────────────────────────────────
   const confirmDiscard = useCallback((onConfirm: () => void) => {
     Alert.alert(
@@ -156,6 +157,10 @@ export function useAddPropertyWizard() {
         "Please add at least one key before continuing.",
       );
       return;
+    }
+    // Merge duplicate key entries before leaving step 1
+    if (step === 1) {
+      setKeys(deduplicateKeyEntries(keys));
     }
     if (step === 2) {
       if (keySets.length === 0) {

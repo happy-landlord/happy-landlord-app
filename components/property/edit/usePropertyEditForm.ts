@@ -61,6 +61,7 @@ export function usePropertyEditForm(propertyId: string) {
 
   // ── Form state ───────────────────────────────────────────────────────────
   const [propertyType, setPropertyType] = useState<PropertyType>("apartment");
+  const [title, setTitle] = useState("");
   const [landlordName, setLandlordName] = useState("");
   const [landlordContact, setLandlordContact] = useState("");
   const [dateReceived, setDateReceived] = useState<Date>(new Date());
@@ -72,6 +73,7 @@ export function usePropertyEditForm(propertyId: string) {
   // Sync once when server data arrives
   useSyncOnce(property, (p) => {
     setPropertyType(p.property_type);
+    setTitle(p.title ?? "");
     setLandlordName(p.landlord?.full_name ?? "");
     setLandlordContact(p.landlord?.phone ?? "");
     setDeveloperName(p.developer_name ?? "");
@@ -117,8 +119,16 @@ export function usePropertyEditForm(propertyId: string) {
   const totalKeys = displayKeys.reduce((s, k) => s + k.quantity, 0);
 
   // ── Key handlers ─────────────────────────────────────────────────────────
-  function addKey(type: KeyType, qty: number, code: string | null) {
-    const label = KEY_TYPE_LABEL[type] ?? type;
+  function addKey(
+    type: KeyType,
+    qty: number,
+    code: string | null,
+    otherLabel: string | null = null,
+  ) {
+    const label =
+      type === "other" && otherLabel
+        ? otherLabel
+        : (KEY_TYPE_LABEL[type] ?? type);
     const sig = getKeySignature({ key_type: type, label, code });
 
     const existingMatch = existingDisplay.find(
@@ -243,6 +253,7 @@ export function usePropertyEditForm(propertyId: string) {
       await updateDetailsMut.mutateAsync({
         patch: {
           property_type: propertyType,
+          title: title.trim() || null,
           developer_name: developerName.trim() || null,
           cabinet_code: cabinetCode.trim() || null,
           ...addressPatch,
@@ -291,6 +302,8 @@ export function usePropertyEditForm(propertyId: string) {
     tenant,
     propertyType,
     setPropertyType,
+    title,
+    setTitle,
     landlordName,
     setLandlordName,
     landlordContact,

@@ -1,15 +1,29 @@
-﻿import { Linking, Pressable, StyleSheet, Text } from "react-native";
+import {
+  Alert,
+  Linking,
+  Pressable,
+  Share,
+  StyleSheet,
+  Text,
+} from "react-native";
 import type { StyleProp, TextStyle, ViewStyle } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
 import { Phone } from "lucide-react-native";
+import * as Clipboard from "expo-clipboard";
+import * as Haptics from "expo-haptics";
+import Toast from "react-native-toast-message";
+
 import { theme } from "@/constants";
 import { formatAustralianPhoneForDisplay } from "@/lib/utils/phone";
+
 // ── PhoneLink ─────────────────────────────────────────────────────────────────
-// A tappable phone number that opens the native dialler on press.
-// Displays in friendly AU format (0410 382 251) when stored as E.164.
-//
-// Usage:
-//   <PhoneLink phone="+61410382251" />
-//   <PhoneLink phone={number} showIcon iconColor={theme.colors.textMuted} textStyle={styles.contactText} />
+// Tap        → light haptic + opens the native dialler.
+// Long-press → medium haptic + action sheet: Call / Copy / Share.
+
 export type PhoneLinkProps = {
   phone: string;
   /** Renders a Phone icon to the left of the number. Default: false */
@@ -21,6 +35,9 @@ export type PhoneLinkProps = {
   /** Style applied to the outer Pressable row. */
   style?: ViewStyle;
 };
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 export function PhoneLink({
   phone,
   showIcon = false,
@@ -29,20 +46,66 @@ export function PhoneLink({
   textStyle,
   style,
 }: PhoneLinkProps) {
+  const cleaned = phone.replace(/\s+/g, "");
+  const displayPhone = formatAustralianPhoneForDisplay(phone);
+
+  // ── Spring scale ────────────────────────────────────────────────────────────
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const onPressIn = () => {
+    scale.value = withSpring(0.94, { damping: 15, stiffness: 400 });
+  };
+  const onPressOut = () => {
+    scale.value = withSpring(1, { damping: 12, stiffness: 300 });
+  };
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
   const handlePress = () => {
-    // Strip spaces so the dialler receives a clean E.164 number.
-    const cleaned = phone.replace(/\s+/g, "");
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     Linking.openURL(`tel:${cleaned}`).catch(() => {});
   };
-  // Display in friendly AU format (0410 382 251) if stored as E.164,
-  // otherwise fall back to the raw value.
-  const displayPhone = formatAustralianPhoneForDisplay(phone);
+
+  const handleLongPress = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(displayPhone, undefined, [
+      {
+        text: "Call",
+        onPress: () => Linking.openURL(`tel:${cleaned}`).catch(() => {}),
+      },
+      {
+        text: "Copy",
+        onPress: async () => {
+          await Clipboard.setStringAsync(displayPhone);
+          Toast.show({
+            type: "success",
+            text1: "Copied",
+            text2: displayPhone,
+            visibilityTime: 2000,
+          });
+        },
+      },
+      {
+        text: "Share",
+        onPress: () => Share.share({ message: displayPhone }).catch(() => {}),
+      },
+      { text: "Cancel", style: "destructive" },
+    ]);
+  };
+
   return (
-    <Pressable
+    <AnimatedPressable
       onPress={handlePress}
-      style={({ pressed }) => [styles.row, style, pressed && styles.pressed]}
+      onLongPress={handleLongPress}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      delayLongPress={400}
+      style={[styles.row, style, animatedStyle]}
       accessibilityRole="link"
       accessibilityLabel={`Call ${displayPhone}`}
+      accessibilityHint="Long-press to copy or share"
       hitSlop={4}
     >
       {showIcon ? (
@@ -51,16 +114,16 @@ export function PhoneLink({
       <Text style={[styles.text, textStyle]} numberOfLines={1}>
         {displayPhone}
       </Text>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
+
 const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
   },
-  pressed: { opacity: 0.6 },
   text: {
     fontSize: 13,
     fontWeight: "600",

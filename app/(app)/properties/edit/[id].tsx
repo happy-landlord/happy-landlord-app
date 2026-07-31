@@ -1,11 +1,35 @@
 import { useState } from "react";
-import { ActivityIndicator, Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Keyboard,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
-import { AddressSearch, BottomSheet, Button, ErrorState, FormFooter, FormSection, Input, LoadingState, OutlinedDateField, OutlinedSelect, PickerModal } from "@/components/ui";
-import { PropertyKeysSection, usePropertyEditForm } from "@/components/property/edit";
+import {
+  AddressSearch,
+  BottomSheet,
+  Button,
+  ErrorState,
+  FormFooter,
+  FormSection,
+  Input,
+  LoadingState,
+  OutlinedDateField,
+  OutlinedSelect,
+  PickerModal,
+} from "@/components/ui";
+import {
+  PropertyKeysSection,
+  usePropertyEditForm,
+} from "@/components/property/edit";
 import { PROPERTY_TYPES, theme } from "@/constants";
 import { useDeveloperSuggestions } from "@/lib/hooks";
 import { formatLongDate } from "@/lib/utils";
@@ -36,14 +60,18 @@ export default function EditPropertyScreen() {
   }
 
   const selectedTypeLabel =
-    PROPERTY_TYPES.find((t) => t.value === form.propertyType)?.label ?? "Select…";
+    PROPERTY_TYPES.find((t) => t.value === form.propertyType)?.label ??
+    "Select…";
 
   return (
     <>
       <View style={styles.screen}>
         <KeyboardAwareScrollView
           style={styles.scroll}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: theme.spacing.md }]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: theme.spacing.md },
+          ]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           bottomOffset={Platform.OS === "ios" ? 32 : 16}
@@ -61,19 +89,40 @@ export default function EditPropertyScreen() {
               />
               {form.addressChecking && (
                 <View style={styles.addressFeedbackRow}>
-                  <ActivityIndicator size="small" color={theme.colors.textMuted} />
-                  <Text style={styles.addressCheckingText}>Checking address…</Text>
+                  <ActivityIndicator
+                    size="small"
+                    color={theme.colors.textMuted}
+                  />
+                  <Text style={styles.addressCheckingText}>
+                    Checking address…
+                  </Text>
                 </View>
               )}
               {form.addressError ? (
                 <View style={styles.addressFeedbackRow}>
-                  <Text style={styles.addressErrorText}>{form.addressError}</Text>
+                  <Text style={styles.addressErrorText}>
+                    {form.addressError}
+                  </Text>
                 </View>
               ) : null}
             </View>
 
+            <Input
+              label="Title"
+              placeholder="Optional custom title"
+              value={form.title}
+              onChangeText={form.setTitle}
+              autoCapitalize="words"
+              autoCorrect={false}
+              labelBackground={theme.colors.surface}
+              onFocus={() => {
+                setDevFocused(false);
+                setShowDatePicker(false);
+              }}
+            />
+
             <OutlinedSelect
-              label="Property Type"
+              label="Type"
               required
               value={selectedTypeLabel}
               focused={showTypePicker}
@@ -115,7 +164,9 @@ export default function EditPropertyScreen() {
                           Keyboard.dismiss();
                         }}
                       >
-                        <Text style={styles.suggestionText} numberOfLines={1}>{name}</Text>
+                        <Text style={styles.suggestionText} numberOfLines={1}>
+                          {name}
+                        </Text>
                       </Pressable>
                     ))}
                   </ScrollView>
@@ -135,7 +186,10 @@ export default function EditPropertyScreen() {
           </FormSection>
 
           {/* ── Landlord Information ──────────────────────────────────────── */}
-          <FormSection title="Landlord Information" cardStyle={styles.cardNoGap}>
+          <FormSection
+            title="Landlord Information"
+            cardStyle={styles.cardNoGap}
+          >
             <Input
               label="Landlord / Owner"
               placeholder="Full name"
@@ -162,7 +216,10 @@ export default function EditPropertyScreen() {
                 label="Date Received"
                 value={formatLongDate(form.dateReceived)}
                 focused={showDatePicker}
-                onPress={() => { Keyboard.dismiss(); setShowDatePicker(true); }}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setShowDatePicker(true);
+                }}
                 style={styles.dateField}
                 labelBackground={theme.colors.surface}
               />
@@ -171,7 +228,10 @@ export default function EditPropertyScreen() {
 
           {/* ── Tenant Information (leased only) ──────────────────────────── */}
           {form.isLeased && (
-            <FormSection title="Tenant Information" cardStyle={styles.cardNoGap}>
+            <FormSection
+              title="Tenant Information"
+              cardStyle={styles.cardNoGap}
+            >
               <Input
                 label="Tenant"
                 placeholder="Full name"

@@ -75,16 +75,18 @@ export function isValidAustralianMobile(phone: string): boolean {
 /**
  * Formats a stored E.164 mobile number into the friendly Australian style.
  *
- * Input : +61410382251
+ * Input : +61410382251  OR  61410382251
  * Output: 0410 382 251
  *
  * Returns the original string unchanged when it is not a valid canonical
  * Australian mobile (so it is safe to call on any value).
  */
 export function formatAustralianPhoneForDisplay(phone: string): string {
-  const match = phone.match(/^\+61(4\d{8})$/);
+  // Normalise first so "61410382251" → "+61410382251" before matching
+  const normalised = normalizeAustralianPhone(phone);
+  const match = normalised.match(/^\+61(\d{9})$/);
   if (!match) return phone;
-  const d = match[1]; // "410382251"
+  const d = match[1]; // e.g. "410382251"
   return `0${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}`;
 }
 
@@ -101,4 +103,3 @@ export function maskPhone(phone: string): string {
   if (!phone || phone.length < 6) return "***";
   return `${phone.slice(0, 4)}*****${phone.slice(-3)}`;
 }
-

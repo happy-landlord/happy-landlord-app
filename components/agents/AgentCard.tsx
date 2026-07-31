@@ -1,10 +1,16 @@
-import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from "react-native";
 import { Image } from "expo-image";
-import { ChevronRight } from "lucide-react-native";
+import { ChevronRight, KeyRound } from "lucide-react-native";
 
-import { PhoneLink, PressableCard } from "@/components/ui";
+import { PressableCard } from "@/components/ui";
 import { theme } from "@/constants";
-import { useProfileImageUrl } from "@/lib/hooks";
+import { useAgentHeldKeySets, useProfileImageUrl } from "@/lib/hooks";
 import type { AgentProfile } from "@/lib/services";
 
 type Props = {
@@ -16,58 +22,58 @@ type Props = {
 
 export function AgentCard({ agent, onPress, style }: Props) {
   const { data: imageUrl } = useProfileImageUrl(agent.profile_image);
+  const { data: heldKeySets } = useAgentHeldKeySets(agent.id);
 
   const name =
     agent.full_name?.trim() || agent.key_holder_full_name?.trim() || null;
-  const mobile = agent.phone?.trim() || agent.key_holder_phone?.trim() || null;
   const initial = (name || agent.email || "?")[0].toUpperCase();
+  const keysetCount = heldKeySets?.length ?? 0;
 
   const inner = (
     <>
-      {/* Left image pane */}
-      <View style={styles.imagePane}>
+      {/* Avatar */}
+      <View style={styles.avatarOuter}>
         {imageUrl ? (
           <Image
             source={{ uri: imageUrl }}
-            style={styles.image}
+            style={styles.avatarImage}
             contentFit="cover"
             cachePolicy="memory-disk"
             transition={160}
             recyclingKey={imageUrl}
           />
         ) : (
-          <View style={styles.imageFallback}>
-            <View style={styles.initialCircle}>
-              <Text style={styles.imageInitial}>{initial}</Text>
-            </View>
+          <View style={styles.avatarFallback}>
+            <Text style={styles.avatarInitial}>{initial}</Text>
           </View>
         )}
       </View>
 
-      {/* Right content */}
+      {/* Content */}
       <View style={styles.content}>
-        <View style={styles.details}>
-          <Text style={styles.name} numberOfLines={1}>
-            {name ?? "Unknown name"}
+        <Text style={styles.name} numberOfLines={1}>
+          {name ?? "Unknown name"}
+        </Text>
+        <View style={styles.keysetBadge}>
+          <KeyRound
+            size={11}
+            color={theme.colors.accentLight}
+            strokeWidth={2}
+          />
+          <Text style={styles.keysetText}>
+            {keysetCount} {keysetCount === 1 ? "keyset" : "keysets"}
           </Text>
-          <View style={styles.mobileRow}>
-            {mobile ? (
-              <PhoneLink
-                phone={mobile}
-                showIcon
-                iconSize={14}
-                iconColor={theme.colors.textMuted}
-                textStyle={styles.mobile}
-              />
-            ) : (
-              <Text style={styles.mobileEmpty}>No mobile</Text>
-            )}
-          </View>
         </View>
-        {onPress ? (
-          <ChevronRight size={16} color={theme.colors.textLight} strokeWidth={2.5} />
-        ) : null}
       </View>
+
+      {/* Chevron */}
+      {onPress ? (
+        <ChevronRight
+          size={16}
+          color={theme.colors.textMuted}
+          strokeWidth={2.5}
+        />
+      ) : null}
     </>
   );
 
@@ -93,38 +99,42 @@ export function AgentCard({ agent, onPress, style }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    minHeight: 72,
     flexDirection: "row",
+    alignItems: "center",
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.card,
+    borderRadius: theme.radius.xl,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    overflow: "hidden",
+    padding: theme.spacing.sm + 2,
+    gap: theme.spacing.sm + 2,
     shadowColor: theme.colors.accent,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.07,
+    shadowRadius: 14,
     elevation: 2,
   },
 
-  imagePane: { width: 74},
-  image: { ...StyleSheet.absoluteFillObject },
-  imageFallback: {
-    flex: 1,
+  avatarOuter: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: theme.colors.accentSoft,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    overflow: "hidden",
+    flexShrink: 0,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.sm,
   },
-  initialCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  avatarImage: { width: "100%", height: "100%" },
+  avatarFallback: {
+    width: "100%",
+    height: "100%",
     backgroundColor: theme.colors.accent,
     alignItems: "center",
     justifyContent: "center",
   },
-  imageInitial: {
+  avatarInitial: {
     fontSize: 20,
     fontWeight: "700",
     color: theme.colors.textInverse,
@@ -132,29 +142,28 @@ const styles = StyleSheet.create({
 
   content: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: theme.spacing.sm + 2,
-    paddingVertical: theme.spacing.xs,
-    gap: theme.spacing.sm,
+    minWidth: 0,
+    gap: 5,
   },
-  details: { flex: 1, minWidth: 0, gap: 2 },
-  name: { fontSize: 15, fontWeight: "700", color: theme.colors.text },
-  mobileRow: {
+  name: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: theme.colors.text,
+    letterSpacing: -0.3,
+  },
+  keysetBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+    alignSelf: "flex-start",
+    backgroundColor: theme.colors.accentSoft,
+    borderRadius: theme.radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
-  mobile: {
-    flexShrink: 1,
-    fontSize: 13,
+  keysetText: {
+    fontSize: 11,
     fontWeight: "600",
-    color: theme.colors.textMuted,
-  },
-  mobileEmpty: {
-    fontSize: 13,
-    fontWeight: "400",
-    color: theme.colors.textLight,
+    color: theme.colors.accentLight,
   },
 });

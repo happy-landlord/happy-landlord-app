@@ -171,6 +171,7 @@ export type Database = {
         Row: {
           id: string;
           property_code: string;
+          title: string | null;
           address: string;
           suburb: string;
           city: string;
@@ -201,6 +202,7 @@ export type Database = {
         Insert: {
           id?: string;
           property_code: string;
+          title?: string | null;
           address: string;
           suburb: string;
           city?: string;
@@ -230,6 +232,7 @@ export type Database = {
         Update: {
           id?: string;
           property_code?: string;
+          title?: string | null;
           address?: string;
           suburb?: string;
           city?: string;
@@ -770,8 +773,13 @@ export type ActivityTransaction = DbTransaction & {
     formatted_address: string | null;
     status: "active" | "leased" | "inactive";
   } | null;
-  from_holder: Pick<DbKeyHolder, "full_name" | "holder_type" | "profile_id"> | null;
-  to_holder: Pick<DbKeyHolder, "full_name" | "holder_type" | "profile_id"> | null;
+  from_holder: Pick<
+    DbKeyHolder,
+    "full_name" | "holder_type" | "profile_id"
+  > | null;
+  to_holder: Pick<
+    DbKeyHolder,
+    "full_name" | "holder_type" | "profile_id"
+  > | null;
   key_set: Pick<DbKeySet, "code" | "name"> | null;
 };
-

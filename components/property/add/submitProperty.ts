@@ -1,4 +1,4 @@
-﻿import {
+import {
   createKeyHolder,
   createKeys,
   createKeySet,
@@ -55,6 +55,7 @@ export async function submitProperty({
   // 2. Property row
   const created = await createProperty({
     property_code: propertyCode,
+    title: property.title.trim() || null,
     address: buildStreetAddress(place),
     unit_number: place.unitNumber?.trim() || null,
     suburb: place.suburb ?? "",
@@ -153,9 +154,7 @@ async function maybeCreateLandlordHolder(
   const holder = await createKeyHolder({
     holder_type: "landlord",
     full_name: landlordName || null,
-      phone: landlordContact
-        ? normalizeAustralianPhone(landlordContact)
-        : null,
+    phone: landlordContact ? normalizeAustralianPhone(landlordContact) : null,
     notes: `Keys received: ${formatLongDate(dateReceived)}`,
   });
   return holder.id;

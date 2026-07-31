@@ -92,7 +92,7 @@ export function PropertyInfoStep({
     PROPERTY_TYPES.find((t) => t.value === data.propertyType)?.label ??
     "Select…";
 
-  const totalKeys = keys.reduce((sum, k) => sum + (k.count || 0), 0);
+  const totalKeys = keys.reduce((sum, k) => sum + (k.count ?? 0), 0);
 
   function addKey() {
     const entry: KeyEntry = {
@@ -115,7 +115,6 @@ export function PropertyInfoStep({
 
   return (
     <View style={styles.container}>
-
       {/* ── Property Details ────────────────────────────────────────────────── */}
       <FormSection title="Property Details" cardStyle={styles.cardNoGap}>
         <AddressSearch
@@ -142,8 +141,18 @@ export function PropertyInfoStep({
           </View>
         )}
 
+        <Input
+          label="Title"
+          placeholder="Optional custom title"
+          value={data.title}
+          onChangeText={(title) => onChange({ title })}
+          autoCapitalize="words"
+          labelBackground={theme.colors.surface}
+          onFocus={() => setShowDatePicker(false)}
+        />
+
         <OutlinedSelect
-          label="Property Type"
+          label="Type"
           required
           value={selectedTypeLabel}
           focused={showTypePicker}
@@ -160,7 +169,10 @@ export function PropertyInfoStep({
               onChangeText={(developerName) => onChange({ developerName })}
               autoCapitalize="words"
               labelBackground={theme.colors.surface}
-              onFocus={() => { setShowDatePicker(false); setDevFocused(true); }}
+              onFocus={() => {
+                setShowDatePicker(false);
+                setDevFocused(true);
+              }}
               onBlur={() => setDevFocused(false)}
             />
             {devFocused && devSuggestions.length > 0 && (
@@ -183,7 +195,9 @@ export function PropertyInfoStep({
                       Keyboard.dismiss();
                     }}
                   >
-                    <Text style={styles.suggestionText} numberOfLines={1}>{name}</Text>
+                    <Text style={styles.suggestionText} numberOfLines={1}>
+                      {name}
+                    </Text>
                   </Pressable>
                 ))}
               </ScrollView>
@@ -196,7 +210,10 @@ export function PropertyInfoStep({
             autoCapitalize="characters"
             containerStyle={{ width: 130 }}
             labelBackground={theme.colors.surface}
-            onFocus={() => { setShowDatePicker(false); setDevFocused(false); }}
+            onFocus={() => {
+              setShowDatePicker(false);
+              setDevFocused(false);
+            }}
           />
         </View>
       </FormSection>
@@ -236,7 +253,10 @@ export function PropertyInfoStep({
             label="Date Received"
             value={formatLongDate(data.dateReceived)}
             focused={showDatePicker}
-            onPress={() => { Keyboard.dismiss(); setShowDatePicker(true); }}
+            onPress={() => {
+              Keyboard.dismiss();
+              setShowDatePicker(true);
+            }}
             style={styles.dateField}
             labelBackground={theme.colors.surface}
           />
@@ -274,7 +294,6 @@ export function PropertyInfoStep({
           />
         </View>
       </BottomSheet>
-
 
       {/* ── Keys received ───────────────────────────────────────────────────── */}
       <View style={styles.keysSection}>

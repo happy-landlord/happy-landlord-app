@@ -1,6 +1,4 @@
-import type { ReactNode } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Check } from "lucide-react-native";
+import { Pressable, StyleSheet, Text } from "react-native";
 
 import { theme } from "@/constants";
 import { BottomSheet } from "@/components/ui/BottomSheet";
@@ -8,7 +6,6 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 type PickerOption<T extends string> = {
   value: T;
   label: string;
-  icon?: ReactNode;
 };
 
 type PickerModalProps<T extends string> = {
@@ -43,20 +40,11 @@ export function PickerModal<T extends string>({
               onClose();
             }}
           >
-            <View style={styles.optionLeft}>
-              {opt.icon && <View style={styles.optionIcon}>{opt.icon}</View>}
-              <Text
-                style={[
-                  styles.optionText,
-                  selected && styles.optionTextSelected,
-                ]}
-              >
-                {opt.label}
-              </Text>
-            </View>
-            {selected && (
-              <Check size={16} color={theme.colors.accent} strokeWidth={2.5} />
-            )}
+            <Text
+              style={[styles.optionText, selected && styles.optionTextSelected]}
+            >
+              {opt.label}
+            </Text>
           </Pressable>
         );
       })}
@@ -69,28 +57,21 @@ export function PickerModal<T extends string>({
 
 const styles = StyleSheet.create({
   title: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: "700",
-    color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
+    color: theme.colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    textAlign: "center",
+    marginBottom: theme.spacing.md,
   },
   option: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
     paddingVertical: theme.spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
-  },
-  optionLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-    flex: 1,
-  },
-  optionIcon: {
-    width: 28,
-    alignItems: "center",
   },
   optionSelected: {
     backgroundColor: theme.colors.accentSoft,
@@ -98,8 +79,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.screen,
   },
   optionText: {
-    fontSize: 16,
+    fontSize: 17,
     color: theme.colors.text,
+    textAlign: "center",
+    flex: 1,
   },
   optionTextSelected: {
     color: theme.colors.accent,
@@ -112,7 +95,7 @@ const styles = StyleSheet.create({
   },
   cancelText: {
     fontSize: 16,
-    color: theme.colors.textMuted,
-    fontWeight: "500",
+    color: theme.colors.danger,
+    fontWeight: "600",
   },
 });
