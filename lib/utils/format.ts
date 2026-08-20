@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Locale-aware formatting helpers shared across screens.
  *
  * All helpers are pure functions; no React or runtime dependency.
@@ -116,46 +116,6 @@ export function formatOverdueBy(
   if (hours >= 1) return `Overdue by ${hours}h ${minutes}m`;
   if (minutes >= 1) return `Overdue by ${minutes}m`;
   return "Overdue by < 1m";
-}
-export function formatShortAddress(
-  property:
-    | {
-        unit_number?: string | null;
-        address?: string | null;
-        suburb?: string | null;
-      }
-    | null
-    | undefined,
-): string {
-  if (!property) return "Property";
-  const unit = property.unit_number?.trim();
-  const street = property.address?.trim();
-  const suburb = property.suburb?.trim();
-  const unitLabel = unit
-    ? unit.toLowerCase().startsWith("unit")
-      ? unit
-      : `Unit ${unit}`
-    : null;
-  return [unitLabel, street, suburb].filter(Boolean).join(", ") || "Property";
-}
-export function formatStreetLine(
-  property:
-    | {
-        unit_number?: string | null;
-        address?: string | null;
-      }
-    | null
-    | undefined,
-): string {
-  if (!property) return "Unknown address";
-  const unit = property.unit_number?.trim();
-  const street = property.address?.trim();
-  const unitLabel = unit
-    ? unit.toLowerCase().startsWith("unit")
-      ? unit
-      : `Unit ${unit}`
-    : null;
-  return [unitLabel, street].filter(Boolean).join(" ") || "Unknown address";
 }
 // ─── Date-label helpers ──────────────────────────────────────────────────────
 export function toDateLabel(iso: string): string {

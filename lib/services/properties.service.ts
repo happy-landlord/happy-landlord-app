@@ -11,7 +11,6 @@ import type {
   StoredImage,
 } from "@/types";
 
-
 /** Signed-URL expiry — 1 hour matches the Supabase default. */
 const SIGNED_URL_TTL_SECONDS = 3600;
 
@@ -149,11 +148,10 @@ export async function fetchProperties({
     .order("created_at", { ascending: false })
     .range(page * pageSize, (page + 1) * pageSize - 1);
 
-
   if (search && search.trim().length > 0) {
     const term = `%${search.trim()}%`;
     query = query.or(
-      `address.ilike.${term},suburb.ilike.${term},postcode.ilike.${term},formatted_address.ilike.${term},property_code.ilike.${term}`,
+      `address.ilike.${term},unit_number.ilike.${term},suburb.ilike.${term},postcode.ilike.${term},formatted_address.ilike.${term},property_code.ilike.${term}`,
     );
   }
 
@@ -302,7 +300,9 @@ export function makePropertyCode(
  * The sequence is scoped to the suburb only (not the developer) so that
  * changing the developer name after address selection never requires a re-fetch.
  */
-export async function fetchNextPropertyCodeSeq(suburb: string): Promise<number> {
+export async function fetchNextPropertyCodeSeq(
+  suburb: string,
+): Promise<number> {
   const subCode = suburbTo3(suburb);
   const prefix = `${subCode}-`;
 
@@ -417,7 +417,11 @@ export async function updateProperty(
 /** Updates fields on an existing key_holder row. */
 export async function updateKeyHolder(
   holderId: string,
-  patch: { full_name: string | null; phone: string | null; notes?: string | null },
+  patch: {
+    full_name: string | null;
+    phone: string | null;
+    notes?: string | null;
+  },
 ): Promise<void> {
   const { error } = await supabase
     .from("key_holders")
@@ -453,7 +457,10 @@ export async function uploadPropertyImagesForEdit(
 
     const { error } = await supabase.storage
       .from("properties")
-      .upload(storagePath, arrayBuffer, { contentType: "image/jpeg", upsert: false });
+      .upload(storagePath, arrayBuffer, {
+        contentType: "image/jpeg",
+        upsert: false,
+      });
 
     if (error)
       throw new Error(`Failed to upload photo ${i + 1}: ${error.message}`);
@@ -494,7 +501,10 @@ export async function uploadPropertyImages(
 
     const { error } = await supabase.storage
       .from("properties")
-      .upload(storagePath, arrayBuffer, { contentType: "image/jpeg", upsert: true });
+      .upload(storagePath, arrayBuffer, {
+        contentType: "image/jpeg",
+        upsert: true,
+      });
 
     if (error) {
       throw new Error(`Failed to upload photo ${i + 1}: ${error.message}`);

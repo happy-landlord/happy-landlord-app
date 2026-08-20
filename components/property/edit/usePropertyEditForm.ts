@@ -8,6 +8,7 @@ import {
   showSuccessToast,
   normalizeAustralianPhone,
   formatLongDate,
+  buildAddressColumns,
 } from "@/lib/utils";
 import {
   useAllPropertyKeys,
@@ -234,20 +235,7 @@ export function usePropertyEditForm(propertyId: string) {
     setIsSaving(true);
     try {
       const addressPatch = selectedPlace
-        ? {
-            address:
-              [selectedPlace.streetNumber, selectedPlace.street]
-                .filter(Boolean)
-                .join(" ") || selectedPlace.description,
-            unit_number: selectedPlace.unitNumber?.trim() || null,
-            suburb: selectedPlace.suburb ?? "",
-            city: selectedPlace.suburb ?? selectedPlace.state ?? "",
-            postcode: selectedPlace.postcode ?? null,
-            formatted_address: selectedPlace.description,
-            google_place_id: selectedPlace.placeId,
-            latitude: selectedPlace.lat ?? null,
-            longitude: selectedPlace.lng ?? null,
-          }
+        ? buildAddressColumns(selectedPlace)
         : {};
 
       await updateDetailsMut.mutateAsync({

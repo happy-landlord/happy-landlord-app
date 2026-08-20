@@ -10,14 +10,20 @@ import {
   View,
 } from "react-native";
 import { useState } from "react";
+import Constants from "expo-constants";
+import * as WebBrowser from "expo-web-browser";
 import {
   AlertCircle,
   BellOff,
   BellRing,
+  Bug,
   CheckCheck,
   ChevronRight,
   ExternalLink,
+  FileText,
   Fingerprint,
+  Info,
+  Shield,
   Trash2,
 } from "lucide-react-native";
 import { theme, FEATURES } from "@/constants";
@@ -31,6 +37,10 @@ import {
 } from "@/lib/hooks";
 import { getBiometricLabel } from "@/lib/services";
 import { DeleteAccountSheet } from "@/components/settings";
+
+const APP_VERSION = Constants.expoConfig?.version ?? "1.0.0";
+const TECH_EMAIL = "tech@happylandlord.com.au";
+
 // -- helpers ------------------------------------------------------------------
 function SectionHeader({ title }: { title: string }) {
   return <Text style={styles.sectionHeader}>{title}</Text>;
@@ -295,7 +305,104 @@ export default function SettingsScreen() {
             }
           />
         </SectionCard>
+
+        <SectionHeader title="About" />
+        <SectionCard>
+          <SettingRow
+            Icon={Info}
+            iconBg={theme.colors.neutralSoft}
+            iconColor={theme.colors.textMuted}
+            title="Key Manager"
+            subtitle={`Version ${APP_VERSION}`}
+          />
+          <RowDivider />
+          <SettingRow
+            Icon={Shield}
+            iconBg={theme.colors.accentSoft}
+            iconColor={theme.colors.accent}
+            title="Privacy Policy"
+            onPress={() =>
+              WebBrowser.openBrowserAsync(
+                "https://happylandlord.com.au/privacy",
+              ).catch(() =>
+                Alert.alert("Unavailable", "Could not open Privacy Policy."),
+              )
+            }
+            right={
+              <ChevronRight
+                size={16}
+                color={theme.colors.textLight}
+                strokeWidth={2}
+              />
+            }
+          />
+          <RowDivider />
+          <SettingRow
+            Icon={FileText}
+            iconBg={theme.colors.accentSoft}
+            iconColor={theme.colors.accent}
+            title="Terms of Use"
+            onPress={() =>
+              WebBrowser.openBrowserAsync(
+                "https://happy-landlord.netlify.app/terms",
+              ).catch(() =>
+                Alert.alert("Unavailable", "Could not open Terms of Use."),
+              )
+            }
+            right={
+              <ChevronRight
+                size={16}
+                color={theme.colors.textLight}
+                strokeWidth={2}
+              />
+            }
+          />
+          <RowDivider />
+          <SettingRow
+            Icon={Bug}
+            iconBg={theme.colors.dangerSoft}
+            iconColor={theme.colors.danger}
+            title="Send Diagnostics / Report Bug"
+            subtitle="Send device info and recent app activity to support"
+            onPress={() =>
+              Alert.alert(
+                "Send Diagnostics",
+                "Diagnostic data will be sent to the Happy Landlord support team. This may include device info and recent app activity.",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  {
+                    text: "Send",
+                    onPress: () =>
+                      Linking.openURL(
+                        `mailto:${TECH_EMAIL}?subject=Diagnostics%20Report%20v${APP_VERSION}`,
+                      ).catch(() =>
+                        Alert.alert(
+                          "Unavailable",
+                          "Could not open your mail app.",
+                        ),
+                      ),
+                  },
+                ],
+              )
+            }
+            right={
+              <ChevronRight
+                size={16}
+                color={theme.colors.textLight}
+                strokeWidth={2}
+              />
+            }
+          />
+        </SectionCard>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            © {new Date().getFullYear()} Happy Landlord
+          </Text>
+          <Text style={styles.footerPoweredText}>Powered by Arqon</Text>
+        </View>
       </ScrollView>
+
       <DeleteAccountSheet
         visible={deleteAccountVisible}
         onClose={() => setDeleteAccountVisible(false)}
@@ -407,5 +514,19 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: theme.colors.textInverse,
   },
+  footer: {
+    alignItems: "center",
+    gap: 4,
+    paddingTop: theme.spacing.lg,
+    paddingBottom: theme.spacing.md,
+  },
+  footerText: {
+    fontSize: 12,
+    color: theme.colors.textLight,
+  },
+  footerPoweredText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: theme.colors.accent,
+  },
 });
-

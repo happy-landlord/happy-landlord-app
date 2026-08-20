@@ -1,10 +1,6 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
-import {
-  useSendOtp,
-  useVerifyOtp,
-  type OtpVerifyMode,
-} from "./useSession";
+import { useSendOtp, useVerifyOtp, type OtpVerifyMode } from "./useSession";
 // ─────────────────────────────────────────────────────────────────────────────
 const OTP_LENGTH = 6;
 /** Seconds the user must wait before they can request another OTP. */
@@ -18,6 +14,12 @@ type UsePhoneAuthOptions = {
    *   "register" — new signup confirming their number
    */
   mode: OtpVerifyMode;
+  /**
+   * Where to send the user after a successful sign-in — used to resume a
+   * deep link (e.g. a keyset QR scan) that bounced through the login screen
+   * because the user wasn't authenticated yet. Defaults to the main tabs.
+   */
+  redirectTo?: string;
 };
 // ─────────────────────────────────────────────────────────────────────────────
 /**
@@ -28,7 +30,7 @@ type UsePhoneAuthOptions = {
  * statuses and the app layout routes the user to the correct screen
  * (main app for approved/admin, holding page for pending/rejected/inactive).
  */
-export function usePhoneAuth({ mode }: UsePhoneAuthOptions) {
+export function usePhoneAuth({ mode, redirectTo }: UsePhoneAuthOptions) {
   const router = useRouter();
   const [step, setStep] = useState<PhoneAuthStep>("phone");
   const [phone, setPhone] = useState("");
@@ -78,7 +80,7 @@ export function usePhoneAuth({ mode }: UsePhoneAuthOptions) {
       { phone, token: otp, mode },
       {
         onSuccess: () => {
-          router.replace("/(app)/(tabs)" as never);
+          router.replace((redirectTo || "/(app)/(tabs)") as never);
         },
       },
     );

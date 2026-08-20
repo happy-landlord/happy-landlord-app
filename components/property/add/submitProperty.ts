@@ -13,6 +13,7 @@ import {
   normalizeAustralianPhone,
   formatLongDate,
   getUnallocatedKeys,
+  buildAddressColumns,
 } from "@/lib/utils";
 import type { DbKeyInsert, DbProperty, DbPropertyInsert } from "@/types";
 import { KEY_TYPE_LABEL } from "@/constants";
@@ -56,15 +57,7 @@ export async function submitProperty({
   const created = await createProperty({
     property_code: propertyCode,
     title: property.title.trim() || null,
-    address: buildStreetAddress(place),
-    unit_number: place.unitNumber?.trim() || null,
-    suburb: place.suburb ?? "",
-    city: place.suburb ?? place.state ?? "",
-    postcode: place.postcode ?? null,
-    formatted_address: place.description,
-    google_place_id: place.placeId,
-    latitude: place.lat ?? null,
-    longitude: place.lng ?? null,
+    ...buildAddressColumns(place),
     property_type: property.propertyType,
     landlord_holder_id: landlordHolderId,
     status: "active",
@@ -136,14 +129,6 @@ export async function submitProperty({
 }
 
 // ── Internals ────────────────────────────────────────────────────────────────
-
-function buildStreetAddress(place: PropertyStep["selectedPlace"]): string {
-  if (!place) return "";
-  return (
-    [place.streetNumber, place.street].filter(Boolean).join(" ") ||
-    place.description
-  );
-}
 
 async function maybeCreateLandlordHolder(
   property: PropertyStep,

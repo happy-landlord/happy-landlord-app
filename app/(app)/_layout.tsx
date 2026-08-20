@@ -1,5 +1,11 @@
-﻿import { useEffect } from "react";
-import { Redirect, Stack, useSegments } from "expo-router";
+import { useEffect } from "react";
+import {
+  Redirect,
+  Stack,
+  useGlobalSearchParams,
+  usePathname,
+  useSegments,
+} from "expo-router";
 import * as Sentry from "@sentry/react-native";
 
 import { AppHeader } from "@/components/AppHeader";
@@ -56,14 +62,30 @@ export default function AppLayout() {
   const segments = useSegments();
   const currentScreen = segments[segments.length - 1] as string | undefined;
   const onHolding = currentScreen === "holding";
-  const isHolding = status === "pending" || status === "rejected" || status === "inactive";
+  const isHolding =
+    status === "pending" || status === "rejected" || status === "inactive";
+
+  // Preserve the path the user was trying to reach (e.g. `/scan?code=...`
+  // from a keyset QR scan) so we can resume it once they sign in.
+  const pathname = usePathname();
+  const searchParams = useGlobalSearchParams();
 
   if (isLoading) {
     return <BrandedSplash message="Preparing your workspace…" />;
   }
 
   if (!isAuthenticated) {
-    return <Redirect href="/(auth)/login" />;
+    const qs = new URLSearchParams(
+      Object.entries(searchParams).filter(
+        (entry): entry is [string, string] => typeof entry[1] === "string",
+      ),
+    ).toString();
+    const next = qs ? `${pathname}?${qs}` : pathname;
+    return (
+      <Redirect
+        href={{ pathname: "/(auth)/login", params: { next } } as never}
+      />
+    );
   }
 
   // ── Lock gate: render only the lock screen until the user authenticates ─
@@ -103,7 +125,10 @@ export default function AppLayout() {
           options={{ title: "Notifications" }}
         />
         <Stack.Screen name="settings" options={{ title: "Settings" }} />
-        <Stack.Screen name="developer" options={{ title: "Developer Console" }} />
+        <Stack.Screen
+          name="developer"
+          options={{ title: "Developer Console" }}
+        />
         <Stack.Screen name="help" options={{ title: "Help" }} />
         <Stack.Screen name="holding" options={{ headerShown: false }} />
       </Stack>

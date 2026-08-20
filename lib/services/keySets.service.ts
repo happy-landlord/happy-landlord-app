@@ -126,10 +126,13 @@ export async function fetchKeySetById(
 export async function fetchKeySetByCode(
   code: string,
 ): Promise<KeySetWithDetails | null> {
+  // NOTE: the QR code embeds `qr_code` (e.g. "PROP123-S1"), which is distinct
+  // from the short internal `code` column (e.g. "S1"). Scanning must look up
+  // by `qr_code`, not `code`, or every scan will fail to match a keyset.
   const { data, error } = await supabase
     .from("key_sets")
     .select(KEY_SET_SELECT)
-    .eq("code", code.trim().toUpperCase())
+    .eq("qr_code", code.trim().toUpperCase())
     .maybeSingle();
 
   if (error) throw error;
@@ -476,10 +479,7 @@ export async function fetchNextKeySetSeq(propertyId: string): Promise<number> {
  * Errors are NOT swallowed here — callers should handle them.
  */
 export async function deleteKeySet(keySetId: string): Promise<void> {
-  const { error } = await supabase
-    .from("key_sets")
-    .delete()
-    .eq("id", keySetId);
+  const { error } = await supabase.from("key_sets").delete().eq("id", keySetId);
   if (error) throw error;
 }
 

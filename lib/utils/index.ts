@@ -12,7 +12,7 @@ export * from "./imageCompression";
 export * from "./keys";
 export * from "./logger";
 export * from "./phone";
-export * from "./places";
+export * from "./address";
 export * from "./print";
 export * from "./time";
 export * from "./toast";

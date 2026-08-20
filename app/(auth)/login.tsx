@@ -1,5 +1,5 @@
-﻿import { Pressable, StyleSheet, Text, View } from "react-native";
-import { useRouter } from "expo-router";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -24,7 +24,11 @@ type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginScreen() {
   const router = useRouter();
-  const auth = usePhoneAuth({ mode: "login" });
+  // Present when the user was bounced here from a protected deep link (e.g.
+  // scanning a keyset QR code while signed out) — resumes it after sign-in.
+  const { next } = useLocalSearchParams<{ next?: string }>();
+  const redirectTo = next && next.startsWith("/") ? next : undefined;
+  const auth = usePhoneAuth({ mode: "login", redirectTo });
   const {
     control,
     handleSubmit,
@@ -111,8 +115,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: theme.spacing.sm,
   },
-  securityDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.success },
-  securityText: { color: theme.colors.textMuted, fontSize: 12, textAlign: "center" },
+  securityDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: theme.colors.success,
+  },
+  securityText: {
+    color: theme.colors.textMuted,
+    fontSize: 12,
+    textAlign: "center",
+  },
   signUpRow: {
     flexDirection: "row",
     alignItems: "center",

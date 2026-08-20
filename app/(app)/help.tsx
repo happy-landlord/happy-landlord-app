@@ -10,9 +10,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import Constants from "expo-constants";
 import { useRouter } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 
 import { theme } from "@/constants";
 import { useRole } from "@/hooks";
@@ -66,9 +64,7 @@ const TECH_EMAIL = "tech@happylandlord.com.au";
 // Static data
 // ─────────────────────────────────────────────────────────────────────────────
 
-function getQuickActions(
-  router: ReturnType<typeof useRouter>,
-): QuickAction[] {
+function getQuickActions(router: ReturnType<typeof useRouter>): QuickAction[] {
   return [
     {
       id: "contact",
@@ -366,8 +362,6 @@ const BROWSE_SECTIONS: BrowseSection[] = [
   },
 ];
 
-const APP_VERSION = Constants.expoConfig?.version ?? "1.0.0";
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Sub-components
 // ─────────────────────────────────────────────────────────────────────────────
@@ -471,51 +465,6 @@ function AccordionSection({
   );
 }
 
-function InfoRow({
-  icon,
-  label,
-  onPress,
-  isLast,
-  isDestructive,
-}: {
-  icon: IoniconName;
-  label: string;
-  onPress: () => void;
-  isLast?: boolean;
-  isDestructive?: boolean;
-}) {
-  return (
-    <>
-      <Pressable
-        onPress={onPress}
-        style={({ pressed }) => [styles.infoRow, pressed && styles.rowPressed]}
-        accessibilityRole="button"
-        accessibilityLabel={label}
-      >
-        <Ionicons
-          name={icon}
-          size={18}
-          color={isDestructive ? theme.colors.danger : theme.colors.textMuted}
-        />
-        <Text
-          style={[
-            styles.infoLabel,
-            isDestructive && styles.infoLabelDestructive,
-          ]}
-        >
-          {label}
-        </Text>
-        <Ionicons
-          name="chevron-forward"
-          size={15}
-          color={theme.colors.textLight}
-        />
-      </Pressable>
-      {!isLast && <Divider indent={46} />}
-    </>
-  );
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Screen
 // ─────────────────────────────────────────────────────────────────────────────
@@ -527,10 +476,7 @@ export default function HelpScreen() {
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
 
   const quickActions = useMemo(() => getQuickActions(router), [router]);
-  const popularTopics = useMemo(
-    () => getPopularTopics(setSearchQuery),
-    [],
-  );
+  const popularTopics = useMemo(() => getPopularTopics(setSearchQuery), []);
 
   // Hide the Admin Setup section from non-admins
   const visibleSections = isAdmin
@@ -556,18 +502,20 @@ export default function HelpScreen() {
     : popularTopics;
 
   const filteredSections = searchQuery.trim()
-    ? visibleSections.map((s) => ({
-        ...s,
-        faqs: s.faqs.filter(
-          (f) =>
-            f.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            f.answer.toLowerCase().includes(searchQuery.toLowerCase()),
-        ),
-      })).filter(
-        (s) =>
-          s.faqs.length > 0 ||
-          s.title.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
+    ? visibleSections
+        .map((s) => ({
+          ...s,
+          faqs: s.faqs.filter(
+            (f) =>
+              f.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              f.answer.toLowerCase().includes(searchQuery.toLowerCase()),
+          ),
+        }))
+        .filter(
+          (s) =>
+            s.faqs.length > 0 ||
+            s.title.toLowerCase().includes(searchQuery.toLowerCase()),
+        )
     : visibleSections;
 
   const activeSections = searchQuery.trim()
@@ -728,77 +676,6 @@ export default function HelpScreen() {
           </View>
         </View>
       )}
-
-      {/* ── App information ────────────────────────────────────────────────── */}
-      <SectionLabel title="App Information" />
-      <View style={styles.listCard}>
-        <View style={styles.versionRow}>
-          <Ionicons
-            name="phone-portrait-outline"
-            size={18}
-            color={theme.colors.textMuted}
-          />
-          <Text style={styles.versionLabel}>Key Manager</Text>
-          <Text style={styles.versionValue}>v{APP_VERSION}</Text>
-        </View>
-        <Divider indent={46} />
-        <InfoRow
-          icon="shield-checkmark-outline"
-          label="Privacy Policy"
-          onPress={() =>
-            WebBrowser.openBrowserAsync(
-              "https://happylandlord.com.au/privacy",
-            ).catch(() =>
-              Alert.alert("Unavailable", "Could not open Privacy Policy."),
-            )
-          }
-        />
-        <InfoRow
-          icon="reader-outline"
-          label="Terms of Use"
-          onPress={() =>
-            WebBrowser.openBrowserAsync(
-              "https://happy-landlord.netlify.app/terms",
-            ).catch(() =>
-              Alert.alert("Unavailable", "Could not open Terms of Use."),
-            )
-          }
-        />
-        <InfoRow
-          icon="bug-outline"
-          label="Send Diagnostics / Report Bug"
-          onPress={() =>
-            Alert.alert(
-              "Send Diagnostics",
-              "Diagnostic data will be sent to the Happy Landlord support team. This may include device info and recent app activity.",
-              [
-                { text: "Cancel", style: "cancel" },
-                {
-                  text: "Send",
-                  onPress: () =>
-                    Linking.openURL(
-                      `mailto:${TECH_EMAIL}?subject=Diagnostics%20Report%20v${APP_VERSION}`,
-                    ).catch(() =>
-                      Alert.alert(
-                        "Unavailable",
-                        "Could not open your mail app.",
-                      ),
-                    ),
-                },
-              ],
-            )
-          }
-          isLast
-          isDestructive
-        />
-      </View>
-
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>
-          © {new Date().getFullYear()} Happy Landlord
-        </Text>
-        <Text style={styles.footerPoweredText}>Powered by Arqon</Text>
-      </View>
     </ScrollView>
   );
 }
@@ -1048,55 +925,6 @@ const styles = StyleSheet.create({
   contactBtnText: {
     fontSize: 14,
     fontWeight: "600",
-    color: theme.colors.accent,
-  },
-  versionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: 14,
-  },
-  versionLabel: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: "500",
-    color: theme.colors.text,
-  },
-  versionValue: {
-    fontSize: 13,
-    color: theme.colors.textLight,
-    fontWeight: "600",
-  },
-  infoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: 14,
-  },
-  infoLabel: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: "500",
-    color: theme.colors.text,
-  },
-  infoLabelDestructive: {
-    color: theme.colors.danger,
-  },
-  footer: {
-    alignItems: "center",
-    gap: 4,
-    paddingTop: theme.spacing.xl,
-    paddingBottom: theme.spacing.md,
-  },
-  footerText: {
-    fontSize: 12,
-    color: theme.colors.textLight,
-  },
-  footerPoweredText: {
-    fontSize: 12,
-    fontWeight: "700",
     color: theme.colors.accent,
   },
 });

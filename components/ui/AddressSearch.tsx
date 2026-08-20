@@ -1,4 +1,10 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import {
   StyleSheet,
   Text,
@@ -15,24 +21,20 @@ import { Search } from "lucide-react-native";
 import { useDebouncedCallback } from "use-debounce";
 
 import { FEATURES, SYDNEY_BIAS, theme } from "@/constants";
-import { normaliseSuburb } from "@/lib/utils";
+import {
+  logger,
+  parseGooglePlace,
+  plainTextAddress,
+  type GooglePlaceDetails,
+  type ParsedAddress,
+} from "@/lib/utils";
 
-export type PlaceResult = {
-  placeId: string;
-  description: string;
-  /** Unit / apartment number, separate from the building street number. */
-  unitNumber?: string;
-  streetNumber?: string;
-  street?: string;
-  suburb?: string;
-  /** Local Government Area / council name (administrative_area_level_2) */
-  council?: string;
-  state?: string;
-  postcode?: string;
-  country?: string;
-  lat?: number;
-  lng?: number;
-};
+/**
+ * @deprecated Use `ParsedAddress` from `@/lib/utils`. Re-exported here so
+ * existing `import { PlaceResult } from "@/components/ui"` call sites keep
+ * working — the canonical definition now lives in the address module.
+ */
+export type PlaceResult = ParsedAddress;
 
 type AddressSearchProps = {
   onSelect: (place: PlaceResult) => void;
@@ -68,15 +70,6 @@ const DISABLE_LIST_SCROLL = {
   flatListProps: { scrollEnabled: false },
 } as unknown as object;
 
-type PlaceDetails = {
-  address_components?: {
-    types: string[];
-    long_name: string;
-    short_name: string;
-  }[];
-  geometry?: { location: { lat: number; lng: number } };
-} | null;
-
 export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
   function AddressSearch(
     {
@@ -110,7 +103,7 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
     const debouncedFallbackSelect = useDebouncedCallback((raw: string) => {
       const trimmed = raw.trim();
       if (!trimmed) return;
-      onSelect({ placeId: "", description: trimmed, suburb: trimmed });
+      onSelect(plainTextAddress(trimmed));
     }, 400);
 
     useImperativeHandle(ref, () => ({
@@ -127,7 +120,7 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
       debouncedFallbackSelect.cancel();
       const trimmed = text.trim();
       if (!trimmed) return;
-      onSelect({ placeId: "", description: trimmed, suburb: trimmed });
+      onSelect(plainTextAddress(trimmed));
     };
 
     const field = FEATURES.GOOGLE_PLACES ? (
@@ -144,9 +137,23 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
           types: mode === "full" ? "address" : "geocode",
           ...SYDNEY_BIAS,
         }}
-        onPress={(data, details) => onSelect(parsePlace(data, details))}
+        onPress={(data, details) =>
+          onSelect(parseGooglePlace(data, details as GooglePlaceDetails))
+        }
+        // Surface Google API failures (e.g. REQUEST_DENIED when billing/Places
+        // API isn't enabled) instead of silently showing an empty list.
+        onFail={(error) =>
+          logger.warn("Google Places autocomplete request failed", {
+            error: String(error),
+          })
+        }
+        onTimeout={() =>
+          logger.warn("Google Places autocomplete request timed out")
+        }
         styles={{
-          container: borderless ? styles.gpContainerBorderless : styles.gpContainer,
+          container: borderless
+            ? styles.gpContainerBorderless
+            : styles.gpContainer,
           textInputContainer: styles.gpInputContainer,
           textInput: [
             label ? styles.input : styles.searchInput,
@@ -197,7 +204,9 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
     if (borderless) return <View style={containerStyle}>{field}</View>;
 
     return (
-      <View style={[label ? styles.outerLabelled : styles.outer, containerStyle]}>
+      <View
+        style={[label ? styles.outerLabelled : styles.outer, containerStyle]}
+      >
         <View
           style={[
             label ? styles.wrap : styles.searchWrap,
@@ -208,7 +217,9 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
             <Text
               style={[
                 styles.label,
-                labelBackground ? { backgroundColor: labelBackground } : undefined,
+                labelBackground
+                  ? { backgroundColor: labelBackground }
+                  : undefined,
                 focused && styles.labelFocused,
               ]}
               numberOfLines={1}
@@ -230,56 +241,6 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
     );
   },
 );
-
-function parsePlace(
-  data: { place_id: string; description: string },
-  details: PlaceDetails,
-): PlaceResult {
-  const components = details?.address_components ?? [];
-  const get = (...types: string[]) =>
-    components.find((c) => types.every((t) => c.types.includes(t)))?.long_name;
-  const getShort = (...types: string[]) =>
-    components.find((c) => types.every((t) => c.types.includes(t)))?.short_name;
-
-  // Google Places may return the unit number in the dedicated `subpremise`
-  // component (e.g. "Unit 4"), or embed it in `street_number` using the
-  // Australian slash format (e.g. "4/12" where 4 = unit, 12 = building).
-  const subpremise = get("subpremise");
-  const rawStreetNumber = get("street_number") ?? "";
-
-  let unitNumber: string | undefined;
-  let streetNumber: string | undefined;
-
-  if (subpremise) {
-    // Explicit subpremise component: keep street_number as-is
-    unitNumber = subpremise.replace(/^unit\s*/i, "").trim() || undefined;
-    streetNumber = rawStreetNumber || undefined;
-  } else if (rawStreetNumber.includes("/")) {
-    // Australian slash format "4/12": split into unit / building number
-    const slash = rawStreetNumber.indexOf("/");
-    unitNumber = rawStreetNumber.slice(0, slash).trim() || undefined;
-    streetNumber = rawStreetNumber.slice(slash + 1).trim() || undefined;
-  } else {
-    streetNumber = rawStreetNumber || undefined;
-  }
-
-  return {
-    placeId: data.place_id,
-    description: data.description,
-    unitNumber,
-    streetNumber,
-    street: get("route"),
-    suburb: normaliseSuburb(
-      get("sublocality_level_1") ?? get("locality") ?? get("postal_town"),
-    ),
-    council: get("administrative_area_level_2"),
-    state: getShort("administrative_area_level_1"),
-    postcode: get("postal_code"),
-    country: get("country"),
-    lat: details?.geometry?.location.lat,
-    lng: details?.geometry?.location.lng,
-  };
-}
 
 const styles = StyleSheet.create({
   outer: {
