@@ -1,14 +1,8 @@
-import { useRef } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
-import { Plus, X } from "lucide-react-native";
+import { Plus, Search, X } from "lucide-react-native";
 
 import { RoleGate } from "@/components/RoleGate";
-import {
-  AddressSearch,
-  type AddressSearchRef,
-  type PlaceResult,
-} from "@/components/ui";
 import { theme } from "@/constants";
 
 export type AdminPropertyTab = "active" | "leased" | "inactive";
@@ -20,55 +14,55 @@ const ADMIN_TABS: { id: AdminPropertyTab; label: string }[] = [
 ];
 
 type Props = {
-  selectedPlace: PlaceResult | null;
-  onPlaceChange: (place: PlaceResult | null) => void;
+  search: string;
+  onSearchChange: (search: string) => void;
   adminTab: AdminPropertyTab;
   onAdminTabChange: (tab: AdminPropertyTab) => void;
 };
 
 /**
- * Filter bar for the Properties screen: address search, clear button,
+ * Filter bar for the Properties screen: property search, clear button,
  * an "add property" shortcut, and the admin-only key-status tab strip.
  *
  * Purely presentational — state is owned by the parent screen so filtering
  * stays in sync with the underlying query.
  */
 export function PropertiesFilterBar({
-  selectedPlace,
-  onPlaceChange,
+  search,
+  onSearchChange,
   adminTab,
   onAdminTabChange,
 }: Props) {
   const router = useRouter();
-  const searchRef = useRef<AddressSearchRef>(null);
-
-  const handleClear = () => {
-    onPlaceChange(null);
-    searchRef.current?.clear();
-  };
 
   return (
     <View>
       <View style={styles.row}>
         <View style={styles.searchWrap}>
-          <AddressSearch
-            ref={searchRef}
-            placeholder="Search by address or suburb…"
-            onSelect={onPlaceChange}
+          <Search size={18} color={theme.colors.textLight} strokeWidth={2} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search properties…"
+            placeholderTextColor={theme.colors.textLight}
+            selectionColor={theme.colors.primary}
+            value={search}
+            onChangeText={onSearchChange}
+            returnKeyType="search"
+            autoCorrect={false}
+            autoCapitalize="none"
+            clearButtonMode="never"
           />
+          {search.length > 0 ? (
+            <Pressable
+              onPress={() => onSearchChange("")}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+            >
+              <X size={15} color={theme.colors.textMuted} strokeWidth={2} />
+            </Pressable>
+          ) : null}
         </View>
-
-        {selectedPlace ? (
-          <Pressable
-            onPress={handleClear}
-            style={styles.clearButton}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Clear filter"
-          >
-            <X size={16} color={theme.colors.textMuted} strokeWidth={2} />
-          </Pressable>
-        ) : null}
 
         <RoleGate allow="admin">
           <Pressable
@@ -128,15 +122,21 @@ const styles = StyleSheet.create({
   },
   searchWrap: {
     flex: 1,
-  },
-  clearButton: {
-    width: 40,
-    height: 40,
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.neutralSoft,
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.surface,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 0,
+    fontSize: 15,
+    color: theme.colors.text,
   },
   addButton: {
     flexDirection: "row",

@@ -12,14 +12,12 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { PropertyCard } from "@/components/property";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui";
 
-import { type PlaceResult } from "@/components/ui";
 import {
   PropertiesFilterBar,
   type AdminPropertyTab,
 } from "@/components/property";
 import { useInfiniteProperties } from "@/lib/hooks";
-import { useRole, useRefreshControl } from "@/hooks";
-import { placeSearchLabel } from "@/lib/utils";
+import { useDebouncedValue, useRole, useRefreshControl } from "@/hooks";
 import type { DbProperty, PropertyStatus } from "@/types";
 import { theme, useBottomListPadding } from "@/constants";
 
@@ -35,7 +33,8 @@ export default function PropertiesScreen() {
   const router = useRouter();
   const { tab } = useLocalSearchParams<{ tab?: AdminPropertyTab }>();
 
-  const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
+  const [searchText, setSearchText] = useState("");
+  const debouncedSearch = useDebouncedValue(searchText, 400);
   const adminTab: AdminPropertyTab =
     tab && ["active", "leased", "inactive"].includes(tab) ? tab : "active";
 
@@ -44,7 +43,6 @@ export default function PropertiesScreen() {
     [router],
   );
 
-  const search = placeSearchLabel(selectedPlace);
   const status: PropertyStatus = isAdmin ? adminTab : "active";
 
   const {
@@ -55,7 +53,7 @@ export default function PropertiesScreen() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteProperties({ search, status });
+  } = useInfiniteProperties({ search: debouncedSearch, status });
 
   const { refreshing, onRefresh } = useRefreshControl(refetch);
 
@@ -68,15 +66,15 @@ export default function PropertiesScreen() {
     if (isLoading) return null;
     return (
       <EmptyState
-        title={selectedPlace ? "No results" : "No properties"}
+        title={debouncedSearch ? "No results" : "No properties"}
         message={
-          selectedPlace
-            ? `No properties found in "${placeSearchLabel(selectedPlace)}"`
+          debouncedSearch
+            ? `No properties found for "${debouncedSearch.trim()}"`
             : EMPTY_MESSAGE_BY_TAB[adminTab]
         }
       />
     );
-  }, [isLoading, selectedPlace, adminTab]);
+  }, [isLoading, debouncedSearch, adminTab]);
 
   const renderFooter = useCallback(() => {
     if (!isFetchingNextPage) return null;
@@ -99,8 +97,8 @@ export default function PropertiesScreen() {
       </View>
 
       <PropertiesFilterBar
-        selectedPlace={selectedPlace}
-        onPlaceChange={setSelectedPlace}
+        search={searchText}
+        onSearchChange={setSearchText}
         adminTab={adminTab}
         onAdminTabChange={setAdminTab}
       />
