@@ -6,6 +6,7 @@
  */
 export * from "./KeySetsStep";
 export * from "./PropertyInfoStep";
+export * from "./propertyDraft";
 export * from "./ReviewStep";
 export * from "./submitProperty";
 export * from "./useAddPropertyWizard";

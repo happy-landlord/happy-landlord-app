@@ -15,4 +15,5 @@ export {
   type AdminPropertyTab,
 } from "./PropertiesFilterBar";
 export { PropertyCard } from "./PropertyCard";
+export { PropertyDraftCard } from "./PropertyDraftCard";
 export { PropertyHeader, type PropertyHeaderProps } from "./PropertyHeader";

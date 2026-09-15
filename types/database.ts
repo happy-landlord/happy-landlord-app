@@ -1,3 +1,13 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
+export type JsonObject = { [key: string]: Json | undefined };
+
 export type Database = {
   public: {
     Tables: {
@@ -189,7 +199,7 @@ export type Database = {
             | "villa"
             | "other";
           key_status: "available" | "leased" | "landlord";
-          status: "active" | "leased" | "inactive";
+          status: "active" | "leased" | "inactive" | "draft";
           unit_number: string | null;
           landlord_holder_id: string | null;
           created_by: string | null;
@@ -198,6 +208,7 @@ export type Database = {
           images: { path: string; sort_order: number; is_hidden: boolean }[];
           developer_name: string | null;
           cabinet_code: string | null;
+          draft_data: JsonObject | null;
         };
         Insert: {
           id?: string;
@@ -219,7 +230,7 @@ export type Database = {
             | "duplex"
             | "villa"
             | "other";
-          status?: "active" | "leased" | "inactive";
+          status?: "active" | "leased" | "inactive" | "draft";
           unit_number?: string | null;
           landlord_holder_id?: string | null;
           created_by?: string | null;
@@ -228,6 +239,7 @@ export type Database = {
           images?: { path: string; sort_order: number; is_hidden: boolean }[];
           developer_name?: string | null;
           cabinet_code?: string | null;
+          draft_data?: JsonObject | null;
         };
         Update: {
           id?: string;
@@ -249,7 +261,7 @@ export type Database = {
             | "duplex"
             | "villa"
             | "other";
-          status?: "active" | "leased" | "inactive";
+          status?: "active" | "leased" | "inactive" | "draft";
           unit_number?: string | null;
           landlord_holder_id?: string | null;
           created_by?: string | null;
@@ -258,6 +270,7 @@ export type Database = {
           images?: { path: string; sort_order: number; is_hidden: boolean }[];
           developer_name?: string | null;
           cabinet_code?: string | null;
+          draft_data?: JsonObject | null;
         };
         Relationships: [];
       };

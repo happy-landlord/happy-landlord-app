@@ -125,9 +125,7 @@ export function HistoryFilterSheet({
                 ? (filters.dateTo ?? new Date())
                 : new Date()
             }
-            onChange={(_, selected) => {
-              if (selected) setPickerValue(selected);
-            }}
+            onValueChange={(_, selected) => setPickerValue(selected)}
             style={styles.picker}
           />
         )}

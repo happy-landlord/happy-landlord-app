@@ -7,9 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
-import DateTimePicker, {
-  type DateTimePickerEvent,
-} from "@react-native-community/datetimepicker";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import {
   Calendar,
   CalendarClock,
@@ -110,10 +108,6 @@ export function ReserveKeySetModal({
     closePicker();
   };
 
-  const handlePickerChange = (_event: DateTimePickerEvent, date?: Date) => {
-    if (date) setPickerValue(date);
-  };
-
   // ── Validation + submit ────────────────────────────────────────────────────
 
   const handleConfirm = () => {
@@ -168,7 +162,7 @@ export function ReserveKeySetModal({
             mode={activePicker.mode}
             display="spinner"
             minimumDate={activePicker.mode === "date" ? new Date() : undefined}
-            onChange={handlePickerChange}
+            onValueChange={(_, date) => setPickerValue(date)}
             style={styles.picker}
             textColor={theme.colors.text}
           />

@@ -25,9 +25,9 @@ export function useAddressDuplicateCheck(
   const [addressChecking, setAddressChecking] = useState(false);
 
   const onAddressSelect = useCallback(
-    async (place: PlaceResult) => {
+    async (place: PlaceResult, notifySelect = true) => {
       setSelectedPlace(place);
-      onSelect?.(place);
+      if (notifySelect) onSelect?.(place);
       setAddressError(null);
       if (!place.placeId) return;
 
@@ -49,4 +49,3 @@ export function useAddressDuplicateCheck(
 
   return { selectedPlace, addressError, addressChecking, onAddressSelect };
 }
-

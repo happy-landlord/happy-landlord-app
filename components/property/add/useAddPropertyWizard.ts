@@ -1,14 +1,24 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
-import { useCreateProperty } from "@/lib/hooks";
-import { showSuccessToast, deduplicateKeyEntries } from "@/lib/utils";
+import {
+  useCreateProperty,
+  usePropertyDraft,
+  useSavePropertyDraft,
+} from "@/lib/hooks";
+import { uploadPropertyDraftPhoto } from "@/lib/services";
+import {
+  buildAddressColumns,
+  deduplicateKeyEntries,
+  showSuccessToast,
+} from "@/lib/utils";
 import type { PlaceResult } from "@/components/ui";
 import type { KeyType, PropertyType } from "@/types";
 
 import { useAddressDuplicateCheck } from "../useAddressDuplicateCheck";
 import { submitProperty } from "./submitProperty";
+import { restorePropertyDraft, serializePropertyDraft } from "./propertyDraft";
 import { usePropertyCode } from "./usePropertyCode";
 
 // ── Wizard draft shapes ──────────────────────────────────────────────────────
@@ -40,6 +50,8 @@ export type KeySetDraft = {
   id: string;
   name: string;
   photoUris: string[];
+  /** Durable draft-storage path aligned with each photo URI; null until saved. */
+  photoPaths: (string | null)[];
   /** IDs of KeyEntry items (from step 1) to include in this keyset. */
   keyIds: string[];
   /** Optional cabinet slot for this keyset (maps to key_sets.cabinet_slot). */
@@ -77,7 +89,13 @@ const NEXT_LABELS = ["Next: Keysets", "Next: Review", "Save Property"] as const;
  */
 export function useAddPropertyWizard() {
   const router = useRouter();
+  const { draftId: routeDraftId } = useLocalSearchParams<{
+    draftId?: string;
+  }>();
   const createProperty = useCreateProperty();
+  const saveDraftMutation = useSavePropertyDraft();
+  const draftQuery = usePropertyDraft(routeDraftId ?? "");
+  const hydratedDraftId = useRef<string | null>(null);
 
   // ── Form state ─────────────────────────────────────────────────────────
   const [step, setStep] = useState(1);
@@ -86,6 +104,10 @@ export function useAddPropertyWizard() {
   const [keySets, setKeySets] = useState<KeySetDraft[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitLabel, setSubmitLabel] = useState<string | null>(null);
+  const [draftId, setDraftId] = useState<string | undefined>(routeDraftId);
+  const [isHydratingDraft, setIsHydratingDraft] = useState(
+    Boolean(routeDraftId),
+  );
 
   // Derived: property code is generated from the selected address + developer name.
   // When developerName is blank, the property-type letter is used as fallback.
@@ -94,14 +116,69 @@ export function useAddPropertyWizard() {
     property.developerName,
     property.propertyType,
   );
+  const restorePropertyCode = propertyCode.restore;
 
   // ── Address duplicate-check (shared with edit flow) ────────────────────
   const { addressError, addressChecking, onAddressSelect } =
-    useAddressDuplicateCheck({ onSelect: propertyCode.generate });
+    useAddressDuplicateCheck({
+      excludePropertyId: draftId,
+      onSelect: propertyCode.generate,
+    });
+
+  useEffect(() => {
+    const draft = draftQuery.data;
+    if (!routeDraftId) return;
+    if (draftQuery.isError || (draftQuery.isSuccess && !draft)) {
+      return;
+    }
+    if (!draft || hydratedDraftId.current === draft.id) return;
+
+    let active = true;
+    restorePropertyDraft(draft)
+      .then((restored) => {
+        if (!active) return;
+        setProperty(restored.property);
+        setKeys(restored.keys);
+        setKeySets(restored.keySets);
+        setStep(restored.step);
+        setDraftId(draft.id);
+        hydratedDraftId.current = draft.id;
+        if (restored.property.selectedPlace) {
+          restorePropertyCode(draft.property_code);
+          void onAddressSelect(restored.property.selectedPlace, false);
+        }
+      })
+      .catch((error) => {
+        if (!active) return;
+        Alert.alert(
+          "Couldn't open draft",
+          error instanceof Error
+            ? error.message
+            : "The draft could not be loaded.",
+          [{ text: "Close", onPress: () => router.back() }],
+        );
+      })
+      .finally(() => {
+        if (active) setIsHydratingDraft(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    draftQuery.data,
+    draftQuery.isError,
+    draftQuery.isSuccess,
+    onAddressSelect,
+    restorePropertyCode,
+    routeDraftId,
+    router,
+  ]);
 
   // ── Derived UI flags ───────────────────────────────────────────────────
   const isLastStep = step === TOTAL_STEPS;
-  const isSaving = submitting || createProperty.isPending;
+  const isSaving =
+    submitting || createProperty.isPending || saveDraftMutation.isPending;
   const nextLabel = NEXT_LABELS[step - 1];
   const hasUnsavedData =
     Boolean(property.selectedPlace) ||
@@ -205,6 +282,7 @@ export function useAddPropertyWizard() {
         keys,
         keySets,
         createProperty: createProperty.mutateAsync,
+        draftPropertyId: draftId,
       });
       showSuccessToast("Property created");
       router.back();
@@ -225,7 +303,103 @@ export function useAddPropertyWizard() {
     keys,
     keySets,
     createProperty.mutateAsync,
+    draftId,
     router,
+  ]);
+
+  const saveDraft = useCallback(async () => {
+    const place = property.selectedPlace;
+    if (!place || !propertyCode.code) {
+      Alert.alert(
+        "Address required",
+        "Select the property address before saving a draft.",
+      );
+      return;
+    }
+
+    setSubmitting(true);
+    setSubmitLabel("Saving draft…");
+    let snapshotSaved = false;
+    try {
+      const initial = await saveDraftMutation.mutateAsync({
+        draftId,
+        input: {
+          property_code: propertyCode.code,
+          title: property.title.trim() || null,
+          ...buildAddressColumns(place),
+          property_type: property.propertyType,
+          landlord_holder_id: null,
+          status: "draft",
+          images: [],
+          developer_name: property.developerName.trim() || null,
+          cabinet_code: property.cabinetCode.trim() || null,
+          draft_data: serializePropertyDraft(property, keys, keySets, step),
+        },
+      });
+      snapshotSaved = true;
+      setDraftId(initial.id);
+
+      const persistedKeySets = await Promise.all(
+        keySets.map(async (keySet) => {
+          const photoPaths = await Promise.all(
+            keySet.photoUris.map((uri, index) => {
+              const existingPath = keySet.photoPaths[index];
+              return existingPath
+                ? Promise.resolve(existingPath)
+                : uploadPropertyDraftPhoto(initial.id, keySet.id, uri);
+            }),
+          );
+          return { ...keySet, photoPaths };
+        }),
+      );
+
+      await saveDraftMutation.mutateAsync({
+        draftId: initial.id,
+        input: {
+          property_code: propertyCode.code,
+          title: property.title.trim() || null,
+          ...buildAddressColumns(place),
+          property_type: property.propertyType,
+          landlord_holder_id: null,
+          status: "draft",
+          images: [],
+          developer_name: property.developerName.trim() || null,
+          cabinet_code: property.cabinetCode.trim() || null,
+          draft_data: serializePropertyDraft(
+            property,
+            keys,
+            persistedKeySets,
+            step,
+          ),
+        },
+      });
+      setKeySets(persistedKeySets);
+      showSuccessToast("Draft saved");
+      router.back();
+    } catch (err) {
+      Alert.alert(
+        snapshotSaved
+          ? "Draft saved without all photos"
+          : "Couldn't save draft",
+        snapshotSaved
+          ? "Your form details are safe, but one or more photos could not be uploaded. Keep editing and try saving again."
+          : err instanceof Error
+            ? err.message
+            : "Please try again.",
+      );
+    } finally {
+      setSubmitting(false);
+      setSubmitLabel(null);
+    }
+  }, [
+    draftId,
+    keySets,
+    keys,
+    property,
+    propertyCode.code,
+    router,
+    saveDraftMutation,
+    step,
   ]);
 
   return {
@@ -243,6 +417,15 @@ export function useAddPropertyWizard() {
     isSaving,
     nextLabel,
     submitLabel,
+    isSavingDraft: submitLabel === "Saving draft…",
+    isDraftError:
+      Boolean(routeDraftId) &&
+      (draftQuery.isError || (draftQuery.isSuccess && !draftQuery.data)),
+    isDraftLoading:
+      Boolean(routeDraftId) &&
+      !(draftQuery.isError || (draftQuery.isSuccess && !draftQuery.data)) &&
+      (draftQuery.isLoading || isHydratingDraft),
+    retryDraft: draftQuery.refetch,
     canGoBack: step > 1,
 
     // setters
@@ -256,5 +439,6 @@ export function useAddPropertyWizard() {
     next,
     exit,
     submit,
+    saveDraft,
   };
 }

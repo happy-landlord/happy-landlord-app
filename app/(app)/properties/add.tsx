@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChevronLeft, X } from "lucide-react-native";
 
 import { theme } from "@/constants";
-import { StepIndicator } from "@/components/ui";
+import { ErrorState, StepIndicator } from "@/components/ui";
 import {
   PropertyInfoStep,
   KeySetsStep,
@@ -35,6 +35,10 @@ export default function AddPropertyScreen() {
     addressChecking,
     isLastStep,
     isSaving,
+    isSavingDraft,
+    isDraftLoading,
+    isDraftError,
+    retryDraft,
     nextLabel,
     submitLabel,
     canGoBack,
@@ -46,7 +50,41 @@ export default function AddPropertyScreen() {
     next,
     exit,
     submit,
+    saveDraft,
   } = wizard;
+
+  if (isDraftLoading) {
+    return (
+      <View
+        style={[
+          styles.screen,
+          styles.loadingScreen,
+          { paddingTop: insets.top },
+        ]}
+      >
+        <ActivityIndicator color={theme.colors.accent} size="large" />
+        <Text style={styles.loadingText}>Loading draft…</Text>
+      </View>
+    );
+  }
+
+  if (isDraftError) {
+    return (
+      <View
+        style={[
+          styles.screen,
+          styles.loadingScreen,
+          { paddingTop: insets.top },
+        ]}
+      >
+        <ErrorState
+          title="Couldn't load draft"
+          message="The draft may have been deleted, or your connection is unavailable."
+          onRetry={retryDraft}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -96,6 +134,24 @@ export default function AddPropertyScreen() {
       >
         <Pressable
           style={({ pressed }) => [
+            styles.draftBtn,
+            pressed && styles.footerBtnPressed,
+            isSaving && styles.footerBtnDisabled,
+          ]}
+          onPress={saveDraft}
+          disabled={isSaving}
+          accessibilityRole="button"
+          accessibilityLabel="Save draft"
+        >
+          {isSavingDraft ? (
+            <ActivityIndicator color={theme.colors.accent} size="small" />
+          ) : (
+            <Text style={styles.draftBtnLabel}>Save draft</Text>
+          )}
+        </Pressable>
+
+        <Pressable
+          style={({ pressed }) => [
             styles.footerBtn,
             pressed && styles.footerBtnPressed,
             isSaving && styles.footerBtnDisabled,
@@ -105,12 +161,9 @@ export default function AddPropertyScreen() {
           accessibilityRole="button"
           accessibilityLabel={nextLabel}
         >
-          {isSaving ? (
+          {isSaving && !isSavingDraft ? (
             <>
-              <ActivityIndicator
-                color={theme.colors.accent}
-                size="small"
-              />
+              <ActivityIndicator color={theme.colors.accent} size="small" />
               {submitLabel ? (
                 <Text
                   style={[styles.footerBtnLabel, styles.footerBtnSavingLabel]}
@@ -174,6 +227,12 @@ function Header({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.background },
+  loadingScreen: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: theme.spacing.md,
+  },
+  loadingText: { fontSize: 14, color: theme.colors.textMuted },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -196,11 +255,14 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { flexGrow: 1 },
   footer: {
+    flexDirection: "row",
+    gap: theme.spacing.sm,
     paddingHorizontal: theme.spacing.screen,
     paddingTop: theme.spacing.md,
     backgroundColor: theme.colors.background,
   },
   footerBtn: {
+    flex: 1,
     flexDirection: "row",
     backgroundColor: theme.colors.primary,
     borderRadius: theme.radius.lg,
@@ -226,5 +288,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
     letterSpacing: 0,
+  },
+  draftBtn: {
+    minWidth: 112,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: theme.colors.accent,
+    borderRadius: theme.radius.lg,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 15,
+  },
+  draftBtnLabel: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: theme.colors.accent,
   },
 });

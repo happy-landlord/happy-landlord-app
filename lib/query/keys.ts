@@ -6,6 +6,7 @@ export const QUERY_KEYS = {
   properties: {
     all: ["properties"] as const,
     detail: (id: string) => ["properties", id] as const,
+    draft: (id: string) => ["properties", "draft", id] as const,
     infinite: (search: string, keyStatus: string) =>
       ["properties", "infinite", search, keyStatus] as const,
   },

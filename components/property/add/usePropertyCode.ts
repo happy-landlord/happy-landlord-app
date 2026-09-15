@@ -13,6 +13,8 @@ type UsePropertyCodeResult = {
   code: string | null;
   /** Trigger generation for a newly selected place. */
   generate: (place: PlaceResult) => Promise<void>;
+  /** Restore the code already reserved by a draft property. */
+  restore: (code: string) => void;
   /** Reset to initial state. */
   reset: () => void;
 };
@@ -37,14 +39,22 @@ export function usePropertyCode(
 ): UsePropertyCodeResult {
   const [loading, setLoading] = useState(false);
   const [fetched, setFetched] = useState<Fetched>(null);
+  const [restoredCode, setRestoredCode] = useState<string | null>(null);
 
   // Derive the display code reactively whenever developerName or propertyType changes.
   const code = useMemo(() => {
+    if (restoredCode) return restoredCode;
     if (!fetched) return null;
-    return makePropertyCode(fetched.suburb, developerName, propertyType, fetched.seq);
-  }, [fetched, developerName, propertyType]);
+    return makePropertyCode(
+      fetched.suburb,
+      developerName,
+      propertyType,
+      fetched.seq,
+    );
+  }, [fetched, restoredCode, developerName, propertyType]);
 
   const generate = useCallback(async (nextPlace: PlaceResult) => {
+    setRestoredCode(null);
     setFetched(null);
     setLoading(true);
     try {
@@ -58,10 +68,17 @@ export function usePropertyCode(
     }
   }, []);
 
+  const restore = useCallback((nextCode: string) => {
+    setFetched(null);
+    setLoading(false);
+    setRestoredCode(nextCode);
+  }, []);
+
   const reset = useCallback(() => {
     setFetched(null);
+    setRestoredCode(null);
     setLoading(false);
   }, []);
 
-  return { loading, code, generate, reset };
+  return { loading, code, generate, restore, reset };
 }

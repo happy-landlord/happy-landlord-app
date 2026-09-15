@@ -5,12 +5,13 @@ import { Plus, Search, X } from "lucide-react-native";
 import { RoleGate } from "@/components/RoleGate";
 import { theme } from "@/constants";
 
-export type AdminPropertyTab = "active" | "leased" | "inactive";
+export type AdminPropertyTab = "active" | "leased" | "inactive" | "draft";
 
 const ADMIN_TABS: { id: AdminPropertyTab; label: string }[] = [
   { id: "active", label: "Active" },
   { id: "leased", label: "Leased" },
   { id: "inactive", label: "Inactive" },
+  { id: "draft", label: "Drafts" },
 ];
 
 type Props = {

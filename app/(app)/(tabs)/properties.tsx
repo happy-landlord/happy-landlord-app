@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -9,14 +10,14 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
-import { PropertyCard } from "@/components/property";
+import { PropertyCard, PropertyDraftCard } from "@/components/property";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui";
 
 import {
   PropertiesFilterBar,
   type AdminPropertyTab,
 } from "@/components/property";
-import { useInfiniteProperties } from "@/lib/hooks";
+import { useDeletePropertyDraft, useInfiniteProperties } from "@/lib/hooks";
 import { useDebouncedValue, useRole, useRefreshControl } from "@/hooks";
 import type { DbProperty, PropertyStatus } from "@/types";
 import { theme, useBottomListPadding } from "@/constants";
@@ -25,6 +26,7 @@ const EMPTY_MESSAGE_BY_TAB: Record<AdminPropertyTab, string> = {
   active: "No active properties.",
   leased: "No properties are currently leased.",
   inactive: "No inactive properties.",
+  draft: "No saved property drafts.",
 };
 
 export default function PropertiesScreen() {
@@ -35,8 +37,12 @@ export default function PropertiesScreen() {
 
   const [searchText, setSearchText] = useState("");
   const debouncedSearch = useDebouncedValue(searchText, 400);
-  const adminTab: AdminPropertyTab =
-    tab && ["active", "leased", "inactive"].includes(tab) ? tab : "active";
+  const requestedTab: AdminPropertyTab =
+    tab && ["active", "leased", "inactive", "draft"].includes(tab)
+      ? tab
+      : "active";
+  const adminTab: AdminPropertyTab = isAdmin ? requestedTab : "active";
+  const isDraftsTab = isAdmin && adminTab === "draft";
 
   const setAdminTab = useCallback(
     (nextTab: AdminPropertyTab) => router.setParams({ tab: nextTab }),
@@ -53,28 +59,76 @@ export default function PropertiesScreen() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteProperties({ search: debouncedSearch, status });
+  } = useInfiniteProperties({
+    search: debouncedSearch,
+    status,
+  });
+
+  const deleteDraft = useDeletePropertyDraft();
 
   const { refreshing, onRefresh } = useRefreshControl(refetch);
 
   const renderItem = useCallback(
-    ({ item }: { item: DbProperty }) => <PropertyCard property={item} />,
-    [],
+    ({ item }: { item: DbProperty }) => {
+      if (!isDraftsTab) return <PropertyCard property={item} />;
+      return (
+        <PropertyDraftCard
+          draft={item}
+          deleting={deleteDraft.isPending}
+          onResume={() =>
+            router.push({
+              pathname: "/(app)/properties/add",
+              params: { draftId: item.id },
+            })
+          }
+          onDelete={() =>
+            Alert.alert(
+              "Delete draft?",
+              "This saved property draft and its photos will be permanently deleted.",
+              [
+                { text: "Keep", style: "cancel" },
+                {
+                  text: "Delete",
+                  style: "destructive",
+                  onPress: () =>
+                    deleteDraft.mutate(item.id, {
+                      onError: (error) =>
+                        Alert.alert(
+                          "Couldn't delete draft",
+                          error instanceof Error
+                            ? error.message
+                            : "Please try again.",
+                        ),
+                    }),
+                },
+              ],
+            )
+          }
+        />
+      );
+    },
+    [deleteDraft, isDraftsTab, router],
   );
 
   const renderEmpty = useCallback(() => {
     if (isLoading) return null;
     return (
       <EmptyState
-        title={debouncedSearch ? "No results" : "No properties"}
+        title={
+          debouncedSearch
+            ? "No results"
+            : isDraftsTab
+              ? "No drafts"
+              : "No properties"
+        }
         message={
           debouncedSearch
-            ? `No properties found for "${debouncedSearch.trim()}"`
+            ? `No ${isDraftsTab ? "drafts" : "properties"} found for "${debouncedSearch.trim()}"`
             : EMPTY_MESSAGE_BY_TAB[adminTab]
         }
       />
     );
-  }, [isLoading, debouncedSearch, adminTab]);
+  }, [isLoading, debouncedSearch, isDraftsTab, adminTab]);
 
   const renderFooter = useCallback(() => {
     if (!isFetchingNextPage) return null;
@@ -113,7 +167,9 @@ export default function PropertiesScreen() {
         </View>
       ) : isLoading ? (
         <View style={[styles.stateArea, { paddingBottom: listPaddingBottom }]}>
-          <LoadingState message="Loading properties…" />
+          <LoadingState
+            message={isDraftsTab ? "Loading drafts…" : "Loading properties…"}
+          />
         </View>
       ) : (
         <FlatList

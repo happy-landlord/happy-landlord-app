@@ -29,7 +29,7 @@ import {
   PickerModal,
   type PlaceResult,
 } from "@/components/ui";
-import { formatLongDate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import { useDeveloperSuggestions } from "@/lib/hooks";
 import type { KeyType } from "@/types";
 
@@ -122,6 +122,7 @@ export function PropertyInfoStep({
           required
           placeholder="Search address…"
           mode="full"
+          initialValue={data.selectedPlace?.description}
           labelBackground={theme.colors.surface}
           containerStyle={styles.addressField}
           onSelect={(place) => {
@@ -251,7 +252,7 @@ export function PropertyInfoStep({
           />
           <OutlinedDateField
             label="Date Received"
-            value={formatLongDate(data.dateReceived)}
+            value={formatDate(data.dateReceived.toISOString())}
             focused={showDatePicker}
             onPress={() => {
               Keyboard.dismiss();
@@ -274,9 +275,7 @@ export function PropertyInfoStep({
           textColor={theme.colors.text}
           themeVariant="light"
           maximumDate={new Date()}
-          onChange={(_, selected) => {
-            if (selected) onChange({ dateReceived: selected });
-          }}
+          onValueChange={(_, selected) => onChange({ dateReceived: selected })}
           style={styles.datePicker}
         />
         <View style={styles.datePickerActions}>

@@ -14,13 +14,16 @@ import { useRole } from "@/hooks";
 import {
   createKeyHolder,
   createProperty,
+  deletePropertyDraft,
   deleteProperty,
   fetchProperties,
+  fetchPropertyDraftById,
   fetchPropertyById,
   fetchPropertyByIdForAgent,
   fetchTenantHolderForProperty,
   updateKeyHolder,
   updateProperty,
+  savePropertyDraft,
 } from "@/lib/services";
 import { normalizeAustralianPhone } from "@/lib/utils/phone";
 import {
@@ -29,6 +32,45 @@ import {
   DbPropertyUpdate,
   PropertyStatus,
 } from "@/types";
+
+export function usePropertyDraft(draftId: string) {
+  return useQuery({
+    queryKey: QUERY_KEYS.properties.draft(draftId),
+    queryFn: () => fetchPropertyDraftById(draftId),
+    enabled: !!draftId,
+    staleTime: STALE_TIME.short,
+  });
+}
+
+export function useSavePropertyDraft() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      draftId,
+      input,
+    }: {
+      draftId?: string;
+      input: DbPropertyInsert;
+    }) => savePropertyDraft(input, draftId),
+    onSuccess: (draft) => {
+      queryClient.setQueryData(QUERY_KEYS.properties.draft(draft.id), draft);
+      invalidateProperties(queryClient, draft.id);
+    },
+  });
+}
+
+export function useDeletePropertyDraft() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deletePropertyDraft,
+    onSuccess: (_data, draftId) => {
+      queryClient.removeQueries({
+        queryKey: QUERY_KEYS.properties.draft(draftId),
+      });
+      invalidateProperties(queryClient, draftId);
+    },
+  });
+}
 
 export function useInfiniteProperties({
   search = "",

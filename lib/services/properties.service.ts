@@ -376,6 +376,136 @@ export async function createProperty(
   return data;
 }
 
+// ── Property creation drafts ───────────────────────────────────────────────
+
+/** Returns one draft property for resume/edit. */
+export async function fetchPropertyDraftById(
+  draftId: string,
+): Promise<DbProperty | null> {
+  const { data, error } = await supabase
+    .from("properties")
+    .select("*")
+    .eq("id", draftId)
+    .eq("status", "draft")
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
+
+/** Creates a draft property or replaces its saved fields and wizard snapshot. */
+export async function savePropertyDraft(
+  input: DbPropertyInsert,
+  draftId?: string,
+): Promise<DbProperty> {
+  const previous = draftId ? await fetchPropertyDraftById(draftId) : null;
+  const query = draftId
+    ? supabase
+        .from("properties")
+        .update(input)
+        .eq("id", draftId)
+        .eq("status", "draft")
+    : supabase.from("properties").insert(input);
+  const { data, error } = await query.select().single();
+
+  if (error) throw error;
+
+  if (previous?.draft_data && data.draft_data) {
+    const currentPaths = new Set(getDraftPhotoPaths(data.draft_data));
+    await removePropertyDraftPhotos(
+      getDraftPhotoPaths(previous.draft_data).filter(
+        (path) => !currentPaths.has(path),
+      ),
+    );
+  }
+
+  return data;
+}
+
+/** Uploads one draft keyset photo to a durable, admin-owned storage path. */
+export async function uploadPropertyDraftPhoto(
+  draftId: string,
+  keySetDraftId: string,
+  localUri: string,
+): Promise<string> {
+  const compressedUri = await compressImage(localUri);
+  const uniquePart = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const storagePath = `drafts/${draftId}/${keySetDraftId}/${uniquePart}.jpg`;
+  const response = await fetch(compressedUri);
+  const arrayBuffer = await response.arrayBuffer();
+  const { error } = await supabase.storage
+    .from("properties")
+    .upload(storagePath, arrayBuffer, {
+      contentType: "image/jpeg",
+      upsert: false,
+    });
+
+  if (error) throw new Error(`Failed to save draft photo: ${error.message}`);
+  return `properties/${storagePath}`;
+}
+
+/** Best-effort cleanup for cloud photos after a draft is completed or changed. */
+export async function removePropertyDraftPhotos(
+  paths: string[],
+): Promise<void> {
+  if (paths.length === 0) return;
+  const { error } = await supabase.storage
+    .from("properties")
+    .remove(paths.map((path) => path.replace(/^properties\//, "")));
+  if (error) {
+    logger.warn("Failed to remove property draft photos", {
+      error: error.message,
+    });
+  }
+}
+
+/** Deletes a draft property and its cloud-stored draft photos. */
+export async function deletePropertyDraft(draftId: string): Promise<void> {
+  const draft = await fetchPropertyDraftById(draftId);
+  const photoPaths = draft?.draft_data
+    ? getDraftPhotoPaths(draft.draft_data)
+    : [];
+
+  await removePropertyDraftPhotos(photoPaths);
+
+  const { error } = await supabase
+    .from("properties")
+    .delete()
+    .eq("id", draftId)
+    .eq("status", "draft");
+
+  if (error) throw error;
+}
+
+function getDraftPhotoPaths(
+  draftData: NonNullable<DbProperty["draft_data"]>,
+): string[] {
+  const keySets = Array.isArray(draftData.keySets) ? draftData.keySets : [];
+  return keySets.flatMap((value) => {
+    if (!value || Array.isArray(value) || typeof value !== "object") return [];
+    const paths = value.photoPaths;
+    if (!Array.isArray(paths)) return [];
+    return paths.filter((path): path is string => typeof path === "string");
+  });
+}
+
+/** Removes children created during a failed attempt to complete a draft. */
+export async function clearDraftPropertyChildren(
+  propertyId: string,
+): Promise<void> {
+  const { error: keysError } = await supabase
+    .from("keys")
+    .delete()
+    .eq("property_id", propertyId);
+  if (keysError) throw keysError;
+
+  const { error: keySetsError } = await supabase
+    .from("key_sets")
+    .delete()
+    .eq("property_id", propertyId);
+  if (keySetsError) throw keySetsError;
+}
+
 /**
  * Deletes a property row by id.
  * Used as a rollback step when downstream creation (keyset/key) fails after

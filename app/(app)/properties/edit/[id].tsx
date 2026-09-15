@@ -32,7 +32,7 @@ import {
 } from "@/components/property/edit";
 import { PROPERTY_TYPES, theme } from "@/constants";
 import { useDeveloperSuggestions } from "@/lib/hooks";
-import { formatLongDate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -214,7 +214,7 @@ export default function EditPropertyScreen() {
               />
               <OutlinedDateField
                 label="Date Received"
-                value={formatLongDate(form.dateReceived)}
+                value={formatDate(form.dateReceived.toISOString())}
                 focused={showDatePicker}
                 onPress={() => {
                   Keyboard.dismiss();
@@ -283,9 +283,7 @@ export default function EditPropertyScreen() {
           textColor={theme.colors.text}
           themeVariant="light"
           maximumDate={new Date()}
-          onChange={(_, selected) => {
-            if (selected) form.setDateReceived(selected);
-          }}
+          onValueChange={(_, selected) => form.setDateReceived(selected)}
           style={styles.datePicker}
         />
         <View style={styles.datePickerActions}>

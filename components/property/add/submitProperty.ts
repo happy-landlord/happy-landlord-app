@@ -6,6 +6,9 @@ import {
   updateKeySetImages,
   deleteProperty,
   deleteKeyHolder,
+  updateProperty,
+  clearDraftPropertyChildren,
+  removePropertyDraftPhotos,
 } from "@/lib/services";
 import {
   buildKeySetCode,
@@ -30,12 +33,14 @@ export type CreatePropertyArgs = {
   keySets: KeySetDraft[];
   /** Inserts a property row and returns the saved record. */
   createProperty: (input: DbPropertyInsert) => Promise<DbProperty>;
+  /** Existing draft property row to complete instead of inserting another row. */
+  draftPropertyId?: string;
 };
 
 /**
  * Orchestrates the full "create property" submission:
  *   1. (Optional) create a landlord key_holder
- *   2. Create the property row
+ *   2. Create a new property row, or reuse the existing draft row
  *   3. For each keyset draft: create keyset row, upload photos, insert global keys
  */
 export async function submitProperty({
@@ -44,6 +49,7 @@ export async function submitProperty({
   keys,
   keySets,
   createProperty,
+  draftPropertyId,
 }: CreatePropertyArgs): Promise<DbProperty> {
   const { selectedPlace: place } = property;
   if (!place || !propertyCode) {
@@ -54,22 +60,31 @@ export async function submitProperty({
   const landlordHolderId = await maybeCreateLandlordHolder(property);
 
   // 2. Property row
-  const created = await createProperty({
+  const propertyInput: DbPropertyInsert = {
     property_code: propertyCode,
     title: property.title.trim() || null,
     ...buildAddressColumns(place),
     property_type: property.propertyType,
     landlord_holder_id: landlordHolderId,
-    status: "active",
+    status: draftPropertyId ? "draft" : "active",
     images: [],
     developer_name: property.developerName.trim() || null,
     cabinet_code: property.cabinetCode.trim() || null,
-  });
+  };
+  let created: DbProperty;
+  try {
+    created = draftPropertyId
+      ? await updateProperty(draftPropertyId, propertyInput)
+      : await createProperty(propertyInput);
+  } catch (error) {
+    if (landlordHolderId) await deleteKeyHolder(landlordHolderId);
+    throw error;
+  }
 
   // 3. Create each keyset with its selected keys. A key can appear only once
   // per keyset, so each assigned key record has quantity 1.
-  // If anything below fails we roll back the property row (and landlord holder)
-  // so the DB is never left in a partially-created state.
+  // If anything below fails, a new property is removed. An existing draft is
+  // retained and only the partially-created child rows are removed.
   try {
     for (let i = 0; i < keySets.length; i++) {
       const draft = keySets[i];
@@ -114,11 +129,30 @@ export async function submitProperty({
         ),
       );
     }
+
+    if (draftPropertyId) {
+      await updateProperty(draftPropertyId, {
+        status: "active",
+        draft_data: null,
+      });
+      await removePropertyDraftPhotos(
+        keySets.flatMap((keySet) =>
+          keySet.photoPaths.filter((path): path is string => Boolean(path)),
+        ),
+      );
+    }
   } catch (err) {
-    // Roll back: delete the property row (cascades to any partial keysets/keys
-    // if FK constraints use ON DELETE CASCADE; otherwise clean slate since the
-    // property was brand-new). Also remove the landlord holder if we created one.
-    await deleteProperty(created.id);
+    // Restore the draft or remove the brand-new property, then clean up the
+    // landlord holder created for this completion attempt.
+    if (draftPropertyId) {
+      await clearDraftPropertyChildren(created.id);
+      await updateProperty(created.id, {
+        status: "draft",
+        landlord_holder_id: null,
+      });
+    } else {
+      await deleteProperty(created.id);
+    }
     if (landlordHolderId) {
       await deleteKeyHolder(landlordHolderId);
     }

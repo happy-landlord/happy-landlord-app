@@ -3,7 +3,12 @@ import { KeyRound, Plus, Trash2 } from "lucide-react-native";
 
 import { KEY_TYPE_ICON, theme } from "@/constants";
 import { Input, PhotoPicker, ShareQrButton } from "@/components/ui";
-import { buildKeySetCode, countAllocatedKeys, getDraftKeyLabel, keySetQrUrl } from "@/lib/utils";
+import {
+  buildKeySetCode,
+  countAllocatedKeys,
+  getDraftKeyLabel,
+  keySetQrUrl,
+} from "@/lib/utils";
 import type { KeyEntry, KeySetDraft } from "./useAddPropertyWizard";
 
 // ── KeySetsStep ──────────────────────────────────────────────────────────────
@@ -34,6 +39,7 @@ export function KeySetsStep({
       id: `ks-${Date.now()}`,
       name: `Set ${keySets.length + 1}`,
       photoUris: [],
+      photoPaths: [],
       keyIds: [],
       cabinetSlot: null,
     };
@@ -181,7 +187,6 @@ function KeySetDraftCard({
         </Pressable>
       </View>
 
-
       <View style={styles.divider} />
 
       {/* Assigned keys */}
@@ -203,7 +208,9 @@ function KeySetDraftCard({
                 accessibilityRole="button"
                 accessibilityLabel="Unassign one key"
               >
-                <View style={[styles.keyIconCircle, styles.assignedKeyIconCircle]}>
+                <View
+                  style={[styles.keyIconCircle, styles.assignedKeyIconCircle]}
+                >
                   <Icon
                     size={14}
                     color={theme.colors.surface}
@@ -245,7 +252,10 @@ function KeySetDraftCard({
                 <Pressable
                   key={entry.id}
                   onPress={() => assignOne(entry.id)}
-                  style={({ pressed }) => [styles.keyRow, pressed && { opacity: 0.65 }]}
+                  style={({ pressed }) => [
+                    styles.keyRow,
+                    pressed && { opacity: 0.65 },
+                  ]}
                   accessibilityRole="button"
                   accessibilityLabel="Assign one key"
                 >
@@ -282,7 +292,17 @@ function KeySetDraftCard({
       <View style={styles.photoSection}>
         <PhotoPicker
           uris={draft.photoUris}
-          onChange={(photoUris) => onUpdate({ photoUris })}
+          onChange={(photoUris) =>
+            onUpdate({
+              photoUris,
+              photoPaths: photoUris.map((uri) => {
+                const previousIndex = draft.photoUris.indexOf(uri);
+                return previousIndex >= 0
+                  ? (draft.photoPaths[previousIndex] ?? null)
+                  : null;
+              }),
+            })
+          }
           color={theme.colors.accent}
           label="Keyset Photos"
           hint="Tap to add photos of the keyset"
