@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Animated,
   Alert,
@@ -68,17 +68,19 @@ export function ReserveKeySetModal({
   const [pickerValue, setPickerValue] = useState<Date>(new Date());
 
   // Slide-up animation for the bottom picker panel
-  const slideY = useRef(new Animated.Value(OVERLAY_PANEL_SLIDE_OUT)).current;
+  const [slideY] = useState(() => new Animated.Value(OVERLAY_PANEL_SLIDE_OUT));
 
   const endsAt = addDays(durationDays, startsAt);
 
   useEffect(() => {
     if (visible) {
+      // Reset the controlled form whenever a new reservation flow opens.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setStartsAt(nextHalfHour());
       setDurationDays(1);
     }
     // Dismiss picker whenever sheet visibility changes
-    closePicker();
+    setActivePicker(null);
   }, [visible]);
 
   useEffect(() => {
@@ -120,7 +122,7 @@ export function ReserveKeySetModal({
       return;
     }
     onConfirm(startsAt, endsAt, "");
-  };  // ── Right-side picker panel (rendered inside same Modal via overlayContent) ─
+  }; // ── Right-side picker panel (rendered inside same Modal via overlayContent) ─
 
   const pickerPanel = (
     <>
@@ -218,7 +220,11 @@ export function ReserveKeySetModal({
             ]}
             onPress={() => openPicker("date")}
           >
-            <Calendar size={14} color={theme.colors.textMuted} strokeWidth={2} />
+            <Calendar
+              size={14}
+              color={theme.colors.textMuted}
+              strokeWidth={2}
+            />
             <Text style={styles.dtValue}>
               {formatDate(startsAt.toISOString())}
             </Text>
@@ -266,7 +272,11 @@ export function ReserveKeySetModal({
 
       {/* Computed end time callout */}
       <View style={styles.dueRow}>
-        <CalendarClock size={14} color={theme.colors.textMuted} strokeWidth={2} />
+        <CalendarClock
+          size={14}
+          color={theme.colors.textMuted}
+          strokeWidth={2}
+        />
         <Text style={styles.dueText}>
           Return by{" "}
           <Text style={styles.dueDate}>

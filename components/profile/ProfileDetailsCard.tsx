@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { AtSign, Check, Pencil, User, X } from "lucide-react-native";
 

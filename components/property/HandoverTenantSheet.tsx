@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -71,7 +71,12 @@ export function HandoverTenantSheet({ visible, onClose, propertyId }: Props) {
       <Text style={styles.title}>Handover to Tenant</Text>
 
       <View style={styles.tenantFields}>
-        <OutlinedField label="Tenant Name" required focused={nameFocused} labelBackground={theme.colors.surface}>
+        <OutlinedField
+          label="Tenant Name"
+          required
+          focused={nameFocused}
+          labelBackground={theme.colors.surface}
+        >
           <TextInput
             style={styles.fieldInput}
             value={tenantName}
@@ -83,7 +88,12 @@ export function HandoverTenantSheet({ visible, onClose, propertyId }: Props) {
             returnKeyType="next"
           />
         </OutlinedField>
-        <OutlinedField label="Phone Number" required focused={phoneFocused} labelBackground={theme.colors.surface}>
+        <OutlinedField
+          label="Phone Number"
+          required
+          focused={phoneFocused}
+          labelBackground={theme.colors.surface}
+        >
           <TextInput
             style={styles.fieldInput}
             value={tenantPhone}
@@ -140,8 +150,18 @@ export function HandoverTenantSheet({ visible, onClose, propertyId }: Props) {
                     <Text style={styles.rowEyebrow} numberOfLines={1}>
                       {ks.code}
                     </Text>
-                    <View style={[styles.keyCountBadge, isSelected && styles.keyCountBadgeSelected]}>
-                      <Text style={[styles.keyCountText, isSelected && styles.keyCountTextSelected]}>
+                    <View
+                      style={[
+                        styles.keyCountBadge,
+                        isSelected && styles.keyCountBadgeSelected,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.keyCountText,
+                          isSelected && styles.keyCountTextSelected,
+                        ]}
+                      >
                         {keyCount} {keyCount === 1 ? "key" : "keys"}
                       </Text>
                     </View>
@@ -170,7 +190,12 @@ export function HandoverTenantSheet({ visible, onClose, propertyId }: Props) {
           title={`Complete (${selected.size})`}
           variant="primary"
           onPress={handleComplete}
-          disabled={selected.size === 0 || !tenantName.trim() || !tenantPhone.trim() || handoverMut.isPending}
+          disabled={
+            selected.size === 0 ||
+            !tenantName.trim() ||
+            !tenantPhone.trim() ||
+            handoverMut.isPending
+          }
           loading={handoverMut.isPending}
           style={styles.footerBtn}
         />

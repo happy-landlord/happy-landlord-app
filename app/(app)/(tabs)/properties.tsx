@@ -1,10 +1,16 @@
-import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useCallback, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { PropertyCard } from "@/components/property";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui";
-
 
 import { type PlaceResult } from "@/components/ui";
 import {
@@ -17,7 +23,6 @@ import { placeSearchLabel } from "@/lib/utils";
 import type { DbProperty, PropertyStatus } from "@/types";
 import { theme, useBottomListPadding } from "@/constants";
 
-
 const EMPTY_MESSAGE_BY_TAB: Record<AdminPropertyTab, string> = {
   active: "No active properties.",
   leased: "No properties are currently leased.",
@@ -27,20 +32,17 @@ const EMPTY_MESSAGE_BY_TAB: Record<AdminPropertyTab, string> = {
 export default function PropertiesScreen() {
   const listPaddingBottom = useBottomListPadding();
   const { isAdmin } = useRole();
+  const router = useRouter();
   const { tab } = useLocalSearchParams<{ tab?: AdminPropertyTab }>();
 
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
-  const [adminTab, setAdminTab] = useState<AdminPropertyTab>(
-    tab && ["active", "leased", "inactive"].includes(tab) ? tab : "active",
-  );
+  const adminTab: AdminPropertyTab =
+    tab && ["active", "leased", "inactive"].includes(tab) ? tab : "active";
 
-  // Sync tab when the route param changes (tab screens stay mounted, so
-  // useState initial value only runs once — useEffect handles re-navigation).
-  useEffect(() => {
-    if (tab && ["active", "leased", "inactive"].includes(tab)) {
-      setAdminTab(tab);
-    }
-  }, [tab]);
+  const setAdminTab = useCallback(
+    (nextTab: AdminPropertyTab) => router.setParams({ tab: nextTab }),
+    [router],
+  );
 
   const search = placeSearchLabel(selectedPlace);
   const status: PropertyStatus = isAdmin ? adminTab : "active";
@@ -104,12 +106,7 @@ export default function PropertiesScreen() {
       />
 
       {isError ? (
-        <View
-          style={[
-            styles.stateArea,
-            { paddingBottom: listPaddingBottom },
-          ]}
-        >
+        <View style={[styles.stateArea, { paddingBottom: listPaddingBottom }]}>
           <ErrorState
             title="Couldn't load properties"
             message="Check your connection and try again."
@@ -117,12 +114,7 @@ export default function PropertiesScreen() {
           />
         </View>
       ) : isLoading ? (
-        <View
-          style={[
-            styles.stateArea,
-            { paddingBottom: listPaddingBottom },
-          ]}
-        >
+        <View style={[styles.stateArea, { paddingBottom: listPaddingBottom }]}>
           <LoadingState message="Loading properties…" />
         </View>
       ) : (

@@ -18,13 +18,14 @@ export function useDeveloperSuggestions(query: string): {
 
   useEffect(() => {
     const trimmed = query.trim();
-    if (!trimmed) {
-      setSuggestions([]);
-      return;
-    }
-
-    setLoading(true);
     const timer = setTimeout(async () => {
+      if (!trimmed) {
+        setSuggestions([]);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
       try {
         const results = await fetchDistinctDeveloperNames(trimmed);
         setSuggestions(results);
@@ -37,7 +38,6 @@ export function useDeveloperSuggestions(query: string): {
 
     return () => {
       clearTimeout(timer);
-      setLoading(false);
     };
   }, [query]);
 
@@ -47,4 +47,3 @@ export function useDeveloperSuggestions(query: string): {
 
   return { suggestions, loading, clear };
 }
-

@@ -57,10 +57,10 @@ export function KeySetDurationModal({
   allowedDays,
 }: Props) {
   const daysToShow = allowedDays ?? DURATION_DAYS;
-  const newDueIso = isoInDays(
-    durationDays,
-    baseIso ? new Date(baseIso) : Date.now(),
-  );
+  // Checkout due dates intentionally use the current time on every render.
+  // eslint-disable-next-line react-hooks/purity
+  const dueDateBase = baseIso ? new Date(baseIso) : Date.now();
+  const newDueIso = isoInDays(durationDays, dueDateBase);
   const hasKeysSummary = keys.length > 0;
 
   return (
@@ -117,7 +117,11 @@ export function KeySetDurationModal({
       {/* Liability declaration — only shown for checkout (no baseIso) */}
       {!baseIso && (
         <View style={styles.declaration}>
-          <TriangleAlert size={14} color={theme.colors.warning} strokeWidth={2} />
+          <TriangleAlert
+            size={14}
+            color={theme.colors.warning}
+            strokeWidth={2}
+          />
           <Text style={styles.declarationText}>
             By confirming, you accept full responsibility for this keyset while
             it is in your custody. A fee of{" "}

@@ -2,12 +2,11 @@
   "expo": {
     "name": "Key Manager",
     "slug": "happy-landlord-app",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
     "scheme": "hlapp",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "au.com.happylandlord.app",
@@ -24,7 +23,6 @@
         "foregroundImage": "./assets/logo.png",
         "monochromeImage": "./assets/logo.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "au.com.happylandlord.app",
       "permissions": [

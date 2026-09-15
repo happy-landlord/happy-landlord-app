@@ -63,7 +63,11 @@ export function useKeySetEditForm(keySetId: string) {
     }) => {
       let allImages = [...kept];
       if (newUris.length > 0) {
-        const uploaded = await uploadKeySetImages(propertyId, keySetId, newUris);
+        const uploaded = await uploadKeySetImages(
+          propertyId,
+          keySetId,
+          newUris,
+        );
         allImages = [...allImages, ...uploaded];
       }
       await updateKeySetImages(keySetId, allImages);
@@ -150,6 +154,8 @@ export function useKeySetEditForm(keySetId: string) {
         urls.push(url);
       });
       existingUrlMapRef.current = map;
+      // Signed URLs initialize the user's editable photo selection.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPhotoUris(urls);
       photosSyncedRef.current = true;
       lastSyncedPathsRef.current = pathKey;
@@ -173,7 +179,8 @@ export function useKeySetEditForm(keySetId: string) {
 
     try {
       const nameDirty = trimmedName !== keySet.name;
-      const slotDirty = (cabinetSlot.trim() || null) !== (keySet.cabinet_slot ?? null);
+      const slotDirty =
+        (cabinetSlot.trim() || null) !== (keySet.cabinet_slot ?? null);
       if (nameDirty || slotDirty) {
         await updateKeySetMut.mutateAsync({
           ...(nameDirty && { name: trimmedName }),
@@ -195,7 +202,8 @@ export function useKeySetEditForm(keySetId: string) {
       }
       const imagesDirty =
         newLocalUris.length > 0 ||
-        keptImages.length !== getVisibleKeySetImages(keySet.images ?? []).length;
+        keptImages.length !==
+          getVisibleKeySetImages(keySet.images ?? []).length;
       if (imagesDirty) {
         await imageUpdateMut.mutateAsync({
           newUris: newLocalUris,
@@ -226,4 +234,3 @@ export function useKeySetEditForm(keySetId: string) {
     save,
   };
 }
-

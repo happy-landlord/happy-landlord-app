@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   Animated,
   Modal,
@@ -70,11 +70,13 @@ export function BottomSheet({
   // Keep the modal mounted until the exit animation finishes so the slide
   // and fade actually play.
   const [modalVisible, setModalVisible] = useState(visible);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(SHEET_TRANSLATE_OUT)).current;
+  const [fadeAnim] = useState(() => new Animated.Value(0));
+  const [slideAnim] = useState(() => new Animated.Value(SHEET_TRANSLATE_OUT));
 
   useEffect(() => {
     if (visible) {
+      // The modal must mount before its entrance animation can run.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setModalVisible(true);
       Animated.parallel([
         Animated.timing(fadeAnim, {
@@ -173,7 +175,7 @@ export function BottomSheet({
 
 const styles = StyleSheet.create({
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   avoider: {
     position: "absolute",

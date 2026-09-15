@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Menu, ChevronLeft } from "lucide-react-native";
 import { useRouter } from "expo-router";
-import { useNavigationState } from "@react-navigation/native";
+import { useNavigationState } from "expo-router/react-navigation";
 
 import { Logo } from "@/components/ui";
 import { MenuSheet } from "@/components/MenuSheet";
@@ -25,12 +25,19 @@ export function AppHeader() {
           {canGoBack ? (
             <Pressable
               onPress={() => router.back()}
-              style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}
+              style={({ pressed }) => [
+                styles.iconBtn,
+                pressed && styles.iconBtnPressed,
+              ]}
               hitSlop={8}
               accessibilityRole="button"
               accessibilityLabel="Go back"
             >
-              <ChevronLeft size={22} color={theme.colors.text} strokeWidth={2} />
+              <ChevronLeft
+                size={22}
+                color={theme.colors.text}
+                strokeWidth={2}
+              />
             </Pressable>
           ) : (
             <View style={styles.logoWrap}>
@@ -44,7 +51,10 @@ export function AppHeader() {
             {/* Right — hamburger menu */}
             <Pressable
               onPress={() => setMenuOpen(true)}
-              style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}
+              style={({ pressed }) => [
+                styles.iconBtn,
+                pressed && styles.iconBtnPressed,
+              ]}
               hitSlop={8}
               accessibilityRole="button"
               accessibilityLabel="Open menu"

@@ -1,6 +1,6 @@
 # Happy Landlord App (HLApp)
 
-React Native mobile app for **Happy Landlord** — a key-management platform for real estate agencies. Built with Expo (SDK 54, New Architecture) and Expo Router v6.
+React Native mobile app for **Happy Landlord** — a key-management platform for real estate agencies. Built with Expo SDK 57, React Native 0.86, and Expo Router.
 
 ---
 
@@ -8,8 +8,8 @@ React Native mobile app for **Happy Landlord** — a key-management platform for
 
 | Layer              | Choice                                                      |
 | ------------------ | ----------------------------------------------------------- |
-| Framework          | Expo SDK 54 · React Native 0.81                             |
-| Navigation         | Expo Router v6 (file-based, typed routes)                   |
+| Framework          | Expo SDK 57 · React Native 0.86                             |
+| Navigation         | Expo Router 57 (file-based, typed routes)                   |
 | Backend            | Supabase (Postgres + Auth + Edge Functions + Realtime)      |
 | Data fetching      | TanStack Query v5                                           |
 | Styling            | NativeWind v4 (Tailwind CSS) + `StyleSheet`                 |
@@ -101,6 +101,8 @@ cp .env.example .env.local
 ---
 
 ## Local development
+
+Requires Node.js 22.13 or newer.
 
 ### 1. Install dependencies
 
@@ -251,7 +253,7 @@ See [`supabase/README.md`](supabase/README.md) for:
 
 - Build profiles are in `eas.json` (`development`, `preview`, `production`).
 - App store metadata and signing credentials must be configured in EAS before first store submit.
-- New Architecture (`newArchEnabled: true`) and React Compiler (`reactCompiler: true`) are both enabled.
+- React Native's New Architecture is mandatory in SDK 57; React Compiler is enabled with `experiments.reactCompiler`.
 - The app uses `expo-secure-store` for session persistence and biometric state storage.
 - **Global error feedback** — `QueryCache` and `MutationCache` in `lib/query/queryClient.ts` carry an `onError` handler that (1) shows a `react-native-toast-message` error toast and (2) adds a Sentry breadcrumb. `<Toast />` is mounted at the root in `app/_layout.tsx`. 401 errors are silenced (handled by the auth redirect layer). Use `showErrorToast` / `showSuccessToast` / `showInfoToast` from `lib/utils/toast.ts` for ad-hoc toasts.
 - **Pre-commit quality gate** — `husky` + `lint-staged` run ESLint (auto-fix) and Prettier on every staged file before a commit lands.

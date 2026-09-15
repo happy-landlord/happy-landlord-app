@@ -1,18 +1,7 @@
-import { useRef, useState } from "react";
-import {
-  Animated,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { useState } from "react";
+import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import {
-  CalendarDays,
-  ChevronLeft,
-  RotateCcw,
-  X,
-} from "lucide-react-native";
+import { CalendarDays, ChevronLeft, RotateCcw, X } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BottomSheet } from "@/components/ui";
@@ -54,11 +43,9 @@ export function HistoryFilterSheet({
   const [activePicker, setActivePicker] = useState<"from" | "to" | null>(null);
   const [pickerValue, setPickerValue] = useState<Date>(new Date());
 
-  const slideY = useRef(new Animated.Value(OVERLAY_PANEL_SLIDE_OUT)).current;
+  const [slideY] = useState(() => new Animated.Value(OVERLAY_PANEL_SLIDE_OUT));
 
-  const hasFilters =
-    filters.dateFrom !== null ||
-    filters.dateTo !== null;
+  const hasFilters = filters.dateFrom !== null || filters.dateTo !== null;
 
   const openPicker = (field: "from" | "to") => {
     const current =
@@ -259,7 +246,9 @@ function DateField({
       accessibilityRole="button"
     >
       {/* Floating label */}
-      <Text style={[styles.dateFieldLabel, isActive && styles.dateFieldLabelActive]}>
+      <Text
+        style={[styles.dateFieldLabel, isActive && styles.dateFieldLabelActive]}
+      >
         {label}
       </Text>
 
@@ -270,7 +259,12 @@ function DateField({
           color={isActive ? theme.colors.accent : theme.colors.textMuted}
           strokeWidth={1.8}
         />
-        <Text style={[styles.dateFieldValue, isActive && styles.dateFieldValueActive]}>
+        <Text
+          style={[
+            styles.dateFieldValue,
+            isActive && styles.dateFieldValueActive,
+          ]}
+        >
           {displayDate ? formatShortDate(displayDate.toISOString()) : "Any"}
         </Text>
         {value ? (
@@ -406,4 +400,3 @@ const styles = StyleSheet.create({
   panelActions: { flexDirection: "row", gap: theme.spacing.sm },
   panelBtn: { flex: 1 },
 });
-

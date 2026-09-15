@@ -1,10 +1,15 @@
-﻿import {
+import {
   useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { invalidateProperties, PAGE_SIZE, QUERY_KEYS, STALE_TIME } from "@/lib/query";
+import {
+  invalidateProperties,
+  PAGE_SIZE,
+  QUERY_KEYS,
+  STALE_TIME,
+} from "@/lib/query";
 import { useRole } from "@/hooks";
 import {
   createKeyHolder,

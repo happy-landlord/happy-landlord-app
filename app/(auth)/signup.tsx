@@ -1,4 +1,4 @@
-﻿import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -94,7 +94,9 @@ export default function SignUpScreen() {
                     <Pressable
                       onPress={auth.back}
                       hitSlop={8}
-                      style={({ pressed }) => (pressed ? { opacity: 0.6 } : null)}
+                      style={({ pressed }) =>
+                        pressed ? { opacity: 0.6 } : null
+                      }
                     >
                       <Text style={phoneEditLinkStyle}>Edit</Text>
                     </Pressable>
@@ -137,7 +139,11 @@ export default function SignUpScreen() {
 
 const styles = StyleSheet.create({
   approvalNote: { alignItems: "center", justifyContent: "center" },
-  approvalText: { color: theme.colors.textMuted, fontSize: 12, textAlign: "center" },
+  approvalText: {
+    color: theme.colors.textMuted,
+    fontSize: 12,
+    textAlign: "center",
+  },
   approvalLink: {
     color: theme.colors.text,
     fontWeight: "600",

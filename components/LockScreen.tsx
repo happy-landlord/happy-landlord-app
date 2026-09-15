@@ -58,7 +58,15 @@ export function LockScreen({ userName, userPhone }: LockScreenProps) {
 
   // Detect the biometric type available on this device
   useEffect(() => {
-    getBiometricCapability().then(setCapability);
+    let cancelled = false;
+    getBiometricCapability().then((nextCapability) => {
+      if (cancelled) return;
+      setCapability(nextCapability);
+      if (!nextCapability.isAvailable) setMode("otp");
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Resend cooldown ticker
@@ -80,13 +88,7 @@ export function LockScreen({ userName, userPhone }: LockScreenProps) {
   // return isAvailable=false and the screen will gracefully fall back to the
   // OTP form.
   useEffect(() => {
-    if (!capability || didAutoPromptRef.current) return;
-
-    if (!capability.isAvailable) {
-      // No biometrics on this device/build — skip straight to OTP fallback.
-      setMode("otp");
-      return;
-    }
+    if (!capability?.isAvailable || didAutoPromptRef.current) return;
 
     didAutoPromptRef.current = true;
 

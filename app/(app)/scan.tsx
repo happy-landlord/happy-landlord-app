@@ -82,13 +82,6 @@ export default function ScanScreen() {
     router.replace((returnTo || "/(app)/(tabs)") as never);
   }, [returnTo, router]);
 
-  // Auto-lookup when the screen is opened via a deep link (e.g. iOS Camera).
-  useEffect(() => {
-    if (!deepLinkCode) return;
-    handleBarCodeScanned({ data: deepLinkCode } as never);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deepLinkCode]);
-
   const handleBarCodeScanned = useCallback(
     async ({ data }: BarcodeScanningResult) => {
       if (processingRef.current) return;
@@ -136,6 +129,16 @@ export default function ScanScreen() {
     },
     [router],
   );
+
+  // Auto-lookup when the screen is opened via a deep link (e.g. iOS Camera).
+  useEffect(() => {
+    if (!deepLinkCode) return;
+    const timer = setTimeout(
+      () => handleBarCodeScanned({ data: deepLinkCode } as never),
+      0,
+    );
+    return () => clearTimeout(timer);
+  }, [deepLinkCode, handleBarCodeScanned]);
 
   // ── Permission not yet determined ─────────────────────────────────────────
   if (!permission) {

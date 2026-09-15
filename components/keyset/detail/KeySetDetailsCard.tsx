@@ -241,13 +241,13 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
 
-  banner: { width: "100%", height: 160 },
+  banner: { width: "100%", height: 260 },
   bannerPlaceholder: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: theme.colors.neutralSoft,
   },
   bannerImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     width: "100%",
     height: "100%",
   },

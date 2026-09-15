@@ -71,6 +71,7 @@ export function PhotoPicker({
           const result = await ImagePicker.launchCameraAsync({
             mediaTypes: "images",
             quality: 0.85,
+            aspect: [4, 3],
           });
           if (!result.canceled && result.assets.length > 0) {
             onChange([...uris, result.assets[0].uri]);
@@ -115,7 +116,9 @@ export function PhotoPicker({
             <Text style={[styles.label, compact && styles.labelCompact]}>
               {label}
             </Text>
-          ) : <View />}
+          ) : (
+            <View />
+          )}
           {uris.length > 0 && (
             <Text style={styles.photoCount}>
               {uris.length} {uris.length === 1 ? "photo" : "photos"} added

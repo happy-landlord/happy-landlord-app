@@ -56,10 +56,10 @@ export function PhoneLink({
   }));
 
   const onPressIn = () => {
-    scale.value = withSpring(0.94, { damping: 15, stiffness: 400 });
+    scale.set(withSpring(0.94, { damping: 15, stiffness: 400 }));
   };
   const onPressOut = () => {
-    scale.value = withSpring(1, { damping: 12, stiffness: 300 });
+    scale.set(withSpring(1, { damping: 12, stiffness: 300 }));
   };
 
   // ── Handlers ────────────────────────────────────────────────────────────────

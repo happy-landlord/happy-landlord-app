@@ -50,12 +50,13 @@ function DonutChart({
 }) {
   const nonZero = segments.filter((s) => s.value > 0);
   const useGap = nonZero.length > 1;
-  let cursor = 0;
-  const paths = nonZero.map((s) => {
+  const paths = nonZero.map((s, index) => {
+    const cursor = nonZero
+      .slice(0, index)
+      .reduce((sum, segment) => sum + (segment.value / total) * 360, 0);
     const span = (s.value / total) * 360;
     const startDeg = cursor + (useGap ? GAP_DEG / 2 : 0);
     const endDeg = cursor + span - (useGap ? GAP_DEG / 2 : 0);
-    cursor += span;
     return { path: arcPath(startDeg, endDeg), color: s.color };
   });
 
@@ -135,7 +136,10 @@ export function PropertyStatsBanner() {
   return (
     <View style={styles.statsRow}>
       <Pressable
-        style={({ pressed }) => [styles.statCard, pressed && styles.statCardPressed]}
+        style={({ pressed }) => [
+          styles.statCard,
+          pressed && styles.statCardPressed,
+        ]}
         onPress={() => goToProperties("active")}
         accessibilityRole="button"
         accessibilityLabel="View all properties"

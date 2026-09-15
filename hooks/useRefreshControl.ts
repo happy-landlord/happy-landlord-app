@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * Manages pull-to-refresh state for one or more async refetch functions.
@@ -28,7 +28,9 @@ export function useRefreshControl(
   // Keep a ref so the stable `onRefresh` callback always calls the latest fns
   // without needing them as useCallback dependencies.
   const refetchesRef = useRef(refetches);
-  refetchesRef.current = refetches;
+  useEffect(() => {
+    refetchesRef.current = refetches;
+  }, [refetches]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

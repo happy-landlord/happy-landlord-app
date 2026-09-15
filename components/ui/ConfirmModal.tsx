@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: theme.colors.accentDark + "75",
   },
   card: {

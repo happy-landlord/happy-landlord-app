@@ -1,5 +1,10 @@
-﻿import { useEffect } from "react";
-import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 import type { Session } from "@supabase/supabase-js";
 
 import { QUERY_KEYS } from "@/lib/query";
@@ -183,7 +188,9 @@ export function useRequestReactivation() {
   return useMutation<void, Error, void>({
     meta: { silentError: true },
     mutationFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       const profile = user ? await fetchProfile(user.id) : null;
       await requestReactivation(null, profile?.full_name ?? null);
     },
@@ -223,6 +230,16 @@ export function useSignOut() {
       const lockStore = useLockStore.getState();
       lockStore.reset();
       if (!FEATURES.BIOMETRIC_LOCK) lockStore.initialize(false, false);
+    },
+  });
+}
+
+/** Updates the password for the currently authenticated Supabase user. */
+export function useChangePassword() {
+  return useMutation<void, Error, string>({
+    mutationFn: async (password) => {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
     },
   });
 }
