@@ -1,5 +1,10 @@
 import { useMemo } from "react";
-import { useMutation, useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import { QUERY_KEYS, STALE_TIME, PAGE_SIZE } from "@/lib/query";
 import {
@@ -22,12 +27,17 @@ import {
   handoverPropertyToLandlord,
   collectKeysetsFromTenant,
   collectKeysetsFromLandlord,
+  checkoutKeySetToGuest,
+  createGuestKeyHolder,
+  fetchGuestKeyHolders,
   type CheckoutKeySetParams,
   type ReturnKeySetParams,
   type TransferKeySetParams,
   type ExtendKeySetParams,
   type KeyInSet,
   type UnassignedKey,
+  type CheckoutKeySetToGuestParams,
+  type CreateGuestKeyHolderParams,
 } from "@/lib/services";
 import {
   fetchAdminDashboardSummary,
@@ -150,6 +160,35 @@ export function useCheckoutKeySet(propertyId: string) {
   });
 }
 
+export function useGuestKeyHolders(enabled = true) {
+  return useQuery({
+    queryKey: QUERY_KEYS.guestHolders.all,
+    queryFn: fetchGuestKeyHolders,
+    enabled,
+    staleTime: STALE_TIME.short,
+  });
+}
+
+export function useCreateGuestKeyHolder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params: CreateGuestKeyHolderParams) =>
+      createGuestKeyHolder(params),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.guestHolders.all }),
+  });
+}
+
+export function useCheckoutKeySetToGuest(propertyId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params: CheckoutKeySetToGuestParams) =>
+      checkoutKeySetToGuest(params),
+    onSuccess: (_, variables) =>
+      invalidateKeySets(queryClient, propertyId, variables.keySetId),
+  });
+}
+
 export function useReturnKeySet(propertyId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -186,8 +225,13 @@ export function useReportKeySetLost(propertyId: string) {
 export function useUndoReportKeySetLost(propertyId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ keySetId, notes }: { keySetId: string; notes?: string | null }) =>
-      undoReportKeySetLost(keySetId, notes),
+    mutationFn: ({
+      keySetId,
+      notes,
+    }: {
+      keySetId: string;
+      notes?: string | null;
+    }) => undoReportKeySetLost(keySetId, notes),
     onSuccess: (_, { keySetId }) =>
       invalidateKeySets(queryClient, propertyId, keySetId),
   });
@@ -196,7 +240,15 @@ export function useUndoReportKeySetLost(propertyId: string) {
 export function useHandoverToTenant(propertyId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ keySetIds, tenantName, tenantPhone }: { keySetIds: string[]; tenantName: string; tenantPhone: string }) =>
+    mutationFn: ({
+      keySetIds,
+      tenantName,
+      tenantPhone,
+    }: {
+      keySetIds: string[];
+      tenantName: string;
+      tenantPhone: string;
+    }) =>
       handoverKeysetsToTenant(propertyId, keySetIds, tenantName, tenantPhone),
     onSuccess: () => {
       invalidateKeySets(queryClient, propertyId);
@@ -223,7 +275,9 @@ export function useCollectFromTenant(propertyId: string) {
     onSuccess: () => {
       invalidateKeySets(queryClient, propertyId);
       queryClient.invalidateQueries({ queryKey: ["properties"] });
-      queryClient.invalidateQueries({ queryKey: ["propertyTenant", propertyId] });
+      queryClient.invalidateQueries({
+        queryKey: ["propertyTenant", propertyId],
+      });
     },
   });
 }
@@ -275,7 +329,8 @@ export function useUpdateKey(propertyId: string) {
 export function useUpdateKeySet(propertyId: string, keySetId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (patch: { name?: string; cabinet_slot?: string | null }) => updateKeySet(keySetId, patch),
+    mutationFn: (patch: { name?: string; cabinet_slot?: string | null }) =>
+      updateKeySet(keySetId, patch),
     onSuccess: () => invalidateKeySets(queryClient, propertyId, keySetId),
   });
 }
@@ -376,4 +431,3 @@ export function useInfiniteNeedsAttention() {
     staleTime: STALE_TIME.short,
   });
 }
-

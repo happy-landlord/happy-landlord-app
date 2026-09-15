@@ -1,5 +1,5 @@
 import type { KeySetStatus } from "@/types";
-import { Pill, type PillTone } from "@/components/ui";
+import { Pill, type PillTone, type PillVariant } from "@/components/ui";
 
 // ── Status display config ─────────────────────────────────────────────────────
 
@@ -48,13 +48,15 @@ export function resolveKeyStatusChipStatus(opts: {
 export function KeyStatusChip({
   status,
   size = "sm",
+  variant = "outline",
 }: {
   status: KeyStatusChipStatus;
   size?: "sm" | "md";
+  variant?: PillVariant;
 }) {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.inactive;
   return (
-    <Pill tone={cfg.tone} variant="outline" size={size}>
+    <Pill tone={cfg.tone} variant={variant} size={size}>
       {cfg.label}
     </Pill>
   );

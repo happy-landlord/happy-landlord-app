@@ -25,6 +25,7 @@ import {
   Info,
   Shield,
   Trash2,
+  Users,
 } from "lucide-react-native";
 import { theme, FEATURES } from "@/constants";
 import {
@@ -34,9 +35,11 @@ import {
   useUnreadNotificationCount,
   useBiometricSettings,
   useToggleBiometric,
+  useProfile,
 } from "@/lib/hooks";
 import { getBiometricLabel } from "@/lib/services";
 import { DeleteAccountSheet } from "@/components/settings";
+import { useDevOverridesStore } from "@/lib/state";
 
 const APP_VERSION = Constants.expoConfig?.version ?? "1.0.0";
 const TECH_EMAIL = "tech@happylandlord.com.au";
@@ -100,6 +103,9 @@ function SettingRow({
 }
 // -- main screen ---------------------------------------------------------------
 export default function SettingsScreen() {
+  const { data: profile } = useProfile();
+  const agentOverride = useDevOverridesStore((s) => s.agentOverride);
+  const setAgentOverride = useDevOverridesStore((s) => s.setAgentOverride);
   const { data: unreadCount = 0 } = useUnreadNotificationCount();
   const { data: pushStatus, isLoading: pushLoading } = usePushStatus();
   const togglePush = useTogglePush();
@@ -289,6 +295,31 @@ export default function SettingsScreen() {
         </SectionCard>
         <SectionHeader title="Account" />
         <SectionCard>
+          {profile?.role === "admin" ? (
+            <>
+              <SettingRow
+                Icon={Users}
+                iconBg={theme.colors.accentSoft}
+                iconColor={theme.colors.accent}
+                title="Agent mode"
+                subtitle="Temporarily use agent navigation and features"
+                right={
+                  <Switch
+                    value={agentOverride}
+                    onValueChange={setAgentOverride}
+                    trackColor={{
+                      false: theme.colors.neutralSoft,
+                      true: theme.colors.accent,
+                    }}
+                    thumbColor={theme.colors.surface}
+                    ios_backgroundColor={theme.colors.neutralSoft}
+                    accessibilityLabel="Agent mode"
+                  />
+                }
+              />
+              <RowDivider />
+            </>
+          ) : null}
           <SettingRow
             Icon={Trash2}
             iconBg={theme.colors.dangerSoft}

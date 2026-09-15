@@ -1,12 +1,12 @@
 import { create } from "zustand";
 
 /**
- * Session-scoped developer overrides used for QA / local testing.
+ * Session-scoped role overrides used for previews and local testing.
  *
  * - Values are **in-memory only** — they reset on every app cold-start so they
  *   can never accidentally leak into a release.
- * - Consumers must additionally gate on `__DEV__` so the override is a complete
- *   no-op in production bundles (Metro strips the branch).
+ * - Developer-only overrides must additionally be gated on `__DEV__` by their
+ *   consumers so they are a complete no-op in production bundles.
  */
 type DevOverridesState = {
   /**
@@ -16,6 +16,10 @@ type DevOverridesState = {
   adminOverride: boolean;
   setAdminOverride: (value: boolean) => void;
   toggleAdminOverride: () => void;
+  /** Lets a real admin temporarily use the app's agent experience. */
+  agentOverride: boolean;
+  setAgentOverride: (value: boolean) => void;
+  toggleAgentOverride: () => void;
   reset: () => void;
 };
 
@@ -24,6 +28,9 @@ export const useDevOverridesStore = create<DevOverridesState>((set) => ({
   setAdminOverride: (value) => set({ adminOverride: value }),
   toggleAdminOverride: () =>
     set((state) => ({ adminOverride: !state.adminOverride })),
-  reset: () => set({ adminOverride: false }),
+  agentOverride: false,
+  setAgentOverride: (value) => set({ agentOverride: value }),
+  toggleAgentOverride: () =>
+    set((state) => ({ agentOverride: !state.agentOverride })),
+  reset: () => set({ adminOverride: false, agentOverride: false }),
 }));
-

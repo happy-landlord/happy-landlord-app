@@ -6,6 +6,7 @@
  */
 export * from "./auth.service";
 export * from "./biometric.service";
+export * from "./guestHolders.service";
 export * from "./keys.service";
 export * from "./keySets.service";
 export * from "./notifications.service";

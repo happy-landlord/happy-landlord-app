@@ -71,7 +71,8 @@ export function PhotoPicker({
           const result = await ImagePicker.launchCameraAsync({
             mediaTypes: "images",
             quality: 0.85,
-            aspect: [4, 3],
+            allowsEditing: true,
+            aspect: [1, 1],
           });
           if (!result.canceled && result.assets.length > 0) {
             onChange([...uris, result.assets[0].uri]);

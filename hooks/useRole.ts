@@ -16,14 +16,17 @@ export function useRole(): UseRoleResult {
   // Dev-only admin override — completely tree-shaken in production builds
   // because `__DEV__` is a Metro compile-time constant.
   const adminOverride = useDevOverridesStore((s) => s.adminOverride);
+  const agentOverride = useDevOverridesStore((s) => s.agentOverride);
 
   const role = profile?.role;
-  const isAdmin = role === "admin" || (__DEV__ && adminOverride);
+  const isAgentMode = role === "admin" && agentOverride;
+  const isAdmin =
+    !isAgentMode && (role === "admin" || (__DEV__ && adminOverride));
 
   return {
     role,
     isAdmin,
-    isAgent: role === "agent" && !isAdmin,
+    isAgent: role === "agent" || isAgentMode,
     isLoading,
   };
 }

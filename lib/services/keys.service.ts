@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import type { DbKey, DbKeyInsert, DbKeyUpdate } from "@/types";
+import type { DbKey, DbKeyInsert, DbKeyUpdate, KeyHolderType } from "@/types";
 
 // ── Return types specific to this service ─────────────────────────────────────
 
@@ -30,7 +30,7 @@ export type CheckedOutKey = {
   current_holder: {
     full_name: string | null;
     profile_id: string | null;
-    holder_type: "agent" | "tenant" | "landlord";
+    holder_type: KeyHolderType;
   } | null;
   property: {
     address: string;

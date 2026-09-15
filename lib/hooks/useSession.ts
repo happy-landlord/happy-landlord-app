@@ -9,7 +9,7 @@ import type { Session } from "@supabase/supabase-js";
 
 import { QUERY_KEYS } from "@/lib/query";
 import { FEATURES } from "@/constants";
-import { useLockStore } from "@/lib/state";
+import { useDevOverridesStore, useLockStore } from "@/lib/state";
 import { supabase } from "@/lib/supabase";
 import {
   deactivateCurrentDevicePushToken,
@@ -230,6 +230,7 @@ export function useSignOut() {
       const lockStore = useLockStore.getState();
       lockStore.reset();
       if (!FEATURES.BIOMETRIC_LOCK) lockStore.initialize(false, false);
+      useDevOverridesStore.getState().reset();
     },
   });
 }
@@ -267,6 +268,7 @@ export function useDeleteAccount() {
       const lockStore = useLockStore.getState();
       lockStore.reset();
       if (!FEATURES.BIOMETRIC_LOCK) lockStore.initialize(false, false);
+      useDevOverridesStore.getState().reset();
     },
   });
 }

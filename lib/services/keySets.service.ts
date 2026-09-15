@@ -5,6 +5,7 @@ import type {
   DbKeySet,
   DbKeySetInsert,
   DbKeySetUpdate,
+  KeyHolderType,
   KeyType,
   StoredImage,
 } from "@/types";
@@ -26,7 +27,7 @@ export type UnassignedKey = KeyInSet;
 export type KeySetHolder = {
   id: string;
   full_name: string | null;
-  holder_type: "agent" | "tenant" | "landlord";
+  holder_type: KeyHolderType;
   profile_id: string | null;
   phone: string | null;
 };
@@ -34,6 +35,7 @@ export type KeySetHolder = {
 export type KeySetWithDetails = DbKeySet & {
   keys: KeyInSet[];
   current_holder: KeySetHolder | null;
+  current_checkout_note?: string | null;
 };
 
 /** A keyset that is currently checked out or overdue, with holder + property info. */
@@ -48,7 +50,7 @@ export type CheckedOutKeySet = {
   current_holder: {
     full_name: string | null;
     profile_id: string | null;
-    holder_type: "agent" | "tenant" | "landlord";
+    holder_type: KeyHolderType;
     phone: string | null;
   } | null;
   property: {
@@ -74,7 +76,7 @@ export type KeySetNeedingAttention = {
   current_holder: {
     full_name: string | null;
     profile_id: string | null;
-    holder_type: "agent" | "tenant" | "landlord";
+    holder_type: KeyHolderType;
     phone: string | null;
   } | null;
   property: {
@@ -120,7 +122,23 @@ export async function fetchKeySetById(
     .maybeSingle();
 
   if (error) throw error;
-  return data as KeySetWithDetails | null;
+  const keySet = data as KeySetWithDetails | null;
+  if (!keySet || keySet.current_holder?.holder_type !== "guest") {
+    return keySet;
+  }
+
+  const { data: checkout, error: checkoutError } = await supabase
+    .from("transactions")
+    .select("notes")
+    .eq("key_set_id", keySetId)
+    .eq("transaction_type", "checked_out")
+    .eq("to_holder_id", keySet.current_holder.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (checkoutError) throw checkoutError;
+  return { ...keySet, current_checkout_note: checkout?.notes ?? null };
 }
 
 export async function fetchKeySetByCode(

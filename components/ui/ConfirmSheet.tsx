@@ -38,6 +38,8 @@ export type ConfirmSheetProps = {
   keyboardShouldPersistTaps?: "always" | "handled" | "never";
   onCancel: () => void;
   onConfirm: () => void;
+  /** Optional close/X handler when it should differ from the cancel action. */
+  onRequestClose?: () => void;
   /**
    * Passed through to BottomSheet's `overlayChildren` — rendered inside the
    * same Modal but outside the sheet panel. Use for absolutely-positioned
@@ -66,9 +68,10 @@ export function ConfirmSheet({
   keyboardShouldPersistTaps,
   onCancel,
   onConfirm,
+  onRequestClose,
   overlayContent,
 }: ConfirmSheetProps) {
-  const handleClose = isPending ? () => {} : onCancel;
+  const handleClose = isPending ? () => {} : (onRequestClose ?? onCancel);
 
   return (
     <BottomSheet
@@ -83,7 +86,7 @@ export function ConfirmSheet({
           {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
         </View>
         <Pressable
-          onPress={onCancel}
+          onPress={handleClose}
           disabled={isPending}
           style={({ pressed }) => [
             styles.closeBtn,

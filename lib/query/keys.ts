@@ -55,6 +55,9 @@ export const QUERY_KEYS = {
   agents: {
     all: ["agents"] as const,
   },
+  guestHolders: {
+    all: ["guestHolders"] as const,
+  },
   requests: {
     all: ["requests"] as const,
     mine: ["requests", "mine"] as const,

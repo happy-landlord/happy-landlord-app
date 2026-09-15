@@ -37,6 +37,7 @@ export type KeySetActions = {
 
   // visibility flags (single source of truth for which buttons appear)
   showAdminReturn: boolean;
+  showAdminGuestCheckout: boolean;
   showAdminReportLost: boolean;
   showAgentCheckout: boolean;
   showAgentReserve: boolean;
@@ -137,6 +138,7 @@ export function useKeySetActions({
 
   // ── Visibility ─────────────────────────────────────────────────────────
   const showAdminReturn = isAdmin && (isHeldByMe || isHeldByOther);
+  const showAdminGuestCheckout = isAdmin && isAvailable;
   const showAdminReportLost = isAdmin && !isMissingDamaged;
   const showAgentCheckout =
     !isAdmin && canCheckout && !myPropertyCheckout && !isHeldByMe;
@@ -156,6 +158,7 @@ export function useKeySetActions({
 
   const hasActions =
     showAdminReturn ||
+    showAdminGuestCheckout ||
     showAdminReportLost ||
     showAgentCheckout ||
     showAgentReserve ||
@@ -230,7 +233,10 @@ export function useKeySetActions({
   const undoLost = useCallback(
     (notes: string | null, onClose: () => void) => {
       if (!keySet) return;
-      undoLostMut.mutate({ keySetId: keySet.id, notes }, { onSuccess: onClose });
+      undoLostMut.mutate(
+        { keySetId: keySet.id, notes },
+        { onSuccess: onClose },
+      );
     },
     [keySet, undoLostMut],
   );
@@ -275,6 +281,7 @@ export function useKeySetActions({
     isMissingDamaged,
     overdue,
     showAdminReturn,
+    showAdminGuestCheckout,
     showAdminReportLost,
     showAgentCheckout,
     showAgentReserve,

@@ -8,6 +8,7 @@ import { useKeySetActions } from "@/components/keyset/detail/useKeySetActions";
 import { useKeysetAvailability } from "@/components/keyset/useKeysetAvailability";
 
 import { KeySetDurationModal } from "./KeySetDurationModal";
+import { GuestCheckoutSheet } from "./GuestCheckoutSheet";
 import { ReportLostSheet } from "./ReportLostSheet";
 import { ReserveKeySetModal } from "./ReserveKeySetModal";
 import { ReturnConfirmModal } from "./ReturnConfirmModal";
@@ -42,7 +43,10 @@ export function KeySetModals() {
 
   // Clamp selected days to the largest allowed option so the modal never
   // shows a selection that exceeds the reservation boundary.
-  const rawCheckoutDays = modal.kind === "checkout" ? modal.days : 1;
+  const rawCheckoutDays =
+    modal.kind === "checkout" || modal.kind === "guestCheckout"
+      ? modal.days
+      : 1;
   const checkoutDays = allowedCheckoutDays.includes(rawCheckoutDays)
     ? rawCheckoutDays
     : (allowedCheckoutDays[allowedCheckoutDays.length - 1] ?? 1);
@@ -67,6 +71,18 @@ export function KeySetModals() {
         onCancel={closeModal}
         onConfirm={() => actions.checkout(checkoutDays, closeModal)}
         confirmLabel="Confirm"
+      />
+
+      {/* Admin guest checkout */}
+      <GuestCheckoutSheet
+        visible={modal.kind === "guestCheckout"}
+        keySetId={keySet.id}
+        propertyId={keySet.property_id}
+        keySetName={keySet.name}
+        durationDays={checkoutDays}
+        allowedDays={allowedCheckoutDays}
+        onDurationChange={setModalDays}
+        onClose={closeModal}
       />
 
       {/* Extend */}

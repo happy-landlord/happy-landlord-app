@@ -265,34 +265,43 @@ export type Database = {
       key_holders: {
         Row: {
           id: string;
-          holder_type: "agent" | "tenant" | "landlord";
+          holder_type: "agent" | "tenant" | "landlord" | "guest";
           profile_id: string | null;
           full_name: string | null;
           email: string | null;
           phone: string | null;
           notes: string | null;
+          company_name: string | null;
+          is_active: boolean;
+          created_by: string | null;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           id?: string;
-          holder_type: "agent" | "tenant" | "landlord";
+          holder_type: "agent" | "tenant" | "landlord" | "guest";
           profile_id?: string | null;
           full_name?: string | null;
           email?: string | null;
           phone?: string | null;
           notes?: string | null;
+          company_name?: string | null;
+          is_active?: boolean;
+          created_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           id?: string;
-          holder_type?: "agent" | "tenant" | "landlord";
+          holder_type?: "agent" | "tenant" | "landlord" | "guest";
           profile_id?: string | null;
           full_name?: string | null;
           email?: string | null;
           phone?: string | null;
           notes?: string | null;
+          company_name?: string | null;
+          is_active?: boolean;
+          created_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -614,6 +623,44 @@ export type Database = {
           p_notes?: string | null;
         };
         Returns: string;
+      };
+      checkout_key_set_to_guest: {
+        Args: {
+          p_key_set_id: string;
+          p_guest_holder_id: string;
+          p_due_back_at: string;
+          p_notes?: string | null;
+        };
+        Returns: string;
+      };
+      create_guest_key_holder: {
+        Args: {
+          p_full_name: string;
+          p_phone: string;
+          p_company_name?: string | null;
+          p_notes?: string | null;
+        };
+        Returns: string;
+      };
+      update_guest_key_holder: {
+        Args: {
+          p_guest_holder_id: string;
+          p_full_name: string;
+          p_phone: string;
+          p_company_name?: string | null;
+          p_notes?: string | null;
+        };
+        Returns: void;
+      };
+      archive_guest_key_holder: {
+        Args: {
+          p_guest_holder_id: string;
+        };
+        Returns: void;
+      };
+      current_user_is_admin: {
+        Args: Record<PropertyKey, never>;
+        Returns: boolean;
       };
       return_key_set: {
         Args: {

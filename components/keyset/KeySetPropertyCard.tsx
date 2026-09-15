@@ -2,6 +2,7 @@ import { ChevronRight, KeyRound } from "lucide-react-native";
 
 import { EntityCard, MetaRow, type MetaItem } from "@/components/ui";
 import { theme } from "@/constants";
+import type { KeyHolderType } from "@/types";
 import { formatStreetLine, getTotalKeyQuantity } from "@/lib/utils";
 
 import { getKeySetCardStatus, type KeySetLike } from "./getKeySetCardStatus";
@@ -24,7 +25,7 @@ type PropertyShape = {
 
 type HolderShape = {
   full_name: string | null;
-  holder_type: "agent" | "tenant" | "landlord";
+  holder_type: KeyHolderType;
   phone: string | null;
 } | null;
 
@@ -77,7 +78,7 @@ export function KeySetPropertyCard({
     ? [
         {
           label: "With",
-          value: `${holderName}${holder?.holder_type && holder.holder_type !== "agent" ? ` · ${holder.holder_type}` : ""}`,
+          value: `${holderName}${holder?.holder_type && holder.holder_type !== "agent" && holder.holder_type !== "guest" ? ` · ${holder.holder_type}` : ""}`,
         },
         {
           label: "Contact",

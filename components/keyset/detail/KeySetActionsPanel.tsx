@@ -1,5 +1,10 @@
 import { Alert, StyleSheet, Text, View } from "react-native";
-import { CalendarClock, CalendarX, UserRound } from "lucide-react-native";
+import {
+  CalendarClock,
+  CalendarX,
+  MessageSquareText,
+  UserRound,
+} from "lucide-react-native";
 
 import { CountdownTimer } from "./CountdownTimer";
 import { useKeySetScreen } from "./KeySetScreenContext";
@@ -36,6 +41,10 @@ export function KeySetActionsPanel() {
   });
 
   const dueBackAt = keySet?.due_back_at;
+  const guestCheckoutNote =
+    keySet?.current_holder?.holder_type === "guest"
+      ? keySet.current_checkout_note?.trim()
+      : null;
 
   const {
     overdue,
@@ -43,6 +52,7 @@ export function KeySetActionsPanel() {
     isHeldByOther,
     isMissingDamaged,
     showAdminReturn,
+    showAdminGuestCheckout,
     showAdminReportLost,
     showAgentCheckout,
     showAgentReserve,
@@ -87,6 +97,20 @@ export function KeySetActionsPanel() {
 
   return (
     <View style={styles.section}>
+      {showAdminReturn && guestCheckoutNote ? (
+        <View style={styles.checkoutNote}>
+          <MessageSquareText
+            size={15}
+            color={theme.colors.info}
+            strokeWidth={2}
+          />
+          <View style={styles.checkoutNoteBody}>
+            <Text style={styles.checkoutNoteLabel}>Checkout note</Text>
+            <Text style={styles.checkoutNoteText}>{guestCheckoutNote}</Text>
+          </View>
+        </View>
+      ) : null}
+
       {showDueSummary && dueBackAt && (
         <View style={styles.dueRow}>
           <CalendarClock
@@ -110,6 +134,15 @@ export function KeySetActionsPanel() {
         />
       )}
 
+      {showAdminGuestCheckout && (
+        <Button
+          title="Checkout"
+          variant="accent"
+          disabled={isBusy}
+          onPress={() => openModal({ kind: "guestCheckout", days: 1 })}
+        />
+      )}
+
       {showAdminReportLost && (
         <Button
           title="Mark as Lost"
@@ -122,7 +155,9 @@ export function KeySetActionsPanel() {
       {/* Admin: one cancel card per active reservation */}
       {isAdmin && allReservations.length > 0 && (
         <>
-          <SectionHeader title="Reservations" />
+          <View style={styles.reservationsHeader}>
+            <SectionHeader title="Reservations" />
+          </View>
           {allReservations.map((res) => (
             <AdminReservationCard
               key={res.id}
@@ -304,6 +339,7 @@ function AdminReservationCard({
 // ── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   section: { gap: theme.spacing.sm },
+  reservationsHeader: { marginTop: theme.spacing.sm },
   dueRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -331,6 +367,29 @@ const styles = StyleSheet.create({
   },
   reservationText: { fontSize: 13, color: theme.colors.warning },
   reservationDate: { fontWeight: "700" },
+  checkoutNote: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: theme.spacing.sm,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.infoSoft,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.infoSoft,
+  },
+  checkoutNoteBody: { flex: 1, gap: 2 },
+  checkoutNoteLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: theme.colors.info,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  checkoutNoteText: {
+    fontSize: 13,
+    color: theme.colors.text,
+    lineHeight: 18,
+  },
 
   // Admin reservation card
   resCard: {

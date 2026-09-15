@@ -15,6 +15,7 @@ import {
 export type KeySetModalState =
   | { kind: "none" }
   | { kind: "checkout"; days: number }
+  | { kind: "guestCheckout"; days: number }
   | { kind: "extend"; days: number }
   | { kind: "return" }
   | { kind: "transfer" }
@@ -34,7 +35,11 @@ function reducer(state: KeySetModalState, action: Action): KeySetModalState {
     case "close":
       return { kind: "none" };
     case "setDays":
-      if (state.kind === "checkout" || state.kind === "extend") {
+      if (
+        state.kind === "checkout" ||
+        state.kind === "guestCheckout" ||
+        state.kind === "extend"
+      ) {
         return { ...state, days: action.days };
       }
       return state;
@@ -96,4 +101,3 @@ export function useKeySetScreen(): KeySetScreenContextValue {
   }
   return ctx;
 }
-

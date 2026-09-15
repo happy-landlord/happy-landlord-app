@@ -103,6 +103,9 @@ export function KeySetDetailsCard() {
                 accessibilityIgnoresInvertColors
               />
             ) : null}
+            <View style={styles.statusOverlay}>
+              <KeyStatusChip status={chipStatus} size="md" variant="soft" />
+            </View>
           </View>
         ) : null}
 
@@ -116,10 +119,13 @@ export function KeySetDetailsCard() {
                 <Text style={styles.name} numberOfLines={1}>
                   {keySet.name}
                 </Text>
-                <KeyStatusChip status={chipStatus} size="md" />
+                {!hasImage ? (
+                  <KeyStatusChip status={chipStatus} size="md" />
+                ) : null}
               </View>
               <Text style={styles.codePrefix} numberOfLines={1}>
-                {keySet.code} · {totalKeys} {totalKeys === 1 ? "key" : "keys"}
+                {keySet.cabinet_slot ? `${keySet.cabinet_slot} · ` : ""}
+                {totalKeys} {totalKeys === 1 ? "key" : "keys"}
               </Text>
             </View>
             <Pressable
@@ -151,7 +157,9 @@ export function KeySetDetailsCard() {
                     · {totalKeys} {totalKeys === 1 ? "key" : "keys"}
                   </Text>
                 </Text>
-                <KeyStatusChip status={chipStatus} size="md" />
+                {!hasImage ? (
+                  <KeyStatusChip status={chipStatus} size="md" />
+                ) : null}
               </View>
             </View>
           </View>
@@ -160,7 +168,8 @@ export function KeySetDetailsCard() {
         {showHolderMeta &&
           (() => {
             const displayName = isHeldByMe ? "You" : (holderName ?? "Unknown");
-            const showType = holderType && holderType !== "agent";
+            const showType =
+              holderType && holderType !== "agent" && holderType !== "guest";
             const holderItems: MetaItem[] = [
               {
                 label: "With",
@@ -250,6 +259,17 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     width: "100%",
     height: "100%",
+  },
+  statusOverlay: {
+    position: "absolute",
+    top: theme.spacing.sm,
+    right: theme.spacing.sm,
+    borderRadius: theme.radius.pill,
+    shadowColor: theme.colors.accent,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
 
   top: {
