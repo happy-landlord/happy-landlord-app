@@ -207,6 +207,44 @@ export async function fetchPropertyByPlaceId(
   return data as DbProperty | null;
 }
 
+/** Checks a manually entered address using its street, suburb, postcode and unit. */
+export async function fetchPropertyByManualAddress(
+  address: string,
+  suburb: string,
+  postcode?: string | null,
+  unitNumber?: string | null,
+): Promise<DbProperty | null> {
+  const normalizedAddress = address.trim();
+  const normalizedSuburb = suburb.trim();
+  const normalizedPostcode = postcode?.trim() || null;
+  const normalizedUnit =
+    unitNumber
+      ?.trim()
+      .replace(/^unit\s*/i, "")
+      .trim() || null;
+
+  if (!normalizedAddress || !normalizedSuburb) return null;
+
+  let query = supabase
+    .from("properties")
+    .select("id, property_code, address, unit_number, suburb, postcode")
+    .ilike("address", normalizedAddress)
+    .ilike("suburb", normalizedSuburb);
+
+  if (normalizedPostcode) {
+    query = query.eq("postcode", normalizedPostcode);
+  }
+  if (normalizedUnit) {
+    query = query.ilike("unit_number", normalizedUnit);
+  } else {
+    query = query.is("unit_number", null);
+  }
+
+  const { data, error } = await query.limit(1).maybeSingle();
+  if (error) throw error;
+  return data as DbProperty | null;
+}
+
 /** Admin — fetches all columns including joined landlord holder */
 export async function fetchPropertyById(
   id: string,

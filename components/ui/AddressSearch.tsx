@@ -6,6 +6,8 @@ import {
   useState,
 } from "react";
 import {
+  Keyboard,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -29,6 +31,34 @@ import {
   type ParsedAddress,
 } from "@/lib/utils";
 
+import { Input } from "./Input";
+import { OutlinedSelect } from "./OutlinedField";
+import { PickerModal } from "./PickerModal";
+
+type AustralianState =
+  | "NSW"
+  | "VIC"
+  | "QLD"
+  | "WA"
+  | "SA"
+  | "TAS"
+  | "ACT"
+  | "NT";
+
+const AUSTRALIAN_STATE_OPTIONS: {
+  value: AustralianState;
+  label: string;
+}[] = [
+  { value: "NSW", label: "New South Wales" },
+  { value: "VIC", label: "Victoria" },
+  { value: "QLD", label: "Queensland" },
+  { value: "WA", label: "Western Australia" },
+  { value: "SA", label: "South Australia" },
+  { value: "TAS", label: "Tasmania" },
+  { value: "ACT", label: "Australian Capital Territory" },
+  { value: "NT", label: "Northern Territory" },
+];
+
 /**
  * @deprecated Use `ParsedAddress` from `@/lib/utils`. Re-exported here so
  * existing `import { PlaceResult } from "@/components/ui"` call sites keep
@@ -38,6 +68,7 @@ export type PlaceResult = ParsedAddress;
 
 type AddressSearchProps = {
   onSelect: (place: PlaceResult) => void;
+  onManualClear?: () => void;
   placeholder?: string;
   label?: string;
   required?: boolean;
@@ -58,6 +89,8 @@ type AddressSearchProps = {
    *               suburbs and localities.
    */
   mode?: "full" | "partial";
+  /** Allow property forms to switch from Places search to structured manual entry. */
+  allowManualEntry?: boolean;
 };
 
 export type AddressSearchRef = {
@@ -74,6 +107,7 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
   function AddressSearch(
     {
       onSelect,
+      onManualClear,
       placeholder = "Search address…",
       label,
       required,
@@ -83,12 +117,22 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
       borderless = false,
       showIcon,
       mode = "partial",
+      allowManualEntry = false,
     },
     ref,
   ) {
     const [text, setText] = useState(initialValue ?? "");
     const [focused, setFocused] = useState(false);
+    const [manualMode, setManualMode] = useState(false);
+    const [manualUnit, setManualUnit] = useState("");
+    const [manualStreet, setManualStreet] = useState("");
+    const [manualSuburb, setManualSuburb] = useState("");
+    const [manualState, setManualState] = useState<AustralianState>("NSW");
+    const [manualPostcode, setManualPostcode] = useState("");
+    const [showStatePicker, setShowStatePicker] = useState(false);
     const placesRef = useRef<GooglePlacesAutocompleteRef>(null);
+    const onSelectRef = useRef(onSelect);
+    const onManualClearRef = useRef(onManualClear);
 
     const iconVisible = showIcon ?? !label;
     const iconColor = focused ? theme.colors.accent : theme.colors.textLight;
@@ -100,6 +144,57 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
       }
     }, [initialValue]);
 
+    useEffect(() => {
+      onSelectRef.current = onSelect;
+      onManualClearRef.current = onManualClear;
+    }, [onManualClear, onSelect]);
+
+    useEffect(() => {
+      if (!manualMode) return;
+
+      onManualClearRef.current?.();
+
+      const unitNumber = manualUnit
+        .trim()
+        .replace(/^unit\s*/i, "")
+        .trim();
+      const street = manualStreet.trim();
+      const suburb = manualSuburb.trim();
+      const state = manualState.trim().toUpperCase();
+      const postcode = manualPostcode.trim();
+      if (!street || !suburb || !state || postcode.length !== 4) return;
+
+      const timer = setTimeout(() => {
+        onSelectRef.current({
+          placeId: "",
+          description: [
+            unitNumber ? `Unit ${unitNumber}` : null,
+            street,
+            suburb,
+            state,
+            postcode,
+          ]
+            .filter(Boolean)
+            .join(", "),
+          unitNumber: unitNumber || undefined,
+          street,
+          suburb,
+          state,
+          postcode,
+          country: "Australia",
+        });
+      }, 350);
+
+      return () => clearTimeout(timer);
+    }, [
+      manualMode,
+      manualPostcode,
+      manualState,
+      manualStreet,
+      manualSuburb,
+      manualUnit,
+    ]);
+
     const debouncedFallbackSelect = useDebouncedCallback((raw: string) => {
       const trimmed = raw.trim();
       if (!trimmed) return;
@@ -108,6 +203,13 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
 
     useImperativeHandle(ref, () => ({
       clear: () => {
+        setManualMode(false);
+        setManualUnit("");
+        setManualStreet("");
+        setManualSuburb("");
+        setManualState("NSW");
+        setManualPostcode("");
+        setShowStatePicker(false);
         if (FEATURES.GOOGLE_PLACES) {
           placesRef.current?.clear();
         } else {
@@ -203,6 +305,95 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
 
     if (borderless) return <View style={containerStyle}>{field}</View>;
 
+    if (manualMode) {
+      return (
+        <View style={[styles.outerLabelled, containerStyle]}>
+          <View style={styles.manualHeader}>
+            <Text style={styles.manualTitle}>Enter address manually</Text>
+            <Pressable
+              onPress={() => {
+                setShowStatePicker(false);
+                setManualMode(false);
+              }}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Back to address search"
+            >
+              <Text style={styles.manualBack}>Back to search</Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.manualRow}>
+            <Input
+              label="Unit"
+              placeholder="A12"
+              value={manualUnit}
+              onChangeText={setManualUnit}
+              autoCapitalize="characters"
+              containerStyle={styles.manualUnit}
+              labelBackground={labelBackground}
+            />
+            <Input
+              label="Street Address"
+              placeholder="12 New Street"
+              value={manualStreet}
+              onChangeText={setManualStreet}
+              autoCapitalize="words"
+              required
+              autoFocus
+              containerStyle={styles.manualStreet}
+              labelBackground={labelBackground}
+            />
+          </View>
+
+          <Input
+            label="Suburb"
+            value={manualSuburb}
+            onChangeText={setManualSuburb}
+            autoCapitalize="words"
+            required
+            labelBackground={labelBackground}
+          />
+
+          <View style={styles.manualRow}>
+            <OutlinedSelect
+              label="State"
+              value={manualState}
+              required
+              focused={showStatePicker}
+              onPress={() => {
+                Keyboard.dismiss();
+                setShowStatePicker(true);
+              }}
+              style={styles.manualHalf}
+              labelBackground={labelBackground}
+            />
+            <Input
+              label="Postcode"
+              value={manualPostcode}
+              onChangeText={(value) =>
+                setManualPostcode(value.replace(/\D/g, "").slice(0, 4))
+              }
+              keyboardType="number-pad"
+              maxLength={4}
+              required
+              containerStyle={styles.manualHalf}
+              labelBackground={labelBackground}
+            />
+          </View>
+
+          <PickerModal
+            visible={showStatePicker}
+            title="State"
+            options={AUSTRALIAN_STATE_OPTIONS}
+            value={manualState}
+            onSelect={setManualState}
+            onClose={() => setShowStatePicker(false)}
+          />
+        </View>
+      );
+    }
+
     return (
       <View
         style={[label ? styles.outerLabelled : styles.outer, containerStyle]}
@@ -237,6 +428,19 @@ export const AddressSearch = forwardRef<AddressSearchRef, AddressSearchProps>(
 
           {field}
         </View>
+        {allowManualEntry && FEATURES.GOOGLE_PLACES ? (
+          <Pressable
+            style={styles.manualLink}
+            onPress={() => setManualMode(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Enter address manually"
+          >
+            <Text style={styles.manualPrompt}>
+              Can&apos;t find your address?
+            </Text>
+            <Text style={styles.manualLinkText}>Enter manually</Text>
+          </Pressable>
+        ) : null}
       </View>
     );
   },
@@ -406,4 +610,46 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: theme.colors.border,
   },
+  manualLink: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    gap: 4,
+    paddingTop: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
+    paddingHorizontal: 4,
+  },
+  manualPrompt: {
+    fontSize: 12,
+    color: theme.colors.textMuted,
+  },
+  manualLinkText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: theme.colors.accent,
+  },
+  manualHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
+  },
+  manualTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: theme.colors.text,
+  },
+  manualBack: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: theme.colors.accent,
+  },
+  manualRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: theme.spacing.sm,
+  },
+  manualUnit: { width: 96 },
+  manualStreet: { flex: 1 },
+  manualHalf: { flex: 1 },
 });

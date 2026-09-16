@@ -41,6 +41,7 @@ type Props = {
   data: PropertyStep;
   onChange: (patch: Partial<PropertyStep>) => void;
   onAddressSelect: (place: PlaceResult) => void;
+  onAddressClear: () => void;
   addressChecking?: boolean;
   addressError?: string | null;
 };
@@ -49,6 +50,7 @@ export function PropertyInfoStep({
   data,
   onChange,
   onAddressSelect,
+  onAddressClear,
   addressChecking = false,
   addressError = null,
 }: Props) {
@@ -69,12 +71,17 @@ export function PropertyInfoStep({
           required
           placeholder="Search address…"
           mode="full"
+          allowManualEntry
           initialValue={data.selectedPlace?.description}
           labelBackground={theme.colors.surface}
           containerStyle={styles.addressField}
           onSelect={(place) => {
             onChange({ selectedPlace: place });
             onAddressSelect(place);
+          }}
+          onManualClear={() => {
+            onChange({ selectedPlace: null });
+            onAddressClear();
           }}
         />
         {addressChecking ? (

@@ -147,7 +147,7 @@ export function useAddPropertyWizard() {
   const restorePropertyCode = propertyCode.restore;
 
   // ── Address duplicate-check (shared with edit flow) ────────────────────
-  const { addressError, addressChecking, onAddressSelect } =
+  const { addressError, addressChecking, onAddressSelect, clearAddress } =
     useAddressDuplicateCheck({
       excludePropertyId: draftId,
       onSelect: propertyCode.generate,
@@ -473,6 +473,7 @@ export function useAddPropertyWizard() {
 
     // actions
     onAddressSelect,
+    clearAddress,
     back,
     next,
     exit,

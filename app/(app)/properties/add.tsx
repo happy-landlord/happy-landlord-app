@@ -47,6 +47,7 @@ export default function AddPropertyScreen() {
     setKeys,
     setKeySets,
     onAddressSelect,
+    clearAddress,
     back,
     next,
     exit,
@@ -107,6 +108,7 @@ export default function AddPropertyScreen() {
             data={property}
             onChange={patchProperty}
             onAddressSelect={onAddressSelect}
+            onAddressClear={clearAddress}
             addressChecking={addressChecking}
             addressError={addressError}
           />

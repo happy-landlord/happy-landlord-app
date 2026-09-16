@@ -1,6 +1,9 @@
 import { useCallback, useState } from "react";
 
-import { fetchPropertyByPlaceId } from "@/lib/services";
+import {
+  fetchPropertyByManualAddress,
+  fetchPropertyByPlaceId,
+} from "@/lib/services";
 import type { PlaceResult } from "@/components/ui";
 
 export interface UseAddressDuplicateCheckOptions {
@@ -24,17 +27,33 @@ export function useAddressDuplicateCheck(
   const [addressError, setAddressError] = useState<string | null>(null);
   const [addressChecking, setAddressChecking] = useState(false);
 
+  const clearAddress = useCallback(() => {
+    setSelectedPlace(null);
+    setAddressError(null);
+    setAddressChecking(false);
+  }, []);
+
   const onAddressSelect = useCallback(
     async (place: PlaceResult, notifySelect = true) => {
       setSelectedPlace(place);
       if (notifySelect) onSelect?.(place);
       setAddressError(null);
-      if (!place.placeId) return;
+      const canCheckManualAddress = Boolean(
+        place.street?.trim() && place.suburb?.trim(),
+      );
+      if (!place.placeId && !canCheckManualAddress) return;
 
       setAddressChecking(true);
       try {
         const unit = place.unitNumber?.trim() || null;
-        const existing = await fetchPropertyByPlaceId(place.placeId, unit);
+        const existing = place.placeId
+          ? await fetchPropertyByPlaceId(place.placeId, unit)
+          : await fetchPropertyByManualAddress(
+              place.street!,
+              place.suburb!,
+              place.postcode,
+              unit,
+            );
         if (existing && existing.id !== excludePropertyId) {
           setAddressError("A property already exists at this address.");
         }
@@ -47,5 +66,11 @@ export function useAddressDuplicateCheck(
     [excludePropertyId, onSelect],
   );
 
-  return { selectedPlace, addressError, addressChecking, onAddressSelect };
+  return {
+    selectedPlace,
+    addressError,
+    addressChecking,
+    onAddressSelect,
+    clearAddress,
+  };
 }
