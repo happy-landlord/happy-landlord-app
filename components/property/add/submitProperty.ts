@@ -25,6 +25,7 @@ import type {
   KeySetDraft,
   PropertyStep,
 } from "./useAddPropertyWizard";
+import { buildPropertyDetailColumns } from "./propertyForm";
 
 export type CreatePropertyArgs = {
   property: PropertyStep;
@@ -62,14 +63,12 @@ export async function submitProperty({
   // 2. Property row
   const propertyInput: DbPropertyInsert = {
     property_code: propertyCode,
-    title: property.title.trim() || null,
     ...buildAddressColumns(place),
+    ...buildPropertyDetailColumns(property),
     property_type: property.propertyType,
     landlord_holder_id: landlordHolderId,
     status: draftPropertyId ? "draft" : "active",
     images: [],
-    developer_name: property.developerName.trim() || null,
-    cabinet_code: property.cabinetCode.trim() || null,
   };
   let created: DbProperty;
   try {

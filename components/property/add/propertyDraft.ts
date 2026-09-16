@@ -6,7 +6,7 @@ import type {
   PropertyStep,
 } from "./useAddPropertyWizard";
 
-export const PROPERTY_DRAFT_SCHEMA_VERSION = 1;
+export const PROPERTY_DRAFT_SCHEMA_VERSION = 2;
 
 type PersistedProperty = Omit<PropertyStep, "dateReceived"> & {
   dateReceived: string;
@@ -17,9 +17,9 @@ type PersistedKeySet = Omit<KeySetDraft, "photoUris" | "photoPaths"> & {
 };
 
 type PropertyDraftSnapshot = {
-  version: 1;
+  version: 1 | 2;
   step: number;
-  property: PersistedProperty;
+  property: Partial<PersistedProperty> & { dateReceived: string };
   keys: KeyEntry[];
   keySets: PersistedKeySet[];
 };
@@ -58,7 +58,10 @@ export async function restorePropertyDraft(draft: DbProperty): Promise<{
   }
 
   const snapshot = draft.draft_data as unknown as PropertyDraftSnapshot;
-  if (snapshot.version !== PROPERTY_DRAFT_SCHEMA_VERSION) {
+  if (
+    snapshot.version !== 1 &&
+    snapshot.version !== PROPERTY_DRAFT_SCHEMA_VERSION
+  ) {
     throw new Error("This draft was created by an unsupported app version.");
   }
 
@@ -90,18 +93,43 @@ export async function restorePropertyDraft(draft: DbProperty): Promise<{
     }),
   );
 
+  const property = {
+    ...snapshot.property,
+    dateReceived: new Date(snapshot.property.dateReceived),
+    lotNumber: snapshot.property.lotNumber ?? "",
+    consultantName: snapshot.property.consultantName ?? "",
+    maaFee: snapshot.property.maaFee ?? "",
+    defects: snapshot.property.defects ?? "",
+    parkingLocation: snapshot.property.parkingLocation ?? "",
+    storageLocation: snapshot.property.storageLocation ?? "",
+    bedrooms: snapshot.property.bedrooms ?? "",
+    bathrooms: snapshot.property.bathrooms ?? "",
+    carparks: snapshot.property.carparks ?? "",
+    notes: snapshot.property.notes ?? "",
+    rentalStatus:
+      snapshot.property.rentalStatus === "short" ||
+      snapshot.property.rentalStatus === "long"
+        ? snapshot.property.rentalStatus
+        : "long",
+  } as PropertyStep;
+
+  const restoredStep =
+    snapshot.version === 1
+      ? snapshot.step === 2
+        ? 3
+        : snapshot.step === 3
+          ? 4
+          : 1
+      : Number.isInteger(snapshot.step) &&
+          snapshot.step >= 1 &&
+          snapshot.step <= 4
+        ? snapshot.step
+        : 1;
+
   return {
-    property: {
-      ...snapshot.property,
-      dateReceived: new Date(snapshot.property.dateReceived),
-    },
+    property,
     keys: snapshot.keys,
     keySets,
-    step:
-      Number.isInteger(snapshot.step) &&
-      snapshot.step >= 1 &&
-      snapshot.step <= 3
-        ? snapshot.step
-        : 1,
+    step: restoredStep,
   };
 }

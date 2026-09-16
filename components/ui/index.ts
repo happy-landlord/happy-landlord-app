@@ -26,3 +26,4 @@ export * from "./PillButton";
 export * from "./ShareQrButton";
 export * from "./SectionHeader";
 export * from "./StepIndicator";
+export * from "./Toggle";

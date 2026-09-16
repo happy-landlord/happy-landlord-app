@@ -5,8 +5,10 @@
  *   import { PropertyInfoStep, useAddPropertyWizard } from "@/components/property/add";
  */
 export * from "./KeySetsStep";
+export * from "./KeysStep";
 export * from "./PropertyInfoStep";
 export * from "./propertyDraft";
+export * from "./propertyForm";
 export * from "./ReviewStep";
 export * from "./submitProperty";
 export * from "./useAddPropertyWizard";

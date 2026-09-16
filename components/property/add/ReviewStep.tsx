@@ -1,11 +1,6 @@
 import type { ComponentType, ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import {
-  Building2,
-  KeyRound,
-  User,
-  HardHat, // eslint-disable-line @typescript-eslint/no-unused-vars
-} from "lucide-react-native";
+import { Building2, KeyRound, User, HardHat } from "lucide-react-native";
 
 import { KEY_TYPE_ICON, PROPERTY_TYPES, theme } from "@/constants";
 import {
@@ -70,6 +65,14 @@ export function ReviewStep({ propertyData, keys, keySets }: Props) {
 
   const allocatedCounts = countAllocatedKeys(keySets);
   const unassignedKeys = getUnallocatedKeys(keys, allocatedCounts);
+  const hasFeatureDetails = Boolean(
+    propertyData.bedrooms ||
+    propertyData.bathrooms ||
+    propertyData.carparks ||
+    propertyData.parkingLocation ||
+    propertyData.storageLocation,
+  );
+  const hasPropertyNotes = Boolean(propertyData.defects || propertyData.notes);
 
   return (
     <View style={styles.container}>
@@ -138,39 +141,92 @@ export function ReviewStep({ propertyData, keys, keySets }: Props) {
             </View>
           </>
         ) : null}
+      </View>
 
-        {/* Developer row — hidden for now (cabinet slot shown as ribbon instead)
-        {(propertyData.developerName || propertyData.cabinetCode) ? (
-          <>
-            <View style={styles.overviewDivider} />
-            <View style={styles.overviewMetaRow}>
-              {propertyData.developerName ? (
-                <>
-                  <HardHat size={13} color={theme.colors.textLight} strokeWidth={1.8} />
-                  <View style={styles.overviewMetaItem}>
-                    <Text style={styles.overviewMetaLabel}>Developer</Text>
-                    <Text style={styles.overviewMetaValue} numberOfLines={1}>
-                      {propertyData.developerName}
-                    </Text>
-                  </View>
-                </>
+      <InfoSection title="Property Information" icon={HardHat}>
+        <View style={styles.detailGroup}>
+          <Text style={styles.detailGroupTitle}>Building & Management</Text>
+          <View style={styles.detailGrid}>
+            {propertyData.developerName ? (
+              <DetailItem
+                label="Developer"
+                value={propertyData.developerName}
+              />
+            ) : null}
+            {propertyData.consultantName ? (
+              <DetailItem
+                label="Consultant"
+                value={propertyData.consultantName}
+              />
+            ) : null}
+            {propertyData.lotNumber ? (
+              <DetailItem label="Lot Number" value={propertyData.lotNumber} />
+            ) : null}
+            {propertyData.maaFee ? (
+              <DetailItem label="MAA Fee" value={propertyData.maaFee} />
+            ) : null}
+            {propertyData.cabinetCode ? (
+              <DetailItem
+                label="Cabinet Slot"
+                value={propertyData.cabinetCode}
+              />
+            ) : null}
+            <DetailItem
+              label="Rental Status"
+              value={
+                propertyData.rentalStatus === "short"
+                  ? "Short Term"
+                  : "Long Term"
+              }
+            />
+          </View>
+        </View>
+
+        {hasFeatureDetails ? (
+          <View style={styles.detailGroup}>
+            <Text style={styles.detailGroupTitle}>Property Features</Text>
+            <View style={styles.detailGrid}>
+              {propertyData.bedrooms ? (
+                <DetailItem label="Bedrooms" value={propertyData.bedrooms} />
               ) : null}
-              {propertyData.cabinetCode ? (
-                <View style={[
-                  styles.overviewMetaItem,
-                  propertyData.developerName ? styles.overviewMetaItemBorder : undefined,
-                ]}>
-                  <Text style={styles.overviewMetaLabel}>Cabinet Slot</Text>
-                  <Text style={styles.overviewMetaValue} numberOfLines={1}>
-                    {propertyData.cabinetCode}
-                  </Text>
-                </View>
+              {propertyData.bathrooms ? (
+                <DetailItem label="Bathrooms" value={propertyData.bathrooms} />
+              ) : null}
+              {propertyData.carparks ? (
+                <DetailItem label="Carparks" value={propertyData.carparks} />
+              ) : null}
+              {propertyData.parkingLocation ? (
+                <DetailItem
+                  label="Parking Location"
+                  value={propertyData.parkingLocation}
+                />
+              ) : null}
+              {propertyData.storageLocation ? (
+                <DetailItem
+                  label="Storage Location"
+                  value={propertyData.storageLocation}
+                />
               ) : null}
             </View>
-          </>
+          </View>
         ) : null}
-        */}
-      </View>
+
+        {hasPropertyNotes ? (
+          <View style={styles.detailGroup}>
+            <Text style={styles.detailGroupTitle}>Property Notes</Text>
+            {propertyData.defects ? (
+              <DetailItem
+                label="Defects"
+                value={propertyData.defects}
+                fullWidth
+              />
+            ) : null}
+            {propertyData.notes ? (
+              <DetailItem label="Notes" value={propertyData.notes} fullWidth />
+            ) : null}
+          </View>
+        ) : null}
+      </InfoSection>
 
       {/* Keysets summary */}
       <InfoSection
@@ -319,6 +375,23 @@ function InfoSection({
   );
 }
 
+function DetailItem({
+  label,
+  value,
+  fullWidth = false,
+}: {
+  label: string;
+  value: string;
+  fullWidth?: boolean;
+}) {
+  return (
+    <View style={[styles.detailItem, fullWidth && styles.detailItemFull]}>
+      <Text style={styles.detailLabel}>{label}</Text>
+      <Text style={styles.detailValue}>{value}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     gap: theme.spacing.md,
@@ -453,6 +526,45 @@ const styles = StyleSheet.create({
   sectionBody: {
     padding: theme.spacing.md,
     gap: theme.spacing.sm,
+  },
+  detailGroup: {
+    gap: theme.spacing.sm,
+  },
+  detailGroupTitle: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: theme.colors.textLight,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  detailGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing.sm,
+  },
+  detailItem: {
+    flexBasis: "46%",
+    flexGrow: 1,
+    gap: 2,
+    padding: theme.spacing.sm,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.background,
+  },
+  detailItemFull: {
+    flexBasis: "100%",
+  },
+  detailLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: theme.colors.textLight,
+    textTransform: "uppercase",
+    letterSpacing: 0.35,
+  },
+  detailValue: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.text,
+    lineHeight: 18,
   },
   emptyKeyCard: {
     flexDirection: "row",

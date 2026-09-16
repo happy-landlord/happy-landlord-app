@@ -25,14 +25,29 @@ import {
   OutlinedDateField,
   OutlinedSelect,
   PickerModal,
+  Toggle,
+  type ToggleOption,
 } from "@/components/ui";
 import {
   PropertyKeysSection,
   usePropertyEditForm,
 } from "@/components/property/edit";
+import {
+  normalizePropertyDecimalInput,
+  normalizePropertyIntegerInput,
+} from "@/components/property/add/propertyForm";
 import { PROPERTY_TYPES, theme } from "@/constants";
 import { useDeveloperSuggestions } from "@/lib/hooks";
 import { formatDate } from "@/lib/utils";
+import type { RentalStatus } from "@/types";
+
+const RENTAL_STATUS_OPTIONS: readonly [
+  ToggleOption<RentalStatus>,
+  ToggleOption<RentalStatus>,
+] = [
+  { value: "short", label: "Short Term" },
+  { value: "long", label: "Long Term" },
+];
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -129,13 +144,16 @@ export default function EditPropertyScreen() {
               onPress={() => setShowTypePicker(true)}
               labelBackground={theme.colors.surface}
             />
+          </FormSection>
 
-            {/* Developer Name + Cabinet Slot */}
+          <FormSection
+            title="Building & Management"
+            cardStyle={styles.cardNoGap}
+          >
             <View style={styles.inlineRow}>
-              <View style={{ flex: 1 }}>
+              <View style={styles.flexField}>
                 <Input
                   label="Developer Name"
-                  placeholder="Optional"
                   value={form.developerName}
                   onChangeText={form.setDeveloperName}
                   autoCapitalize="words"
@@ -144,7 +162,7 @@ export default function EditPropertyScreen() {
                   onFocus={() => setDevFocused(true)}
                   onBlur={() => setDevFocused(false)}
                 />
-                {devFocused && devSuggestions.length > 0 && (
+                {devFocused && devSuggestions.length > 0 ? (
                   <ScrollView
                     style={styles.suggestionsDropdown}
                     keyboardShouldPersistTaps="handled"
@@ -170,19 +188,128 @@ export default function EditPropertyScreen() {
                       </Pressable>
                     ))}
                   </ScrollView>
-                )}
+                ) : null}
               </View>
               <Input
+                label="Consultant Name"
+                value={form.consultantName}
+                onChangeText={form.setConsultantName}
+                autoCapitalize="words"
+                containerStyle={styles.flexField}
+                labelBackground={theme.colors.surface}
+              />
+            </View>
+
+            <View style={styles.inlineRow}>
+              <Input
+                label="Lot #"
+                value={form.lotNumber}
+                onChangeText={form.setLotNumber}
+                autoCapitalize="characters"
+                containerStyle={styles.flexField}
+                labelBackground={theme.colors.surface}
+              />
+              <Input
+                label="MAA Fee"
+                value={form.maaFee}
+                onChangeText={(value) =>
+                  form.setMaaFee(normalizePropertyDecimalInput(value))
+                }
+                keyboardType="decimal-pad"
+                maxLength={13}
+                containerStyle={styles.flexField}
+                labelBackground={theme.colors.surface}
+              />
+              <Input
                 label="Cabinet Slot"
-                placeholder="Optional"
                 value={form.cabinetCode}
                 onChangeText={form.setCabinetCode}
                 autoCapitalize="characters"
-                containerStyle={{ width: 130 }}
+                containerStyle={styles.cabinetInput}
                 labelBackground={theme.colors.surface}
-                onFocus={() => setDevFocused(false)}
               />
             </View>
+
+            <Toggle
+              label="Rental Status"
+              options={RENTAL_STATUS_OPTIONS}
+              value={form.rentalStatus}
+              onChange={form.setRentalStatus}
+            />
+          </FormSection>
+
+          <FormSection title="Property Features" cardStyle={styles.cardNoGap}>
+            <View style={styles.inlineRow}>
+              <Input
+                label="Bedrooms"
+                value={form.bedrooms}
+                onChangeText={(value) =>
+                  form.setBedrooms(normalizePropertyIntegerInput(value))
+                }
+                keyboardType="number-pad"
+                maxLength={3}
+                containerStyle={styles.flexField}
+                labelBackground={theme.colors.surface}
+              />
+              <Input
+                label="Bathrooms"
+                value={form.bathrooms}
+                onChangeText={(value) =>
+                  form.setBathrooms(normalizePropertyIntegerInput(value))
+                }
+                keyboardType="number-pad"
+                maxLength={3}
+                containerStyle={styles.flexField}
+                labelBackground={theme.colors.surface}
+              />
+              <Input
+                label="Carparks"
+                value={form.carparks}
+                onChangeText={(value) =>
+                  form.setCarparks(normalizePropertyIntegerInput(value))
+                }
+                keyboardType="number-pad"
+                maxLength={3}
+                containerStyle={styles.flexField}
+                labelBackground={theme.colors.surface}
+              />
+            </View>
+
+            <Input
+              label="Parking Location"
+              value={form.parkingLocation}
+              onChangeText={form.setParkingLocation}
+              autoCapitalize="sentences"
+              labelBackground={theme.colors.surface}
+            />
+            <Input
+              label="Storage Location"
+              value={form.storageLocation}
+              onChangeText={form.setStorageLocation}
+              autoCapitalize="sentences"
+              labelBackground={theme.colors.surface}
+            />
+          </FormSection>
+
+          <FormSection title="Property Notes" cardStyle={styles.cardNoGap}>
+            <Input
+              label="Defects"
+              placeholder="Record any known defects"
+              value={form.defects}
+              onChangeText={form.setDefects}
+              multiline
+              maxLength={2000}
+              labelBackground={theme.colors.surface}
+            />
+            <Input
+              label="Notes"
+              placeholder="Amenities and other useful information"
+              value={form.notes}
+              onChangeText={form.setNotes}
+              multiline
+              maxLength={2000}
+              labelBackground={theme.colors.surface}
+            />
           </FormSection>
 
           {/* ── Landlord Information ──────────────────────────────────────── */}
@@ -357,6 +484,8 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: theme.spacing.sm,
   },
+  flexField: { flex: 1 },
+  cabinetInput: { width: 112 },
   phoneField: { flex: 1, marginTop: 10 },
   dateField: { width: 155 },
   datePicker: { width: "100%" },

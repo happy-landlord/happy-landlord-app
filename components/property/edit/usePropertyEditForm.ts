@@ -21,9 +21,10 @@ import {
 } from "@/lib/hooks";
 import { updateKeyHolder } from "@/lib/services";
 import type { EnrichedKey } from "@/lib/hooks";
-import type { DbKeyInsert, KeyType, PropertyType } from "@/types";
+import type { DbKeyInsert, KeyType, PropertyType, RentalStatus } from "@/types";
 
 import { useAddressDuplicateCheck } from "../useAddressDuplicateCheck";
+import { buildPropertyDetailColumns } from "../add/propertyForm";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -70,6 +71,17 @@ export function usePropertyEditForm(propertyId: string) {
   const [tenantPhone, setTenantPhone] = useState("");
   const [developerName, setDeveloperName] = useState("");
   const [cabinetCode, setCabinetCode] = useState("");
+  const [lotNumber, setLotNumber] = useState("");
+  const [consultantName, setConsultantName] = useState("");
+  const [maaFee, setMaaFee] = useState("");
+  const [defects, setDefects] = useState("");
+  const [parkingLocation, setParkingLocation] = useState("");
+  const [storageLocation, setStorageLocation] = useState("");
+  const [bedrooms, setBedrooms] = useState("");
+  const [bathrooms, setBathrooms] = useState("");
+  const [carparks, setCarparks] = useState("");
+  const [notes, setNotes] = useState("");
+  const [rentalStatus, setRentalStatus] = useState<RentalStatus>("long");
 
   // Sync once when server data arrives
   useSyncOnce(property, (p) => {
@@ -79,6 +91,17 @@ export function usePropertyEditForm(propertyId: string) {
     setLandlordContact(p.landlord?.phone ?? "");
     setDeveloperName(p.developer_name ?? "");
     setCabinetCode(p.cabinet_code ?? "");
+    setLotNumber(p.lot_number ?? "");
+    setConsultantName(p.consultant_name ?? "");
+    setMaaFee(p.maa_fee == null ? "" : String(p.maa_fee));
+    setDefects(p.defects ?? "");
+    setParkingLocation(p.parking_location ?? "");
+    setStorageLocation(p.storage_location ?? "");
+    setBedrooms(p.bedrooms == null ? "" : String(p.bedrooms));
+    setBathrooms(p.bathrooms == null ? "" : String(p.bathrooms));
+    setCarparks(p.carparks == null ? "" : String(p.carparks));
+    setNotes(p.notes ?? "");
+    setRentalStatus(p.rental_status ?? "long");
     // Parse date received from landlord notes ("Keys received: <date>")
     const notes = p.landlord?.notes ?? null;
     const match = notes?.match(/Keys received: (.+)/);
@@ -241,9 +264,22 @@ export function usePropertyEditForm(propertyId: string) {
       await updateDetailsMut.mutateAsync({
         patch: {
           property_type: propertyType,
-          title: title.trim() || null,
-          developer_name: developerName.trim() || null,
-          cabinet_code: cabinetCode.trim() || null,
+          ...buildPropertyDetailColumns({
+            title,
+            developerName,
+            cabinetCode,
+            lotNumber,
+            consultantName,
+            maaFee,
+            defects,
+            parkingLocation,
+            storageLocation,
+            bedrooms,
+            bathrooms,
+            carparks,
+            notes,
+            rentalStatus,
+          }),
           ...addressPatch,
         },
         landlord: {
@@ -306,6 +342,28 @@ export function usePropertyEditForm(propertyId: string) {
     setDeveloperName,
     cabinetCode,
     setCabinetCode,
+    lotNumber,
+    setLotNumber,
+    consultantName,
+    setConsultantName,
+    maaFee,
+    setMaaFee,
+    defects,
+    setDefects,
+    parkingLocation,
+    setParkingLocation,
+    storageLocation,
+    setStorageLocation,
+    bedrooms,
+    setBedrooms,
+    bathrooms,
+    setBathrooms,
+    carparks,
+    setCarparks,
+    notes,
+    setNotes,
+    rentalStatus,
+    setRentalStatus,
     displayKeys,
     totalKeys,
     addKey,

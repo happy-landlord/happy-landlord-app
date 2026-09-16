@@ -209,6 +209,17 @@ export type Database = {
           developer_name: string | null;
           cabinet_code: string | null;
           draft_data: JsonObject | null;
+          lot_number: string | null;
+          consultant_name: string | null;
+          maa_fee: number | null;
+          defects: string | null;
+          parking_location: string | null;
+          storage_location: string | null;
+          bedrooms: number | null;
+          bathrooms: number | null;
+          carparks: number | null;
+          notes: string | null;
+          rental_status: "short" | "long" | null;
         };
         Insert: {
           id?: string;
@@ -240,6 +251,17 @@ export type Database = {
           developer_name?: string | null;
           cabinet_code?: string | null;
           draft_data?: JsonObject | null;
+          lot_number?: string | null;
+          consultant_name?: string | null;
+          maa_fee?: number | null;
+          defects?: string | null;
+          parking_location?: string | null;
+          storage_location?: string | null;
+          bedrooms?: number | null;
+          bathrooms?: number | null;
+          carparks?: number | null;
+          notes?: string | null;
+          rental_status?: "short" | "long" | null;
         };
         Update: {
           id?: string;
@@ -271,6 +293,17 @@ export type Database = {
           developer_name?: string | null;
           cabinet_code?: string | null;
           draft_data?: JsonObject | null;
+          lot_number?: string | null;
+          consultant_name?: string | null;
+          maa_fee?: number | null;
+          defects?: string | null;
+          parking_location?: string | null;
+          storage_location?: string | null;
+          bedrooms?: number | null;
+          bathrooms?: number | null;
+          carparks?: number | null;
+          notes?: string | null;
+          rental_status?: "short" | "long" | null;
         };
         Relationships: [];
       };
@@ -773,6 +806,7 @@ export type DbPropertyInsert = TablesInsert<"properties">;
 export type DbPropertyUpdate = TablesUpdate<"properties">;
 export type PropertyType = DbProperty["property_type"];
 export type PropertyStatus = DbProperty["status"];
+export type RentalStatus = NonNullable<DbProperty["rental_status"]>;
 
 // Keys ───────────────────────────────────────────────────────────────────────
 export type DbKey = Tables<"keys">;

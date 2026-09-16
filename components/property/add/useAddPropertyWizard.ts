@@ -14,11 +14,12 @@ import {
   showSuccessToast,
 } from "@/lib/utils";
 import type { PlaceResult } from "@/components/ui";
-import type { KeyType, PropertyType } from "@/types";
+import type { KeyType, PropertyType, RentalStatus } from "@/types";
 
 import { useAddressDuplicateCheck } from "../useAddressDuplicateCheck";
 import { submitProperty } from "./submitProperty";
 import { restorePropertyDraft, serializePropertyDraft } from "./propertyDraft";
+import { buildPropertyDetailColumns } from "./propertyForm";
 import { usePropertyCode } from "./usePropertyCode";
 
 // ── Wizard draft shapes ──────────────────────────────────────────────────────
@@ -32,6 +33,17 @@ export type PropertyStep = {
   dateReceived: Date;
   developerName: string;
   cabinetCode: string;
+  lotNumber: string;
+  consultantName: string;
+  maaFee: string;
+  defects: string;
+  parkingLocation: string;
+  storageLocation: string;
+  bedrooms: string;
+  bathrooms: string;
+  carparks: string;
+  notes: string;
+  rentalStatus: RentalStatus;
 };
 
 /** A single key line-item in the wizard draft. Maps to one row in `keys`. */
@@ -52,7 +64,7 @@ export type KeySetDraft = {
   photoUris: string[];
   /** Durable draft-storage path aligned with each photo URI; null until saved. */
   photoPaths: (string | null)[];
-  /** IDs of KeyEntry items (from step 1) to include in this keyset. */
+  /** IDs of KeyEntry items (from the Keys step) to include in this keyset. */
   keyIds: string[];
   /** Optional cabinet slot for this keyset (maps to key_sets.cabinet_slot). */
   cabinetSlot: string | null;
@@ -69,12 +81,28 @@ export const DEFAULT_PROPERTY: PropertyStep = {
   dateReceived: new Date(),
   developerName: "",
   cabinetCode: "",
+  lotNumber: "",
+  consultantName: "",
+  maaFee: "",
+  defects: "",
+  parkingLocation: "",
+  storageLocation: "",
+  bedrooms: "",
+  bathrooms: "",
+  carparks: "",
+  notes: "",
+  rentalStatus: "long",
 };
 
-export const STEP_LABELS = ["Property", "Keysets", "Review"] as const;
+export const STEP_LABELS = ["Property", "Keys", "Keysets", "Review"] as const;
 export const TOTAL_STEPS = STEP_LABELS.length;
 
-const NEXT_LABELS = ["Next: Keysets", "Next: Review", "Save Property"] as const;
+const NEXT_LABELS = [
+  "Next: Keys",
+  "Next: Keysets",
+  "Next: Review",
+  "Save Property",
+] as const;
 
 /**
  * Encapsulates all state, navigation and submit orchestration for the
@@ -184,6 +212,20 @@ export function useAddPropertyWizard() {
     Boolean(property.selectedPlace) ||
     Boolean(property.landlordName) ||
     Boolean(property.landlordContact) ||
+    Boolean(property.title) ||
+    Boolean(property.developerName) ||
+    Boolean(property.cabinetCode) ||
+    Boolean(property.lotNumber) ||
+    Boolean(property.consultantName) ||
+    Boolean(property.maaFee) ||
+    Boolean(property.defects) ||
+    Boolean(property.parkingLocation) ||
+    Boolean(property.storageLocation) ||
+    Boolean(property.bedrooms) ||
+    Boolean(property.bathrooms) ||
+    Boolean(property.carparks) ||
+    Boolean(property.notes) ||
+    Boolean(property.rentalStatus) ||
     keys.length > 0 ||
     keySets.length > 0;
 
@@ -228,18 +270,18 @@ export function useAddPropertyWizard() {
         return;
       }
     }
-    if ((step === 1 || step === 2) && keys.length === 0) {
+    if (step === 2 && keys.length === 0) {
       Alert.alert(
         "No keys added",
         "Please add at least one key before continuing.",
       );
       return;
     }
-    // Merge duplicate key entries before leaving step 1
-    if (step === 1) {
+    // Merge duplicate key entries before leaving the Keys step.
+    if (step === 2) {
       setKeys(deduplicateKeyEntries(keys));
     }
-    if (step === 2) {
+    if (step === 3) {
       if (keySets.length === 0) {
         Alert.alert(
           "No keysets added",
@@ -325,14 +367,12 @@ export function useAddPropertyWizard() {
         draftId,
         input: {
           property_code: propertyCode.code,
-          title: property.title.trim() || null,
           ...buildAddressColumns(place),
+          ...buildPropertyDetailColumns(property),
           property_type: property.propertyType,
           landlord_holder_id: null,
           status: "draft",
           images: [],
-          developer_name: property.developerName.trim() || null,
-          cabinet_code: property.cabinetCode.trim() || null,
           draft_data: serializePropertyDraft(property, keys, keySets, step),
         },
       });
@@ -357,14 +397,12 @@ export function useAddPropertyWizard() {
         draftId: initial.id,
         input: {
           property_code: propertyCode.code,
-          title: property.title.trim() || null,
           ...buildAddressColumns(place),
+          ...buildPropertyDetailColumns(property),
           property_type: property.propertyType,
           landlord_holder_id: null,
           status: "draft",
           images: [],
-          developer_name: property.developerName.trim() || null,
-          cabinet_code: property.cabinetCode.trim() || null,
           draft_data: serializePropertyDraft(
             property,
             keys,

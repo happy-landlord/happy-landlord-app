@@ -17,6 +17,8 @@ import { useProperty, usePropertyTenant } from "@/lib/hooks";
 import { BottomSheet, Card, IconBadge, MetaRow } from "@/components/ui";
 import { formatStreetLine } from "@/lib/utils";
 
+import { PropertyInfoSheet } from "./PropertyInfoSheet";
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export type PropertyHeaderCardActions = {
@@ -42,6 +44,7 @@ export const PropertyHeaderCard = memo<PropertyHeaderCardProps>(
     const { isAdmin } = useRole();
     const { data: property } = useProperty(propertyId);
     const [menuOpen, setMenuOpen] = useState(false);
+    const [infoOpen, setInfoOpen] = useState(false);
 
     const { data: fetchedTenant } = usePropertyTenant(
       propertyId,
@@ -100,7 +103,12 @@ export const PropertyHeaderCard = memo<PropertyHeaderCardProps>(
       <>
         <Card flush>
           {/* ── Info row ──────────────────────────────────────────────────── */}
-          <View style={styles.top}>
+          <Pressable
+            style={({ pressed }) => [styles.top, pressed && styles.topPressed]}
+            onPress={() => setInfoOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="View property information"
+          >
             <IconBadge icon={Building2} tone="neutral" size="md" />
 
             <View style={styles.info}>
@@ -120,7 +128,10 @@ export const PropertyHeaderCard = memo<PropertyHeaderCardProps>(
                   styles.moreBtn,
                   pressed && styles.moreBtnPressed,
                 ]}
-                onPress={() => setMenuOpen(true)}
+                onPress={(event) => {
+                  event.stopPropagation();
+                  setMenuOpen(true);
+                }}
                 accessibilityLabel="Property options"
                 hitSlop={8}
               >
@@ -131,7 +142,7 @@ export const PropertyHeaderCard = memo<PropertyHeaderCardProps>(
                 />
               </Pressable>
             ) : null}
-          </View>
+          </Pressable>
 
           {/* ── Landlord meta ──────────────────────────────────────────────── */}
           {landlordMeta.length > 0 ? (
@@ -149,6 +160,14 @@ export const PropertyHeaderCard = memo<PropertyHeaderCardProps>(
           ) : null}
         </Card>
 
+        <PropertyInfoSheet
+          property={property}
+          tenant={tenant}
+          showKeyholders={isAdmin}
+          visible={infoOpen}
+          onClose={() => setInfoOpen(false)}
+        />
+
         {/* ── Options sheet ─────────────────────────────────────────────────── */}
         {actions ? (
           <BottomSheet visible={menuOpen} onClose={() => setMenuOpen(false)}>
@@ -156,26 +175,50 @@ export const PropertyHeaderCard = memo<PropertyHeaderCardProps>(
             <View style={styles.menuItems}>
               {isLeased ? (
                 <MenuItem
-                  icon={<ArrowDownToLine size={18} color={theme.colors.text} strokeWidth={1.8} />}
+                  icon={
+                    <ArrowDownToLine
+                      size={18}
+                      color={theme.colors.text}
+                      strokeWidth={1.8}
+                    />
+                  }
                   label="Collect from Tenant"
                   onPress={() => pick(actions.onCollect)}
                 />
               ) : isInactive ? (
                 <MenuItem
-                  icon={<PackageOpen size={18} color={theme.colors.text} strokeWidth={1.8} />}
+                  icon={
+                    <PackageOpen
+                      size={18}
+                      color={theme.colors.text}
+                      strokeWidth={1.8}
+                    />
+                  }
                   label="Collect from Landlord"
                   onPress={() => pick(actions.onCollectFromLandlord)}
                 />
               ) : (
                 <>
                   <MenuItem
-                    icon={<Users size={18} color={theme.colors.text} strokeWidth={1.8} />}
+                    icon={
+                      <Users
+                        size={18}
+                        color={theme.colors.text}
+                        strokeWidth={1.8}
+                      />
+                    }
                     label="Handover to Tenant"
                     onPress={() => pick(actions.onHandoverTenant)}
                   />
                   <View style={styles.sep} />
                   <MenuItem
-                    icon={<Building2 size={18} color={theme.colors.text} strokeWidth={1.8} />}
+                    icon={
+                      <Building2
+                        size={18}
+                        color={theme.colors.text}
+                        strokeWidth={1.8}
+                      />
+                    }
                     label="Handover to Landlord"
                     onPress={() => pick(actions.onHandoverLandlord)}
                   />
@@ -183,13 +226,25 @@ export const PropertyHeaderCard = memo<PropertyHeaderCardProps>(
               )}
               <View style={styles.sep} />
               <MenuItem
-                icon={<Pencil size={18} color={theme.colors.text} strokeWidth={1.8} />}
+                icon={
+                  <Pencil
+                    size={18}
+                    color={theme.colors.text}
+                    strokeWidth={1.8}
+                  />
+                }
                 label="Edit Property"
                 onPress={() => pick(actions.onEdit)}
               />
               <View style={styles.sep} />
               <MenuItem
-                icon={<Trash2 size={18} color={theme.colors.danger} strokeWidth={1.8} />}
+                icon={
+                  <Trash2
+                    size={18}
+                    color={theme.colors.danger}
+                    strokeWidth={1.8}
+                  />
+                }
                 label="Delete Property"
                 labelStyle={styles.dangerLabel}
                 onPress={() => pick(actions.onDelete)}
@@ -217,7 +272,10 @@ function MenuItem({
 }) {
   return (
     <Pressable
-      style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+      style={({ pressed }) => [
+        styles.menuItem,
+        pressed && styles.menuItemPressed,
+      ]}
       onPress={onPress}
     >
       {icon}
@@ -234,6 +292,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: theme.spacing.md,
     padding: theme.spacing.md,
+  },
+  topPressed: {
+    backgroundColor: theme.colors.neutralSoft,
   },
   info: { flex: 1, gap: 2, minWidth: 0 },
   suburb: {

@@ -14,6 +14,7 @@ import { theme } from "@/constants";
 import { ErrorState, StepIndicator } from "@/components/ui";
 import {
   PropertyInfoStep,
+  KeysStep,
   KeySetsStep,
   ReviewStep,
   STEP_LABELS,
@@ -106,13 +107,19 @@ export default function AddPropertyScreen() {
             data={property}
             onChange={patchProperty}
             onAddressSelect={onAddressSelect}
-            keys={keys}
-            onKeysChange={setKeys}
             addressChecking={addressChecking}
             addressError={addressError}
           />
         )}
         {step === 2 && (
+          <KeysStep
+            data={property}
+            onChange={patchProperty}
+            keys={keys}
+            onKeysChange={setKeys}
+          />
+        )}
+        {step === 3 && (
           <KeySetsStep
             keySets={keySets}
             keys={keys}
@@ -121,7 +128,7 @@ export default function AddPropertyScreen() {
             onChange={setKeySets}
           />
         )}
-        {step === 3 && (
+        {step === 4 && (
           <ReviewStep propertyData={property} keys={keys} keySets={keySets} />
         )}
       </KeyboardAwareScrollView>
