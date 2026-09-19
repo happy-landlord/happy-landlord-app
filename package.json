@@ -96,11 +96,11 @@
     "typescript": "~6.0.3"
   },
   "lint-staged": {
-    "*.{ts,tsx}": [
+    "src/**/*.{ts,tsx}": [
       "eslint --max-warnings=0 --fix",
       "prettier --write"
     ],
-    "*.{js,json,md,yaml,yml}": [
+    "src/**/*.{js,json,md,yaml,yml}": [
       "prettier --write"
     ]
   },
