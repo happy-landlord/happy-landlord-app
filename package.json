@@ -93,14 +93,15 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.0.7",
     "prettier": "^3.8.3",
+    "supabase": "^2.117.0",
     "typescript": "~6.0.3"
   },
   "lint-staged": {
-    "*.{ts,tsx}": [
+    "src/**/*.{ts,tsx}": [
       "eslint --max-warnings=0 --fix",
       "prettier --write"
     ],
-    "*.{js,json,md,yaml,yml}": [
+    "src/**/*.{js,json,md,yaml,yml}": [
       "prettier --write"
     ]
   },
