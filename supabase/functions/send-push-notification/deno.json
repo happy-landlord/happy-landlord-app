@@ -1,0 +1,13 @@
+{
+  "tasks": {
+    "start": "deno run --allow-net --allow-env index.ts"
+  },
+  "imports": {
+    "@supabase/server": "npm:@supabase/server@^1"
+  },
+  "compilerOptions": {
+    "lib": ["deno.window"],
+    "target": "ES2022"
+  }
+}
+

@@ -15,6 +15,7 @@ import "react-native-reanimated";
 import { queryClient } from "@/lib/query";
 import { useDevOverridesStore } from "@/lib/state";
 import { theme } from "@/constants";
+import { useNotificationListener } from "@/lib/hooks/useNotificationListener";
 
 Sentry.init({
   dsn: "https://4a66fc94d624e04205dc8739ec3aa399@o4511500226527232.ingest.us.sentry.io/4511500234391553",
@@ -122,6 +123,12 @@ export default Sentry.wrap(function RootLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Handle initial notification (app launched by tapping notification while closed)
+  // and listen for foreground/response notifications.
+  // Token registration and realtime listeners are handled in the authenticated app layout
+  // via useNotificationsLifecycle().
+  useNotificationListener();
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <BottomSheetModalProvider>
@@ -146,3 +153,4 @@ export default Sentry.wrap(function RootLayout() {
     </GestureHandlerRootView>
   );
 });
+
